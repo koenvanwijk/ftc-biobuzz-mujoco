@@ -28,3 +28,7 @@ cad/**/*.STEP
 # Logs / tunnels
 *.log
 /tmp/
+
+# Auth proxy credentials (never commit)
+web/auth-proxy/.pass
+web/auth-proxy/.user
