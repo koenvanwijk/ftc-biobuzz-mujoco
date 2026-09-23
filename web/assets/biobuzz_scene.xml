@@ -1,0 +1,586 @@
+<?xml version="1.0" ?>
+<mujoco model="biobuzz_ftc_2026">
+  <compiler angle="degree" meshdir="meshes" texturedir="textures" autolimits="true"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast" cone="elliptic" solver="Newton" iterations="50" tolerance="1e-8"/>
+  <visual>
+    <global offwidth="1280" offheight="720"/>
+    <quality shadowsize="2048"/>
+    <headlight diffuse="0.7 0.7 0.7" ambient="0.3 0.3 0.3"/>
+  </visual>
+  <default>
+    <geom friction="0.8 0.005 0.0001" solref="0.02 1" solimp="0.9 0.95 0.001" condim="3"/>
+    <joint damping="0.05" armature="0.01"/>
+    <default class="wheel">
+      <geom type="cylinder" friction="1.2 0.01 0.001" condim="6"/>
+      <joint type="hinge" axis="0 1 0" damping="0.1" armature="0.02"/>
+    </default>
+    <default class="pollen">
+      <geom type="sphere" size="0.03556" mass="0.03" rgba="1.0000 0.8500 0.1000 1.0000" friction="1.1 0.02 0.002" solref="0.015 1" condim="6"/>
+    </default>
+    <default class="nectar">
+      <geom type="sphere" size="0.04572" mass="0.05" friction="0.9 0.02 0.002" solref="0.015 1" condim="6"/>
+    </default>
+  </default>
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.5 0.5 0.55" rgb2="0.42 0.42 0.48" width="512" height="512" mark="edge" markrgb="0.35 0.35 0.4"/>
+    <material name="tile_mat" texture="grid" texrepeat="6 6" reflectance="0.05"/>
+    <material name="wall_mat" rgba="0.4500 0.4500 0.4800 1.0000" reflectance="0.1"/>
+    <material name="hive_mat" rgba="0.2000 0.2000 0.2200 1.0000"/>
+    <material name="red_mat" rgba="0.85 0.12 0.12 0.18"/>
+    <material name="blue_mat" rgba="0.15 0.35 0.9 0.18"/>
+    <material name="red_rim_mat" rgba="0.85 0.12 0.12 1"/>
+    <material name="blue_rim_mat" rgba="0.15 0.35 0.9 1"/>
+    <material name="flower_mat" rgba="0.9 0.9 0.92 1"/>
+    <material name="chassis_mat" rgba="0.2500 0.2500 0.2800 1.0000"/>
+    <material name="intake_mat" rgba="0.3 0.3 0.35 1"/>
+    <material name="shooter_mat" rgba="0.55 0.35 0.1 1"/>
+    <mesh name="hive_frame" file="hive_frame.stl"/>
+    <mesh name="hive_frame_hull" file="hive_frame_hull.stl"/>
+    <mesh name="hive_red" file="hive_red.stl"/>
+    <mesh name="hive_red_hull" file="hive_red_hull.stl"/>
+    <mesh name="hive_blue" file="hive_blue.stl"/>
+    <mesh name="hive_blue_hull" file="hive_blue_hull.stl"/>
+    <mesh name="flower_pos_y" file="flower_pos_y.stl"/>
+    <mesh name="flower_pos_y_hull" file="flower_pos_y_hull.stl"/>
+    <mesh name="flower_neg_y" file="flower_neg_y.stl"/>
+    <mesh name="flower_neg_y_hull" file="flower_neg_y_hull.stl"/>
+    <mesh name="flower_neg_x" file="flower_neg_x.stl"/>
+    <mesh name="flower_neg_x_hull" file="flower_neg_x_hull.stl"/>
+    <mesh name="flower_pos_x" file="flower_pos_x.stl"/>
+    <mesh name="flower_pos_x_hull" file="flower_pos_x_hull.stl"/>
+    <mesh name="cell_rim_front" file="cell_rim_front.stl"/>
+    <mesh name="cell_rim_back" file="cell_rim_back.stl"/>
+    <mesh name="cell_shell" file="cell_shell.stl"/>
+    <mesh name="cell_back_cap" file="cell_back_cap.stl"/>
+    <texture name="apriltag_tex_30" type="2d" file="apriltag_30.png"/>
+    <material name="apriltag_mat_30" texture="apriltag_tex_30" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_31" type="2d" file="apriltag_31.png"/>
+    <material name="apriltag_mat_31" texture="apriltag_tex_31" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_32" type="2d" file="apriltag_32.png"/>
+    <material name="apriltag_mat_32" texture="apriltag_tex_32" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_33" type="2d" file="apriltag_33.png"/>
+    <material name="apriltag_mat_33" texture="apriltag_tex_33" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_34" type="2d" file="apriltag_34.png"/>
+    <material name="apriltag_mat_34" texture="apriltag_tex_34" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_35" type="2d" file="apriltag_35.png"/>
+    <material name="apriltag_mat_35" texture="apriltag_tex_35" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_36" type="2d" file="apriltag_36.png"/>
+    <material name="apriltag_mat_36" texture="apriltag_tex_36" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_37" type="2d" file="apriltag_37.png"/>
+    <material name="apriltag_mat_37" texture="apriltag_tex_37" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_38" type="2d" file="apriltag_38.png"/>
+    <material name="apriltag_mat_38" texture="apriltag_tex_38" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_39" type="2d" file="apriltag_39.png"/>
+    <material name="apriltag_mat_39" texture="apriltag_tex_39" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_40" type="2d" file="apriltag_40.png"/>
+    <material name="apriltag_mat_40" texture="apriltag_tex_40" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_41" type="2d" file="apriltag_41.png"/>
+    <material name="apriltag_mat_41" texture="apriltag_tex_41" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_42" type="2d" file="apriltag_42.png"/>
+    <material name="apriltag_mat_42" texture="apriltag_tex_42" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_43" type="2d" file="apriltag_43.png"/>
+    <material name="apriltag_mat_43" texture="apriltag_tex_43" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_44" type="2d" file="apriltag_44.png"/>
+    <material name="apriltag_mat_44" texture="apriltag_tex_44" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+    <texture name="apriltag_tex_45" type="2d" file="apriltag_45.png"/>
+    <material name="apriltag_mat_45" texture="apriltag_tex_45" texuniform="true" reflectance="0.0" rgba="1 1 1 1"/>
+  </asset>
+  <worldbody>
+    <light name="sun" pos="0 0 4" dir="0 0 -1" diffuse="0.9 0.9 0.85" specular="0.3 0.3 0.3" castshadow="true"/>
+    <light pos="2 2 3" dir="-0.5 -0.5 -1" diffuse="0.4 0.4 0.4"/>
+    <geom name="tiles" type="box" size="1.82880 1.82880 0.00750" pos="0.00000 0.00000 0.00750" material="tile_mat" friction="1.0 0.01 0.001"/>
+    <geom name="ground" type="plane" size="5 5 0.1" pos="0 0 0" rgba="0.3 0.3 0.3 0" contype="1" conaffinity="1"/>
+    <geom name="wall_pos_y" type="box" pos="0.00000 1.85380 0.16740" size="1.87880 0.02500 0.15240" material="wall_mat"/>
+    <geom name="wall_neg_y" type="box" pos="0.00000 -1.85380 0.16740" size="1.87880 0.02500 0.15240" material="wall_mat"/>
+    <geom name="wall_neg_x" type="box" pos="-1.85380 0.00000 0.16740" size="0.02500 1.82880 0.15240" material="wall_mat"/>
+    <geom name="wall_pos_x" type="box" pos="1.85380 0.00000 0.16740" size="0.02500 1.82880 0.15240" material="wall_mat"/>
+    <geom name="garden_red" type="box" pos="-1.53680 -1.80330 0.01700" size="0.29200 0.02550 0.00200" rgba="0.8500 0.1200 0.1200 0.7000" contype="0" conaffinity="0"/>
+    <geom name="garden_blue" type="box" pos="1.53680 1.80330 0.01700" size="0.29200 0.02550 0.00200" rgba="0.1500 0.3500 0.9000 0.7000" contype="0" conaffinity="0"/>
+    <geom name="loading_red" type="box" pos="-1.68905 -1.38680 0.01650" size="0.13975 0.29200 0.00150" rgba="0.8500 0.1200 0.1200 0.3500" contype="0" conaffinity="0"/>
+    <geom name="loading_blue" type="box" pos="1.68905 1.38680 0.01650" size="0.13975 0.29200 0.00150" rgba="0.1500 0.3500 0.9000 0.3500" contype="0" conaffinity="0"/>
+    <body name="hive_structure" pos="0 0 0">
+      <body name="hive_red" pos="0 0 0">
+        <joint name="hive_red_tip" type="hinge" axis="1 0 0" pos="0.00000 0.00000 1.13150" limited="true" range="-61.0 61.0" damping="8" armature="0.2" frictionloss="2"/>
+        <geom name="hive_red_vis" type="mesh" mesh="hive_red" material="red_mat" contype="0" conaffinity="0" group="1"/>
+        <geom name="hive_red_col" type="mesh" mesh="hive_red_hull" rgba="0.5 0.5 0.5 0" contype="0" conaffinity="0" group="3"/>
+        <body name="red_scoring_shell" pos="-0.32360 -0.40465 1.02855" euler="-150.0000 0 0">
+          <geom name="red_scoring_cup_floor" type="box" pos="0.00000 0.00000 0.19900" size="0.28400 0.15250 0.00900" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_scoring_cup_ceiling" type="box" pos="0.00000 0.00000 -0.19900" size="0.28400 0.15250 0.00900" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_scoring_cup_back" type="box" pos="0.00000 -0.16150 0.00000" size="0.28400 0.00900 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_scoring_cup_left" type="box" pos="-0.27500 0.00000 0.00000" size="0.00900 0.15250 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_scoring_cup_right" type="box" pos="0.27500 0.00000 0.00000" size="0.00900 0.15250 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_scoring_cup_lip" type="box" pos="0.00000 0.15050 0.18500" size="0.26600 0.00200 0.00500" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_scoring_ring_front" type="mesh" mesh="cell_rim_front" pos="0 0 0" euler="0 0 0" material="red_rim_mat" rgba="0.8500 0.1200 0.1200 1.0000" contype="0" conaffinity="0" group="1"/>
+          <geom name="red_scoring_ring_back" type="mesh" mesh="cell_rim_back" pos="0 0 0" euler="0 0 0" material="red_rim_mat" rgba="0.8500 0.1200 0.1200 1.0000" contype="0" conaffinity="0" group="1"/>
+          <geom name="red_scoring_shell_vis" type="mesh" mesh="cell_shell" pos="0 0 0" euler="0 0 0" rgba="0.8500 0.1200 0.1200 0.1800" contype="0" conaffinity="0" group="1"/>
+          <geom name="red_scoring_back_cap" type="mesh" mesh="cell_back_cap" pos="0 0 0" euler="0 0 0" rgba="0.8500 0.1200 0.1200 0.1800" contype="0" conaffinity="0" group="1"/>
+        </body>
+        <body name="red_audience_shell" pos="-0.32360 0.27815 1.42300" euler="-150.0000 0 0">
+          <geom name="red_audience_cup_floor" type="box" pos="0.00000 0.00000 0.19900" size="0.28400 0.15250 0.00900" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_audience_cup_ceiling" type="box" pos="0.00000 0.00000 -0.19900" size="0.28400 0.15250 0.00900" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_audience_cup_back" type="box" pos="0.00000 0.16150 0.00000" size="0.28400 0.00900 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_audience_cup_left" type="box" pos="-0.27500 0.00000 0.00000" size="0.00900 0.15250 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_audience_cup_right" type="box" pos="0.27500 0.00000 0.00000" size="0.00900 0.15250 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_audience_cup_lip" type="box" pos="0.00000 -0.15050 0.18500" size="0.26600 0.00200 0.00500" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="red_audience_ring_front" type="mesh" mesh="cell_rim_front" pos="0 0 0" euler="0 0 180" material="red_rim_mat" rgba="0.8500 0.1200 0.1200 1.0000" contype="0" conaffinity="0" group="1"/>
+          <geom name="red_audience_ring_back" type="mesh" mesh="cell_rim_back" pos="0 0 0" euler="0 0 180" material="red_rim_mat" rgba="0.8500 0.1200 0.1200 1.0000" contype="0" conaffinity="0" group="1"/>
+          <geom name="red_audience_shell_vis" type="mesh" mesh="cell_shell" pos="0 0 0" euler="0 0 180" rgba="0.8500 0.1200 0.1200 0.1800" contype="0" conaffinity="0" group="1"/>
+          <geom name="red_audience_back_cap" type="mesh" mesh="cell_back_cap" pos="0 0 0" euler="0 0 180" rgba="0.8500 0.1200 0.1200 0.1800" contype="0" conaffinity="0" group="1"/>
+        </body>
+        <body name="red_cell_scoring" pos="-0.32364 -0.28955 0.90536" euler="-150.0000 0 0">
+          <body name="apriltag_body_30" pos="-0.16139 0.00000 0.00400">
+            <geom name="apriltag_geom_30" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_30" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_30" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="1.00000 0.00000 0.00000 0.00000 1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_31" pos="-0.06893 0.00000 0.00400">
+            <geom name="apriltag_geom_31" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_31" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_31" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="1.00000 0.00000 0.00000 0.00000 1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_32" pos="0.06893 0.00000 0.00400">
+            <geom name="apriltag_geom_32" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_32" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_32" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="1.00000 0.00000 0.00000 0.00000 1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_33" pos="0.16139 0.00000 0.00400">
+            <geom name="apriltag_geom_33" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_33" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_33" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="1.00000 0.00000 0.00000 0.00000 1.00000 0.00000"/>
+          </body>
+        </body>
+        <body name="red_cell_audience" pos="-0.32364 0.32747 1.26160" euler="-150.0000 0 0">
+          <body name="apriltag_body_34" pos="-0.16139 0.00000 0.00400">
+            <geom name="apriltag_geom_34" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_34" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_34" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="1.00000 0.00000 0.00000 0.00000 1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_35" pos="-0.06893 0.00000 0.00400">
+            <geom name="apriltag_geom_35" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_35" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_35" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="1.00000 0.00000 0.00000 0.00000 1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_36" pos="0.06893 0.00000 0.00400">
+            <geom name="apriltag_geom_36" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_36" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_36" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="1.00000 0.00000 0.00000 0.00000 1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_37" pos="0.16139 0.00000 0.00400">
+            <geom name="apriltag_geom_37" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_37" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_37" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="1.00000 0.00000 0.00000 0.00000 1.00000 0.00000"/>
+          </body>
+        </body>
+      </body>
+      <body name="hive_blue" pos="0 0 0">
+        <joint name="hive_blue_tip" type="hinge" axis="1 0 0" pos="0.00000 0.00000 1.13150" limited="true" range="-61.0 61.0" damping="8" armature="0.2" frictionloss="2"/>
+        <geom name="hive_blue_vis" type="mesh" mesh="hive_blue" material="blue_mat" contype="0" conaffinity="0" group="1"/>
+        <geom name="hive_blue_col" type="mesh" mesh="hive_blue_hull" rgba="0.5 0.5 0.5 0" contype="0" conaffinity="0" group="3"/>
+        <body name="blue_audience_shell" pos="0.32410 0.40465 1.02855" euler="150.0000 0 0">
+          <geom name="blue_audience_cup_floor" type="box" pos="0.00000 0.00000 0.19900" size="0.28400 0.15250 0.00900" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_audience_cup_ceiling" type="box" pos="0.00000 0.00000 -0.19900" size="0.28400 0.15250 0.00900" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_audience_cup_back" type="box" pos="0.00000 0.16150 0.00000" size="0.28400 0.00900 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_audience_cup_left" type="box" pos="-0.27500 0.00000 0.00000" size="0.00900 0.15250 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_audience_cup_right" type="box" pos="0.27500 0.00000 0.00000" size="0.00900 0.15250 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_audience_cup_lip" type="box" pos="0.00000 -0.15050 0.18500" size="0.26600 0.00200 0.00500" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_audience_ring_front" type="mesh" mesh="cell_rim_front" pos="0 0 0" euler="0 0 180" material="blue_rim_mat" rgba="0.1500 0.3500 0.9000 1.0000" contype="0" conaffinity="0" group="1"/>
+          <geom name="blue_audience_ring_back" type="mesh" mesh="cell_rim_back" pos="0 0 0" euler="0 0 180" material="blue_rim_mat" rgba="0.1500 0.3500 0.9000 1.0000" contype="0" conaffinity="0" group="1"/>
+          <geom name="blue_audience_shell_vis" type="mesh" mesh="cell_shell" pos="0 0 0" euler="0 0 180" rgba="0.1500 0.3500 0.9000 0.1800" contype="0" conaffinity="0" group="1"/>
+          <geom name="blue_audience_back_cap" type="mesh" mesh="cell_back_cap" pos="0 0 0" euler="0 0 180" rgba="0.1500 0.3500 0.9000 0.1800" contype="0" conaffinity="0" group="1"/>
+        </body>
+        <body name="blue_scoring_shell" pos="0.32410 -0.27815 1.42300" euler="150.0000 0 0">
+          <geom name="blue_scoring_cup_floor" type="box" pos="0.00000 0.00000 0.19900" size="0.28400 0.15250 0.00900" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_scoring_cup_ceiling" type="box" pos="0.00000 0.00000 -0.19900" size="0.28400 0.15250 0.00900" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_scoring_cup_back" type="box" pos="0.00000 -0.16150 0.00000" size="0.28400 0.00900 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_scoring_cup_left" type="box" pos="-0.27500 0.00000 0.00000" size="0.00900 0.15250 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_scoring_cup_right" type="box" pos="0.27500 0.00000 0.00000" size="0.00900 0.15250 0.20800" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_scoring_cup_lip" type="box" pos="0.00000 0.15050 0.18500" size="0.26600 0.00200 0.00500" rgba="0.5 0.5 0.5 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+          <geom name="blue_scoring_ring_front" type="mesh" mesh="cell_rim_front" pos="0 0 0" euler="0 0 0" material="blue_rim_mat" rgba="0.1500 0.3500 0.9000 1.0000" contype="0" conaffinity="0" group="1"/>
+          <geom name="blue_scoring_ring_back" type="mesh" mesh="cell_rim_back" pos="0 0 0" euler="0 0 0" material="blue_rim_mat" rgba="0.1500 0.3500 0.9000 1.0000" contype="0" conaffinity="0" group="1"/>
+          <geom name="blue_scoring_shell_vis" type="mesh" mesh="cell_shell" pos="0 0 0" euler="0 0 0" rgba="0.1500 0.3500 0.9000 0.1800" contype="0" conaffinity="0" group="1"/>
+          <geom name="blue_scoring_back_cap" type="mesh" mesh="cell_back_cap" pos="0 0 0" euler="0 0 0" rgba="0.1500 0.3500 0.9000 0.1800" contype="0" conaffinity="0" group="1"/>
+        </body>
+        <body name="blue_cell_audience" pos="0.32406 0.28955 0.90536" euler="150.0000 0 0">
+          <body name="apriltag_body_38" pos="0.16139 0.00000 0.00400">
+            <geom name="apriltag_geom_38" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_38" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_38" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="-1.00000 0.00000 0.00000 0.00000 -1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_39" pos="0.06893 0.00000 0.00400">
+            <geom name="apriltag_geom_39" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_39" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_39" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="-1.00000 0.00000 0.00000 0.00000 -1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_40" pos="-0.06893 0.00000 0.00400">
+            <geom name="apriltag_geom_40" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_40" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_40" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="-1.00000 0.00000 0.00000 0.00000 -1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_41" pos="-0.16139 0.00000 0.00400">
+            <geom name="apriltag_geom_41" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_41" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_41" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="-1.00000 0.00000 0.00000 0.00000 -1.00000 0.00000"/>
+          </body>
+        </body>
+        <body name="blue_cell_scoring" pos="0.32406 -0.32747 1.26160" euler="150.0000 0 0">
+          <body name="apriltag_body_42" pos="0.16139 0.00000 0.00400">
+            <geom name="apriltag_geom_42" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_42" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_42" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="-1.00000 0.00000 0.00000 0.00000 -1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_43" pos="0.06893 0.00000 0.00400">
+            <geom name="apriltag_geom_43" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_43" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_43" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="-1.00000 0.00000 0.00000 0.00000 -1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_44" pos="-0.06893 0.00000 0.00400">
+            <geom name="apriltag_geom_44" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_44" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_44" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="-1.00000 0.00000 0.00000 0.00000 -1.00000 0.00000"/>
+          </body>
+          <body name="apriltag_body_45" pos="-0.16139 0.00000 0.00400">
+            <geom name="apriltag_geom_45" type="box" size="0.04127 0.04127 0.00300" material="apriltag_mat_45" contype="0" conaffinity="0" group="1"/>
+            <site name="apriltag_45" pos="0 0 0" size="0.01" rgba="0 1 0 0" xyaxes="-1.00000 0.00000 0.00000 0.00000 -1.00000 0.00000"/>
+          </body>
+        </body>
+      </body>
+      <body name="hive_frame" pos="0 0 0">
+        <geom name="hive_frame_vis" type="mesh" mesh="hive_frame" material="hive_mat" contype="0" conaffinity="0" group="1"/>
+        <geom name="hive_frame_leg_sw_col" type="capsule" fromto="-0.60000 -0.46000 0.03500 -0.60000 0.00000 1.13150" size="0.03" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
+        <geom name="hive_frame_leg_nw_col" type="capsule" fromto="-0.60000 0.46000 0.03500 -0.60000 0.00000 1.13150" size="0.03" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
+        <geom name="hive_frame_leg_se_col" type="capsule" fromto="0.60000 -0.46000 0.03500 0.60000 0.00000 1.13150" size="0.03" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
+        <geom name="hive_frame_leg_ne_col" type="capsule" fromto="0.60000 0.46000 0.03500 0.60000 0.00000 1.13150" size="0.03" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
+        <geom name="hive_frame_base_neg_x_col" type="box" pos="-0.60000 0.00000 0.06500" size="0.02000 0.48000 0.03000" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
+        <geom name="hive_frame_base_pos_x_col" type="box" pos="0.60000 0.00000 0.06500" size="0.02000 0.48000 0.03000" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
+        <geom name="hive_frame_crossbar_col" type="capsule" fromto="-0.60000 0.00000 1.13150 0.60000 0.00000 1.13150" size="0.03" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
+      </body>
+    </body>
+    <body name="flower_pos_y" pos="0 0 0">
+      <geom name="flower_pos_y_vis" type="mesh" mesh="flower_pos_y" material="flower_mat" contype="0" conaffinity="0" group="1"/>
+      <geom name="flower_pos_y_col" type="mesh" mesh="flower_pos_y_hull" rgba="0.8 0.8 0.8 0" contype="0" conaffinity="0" group="3"/>
+      <geom name="flower_pos_y_floor" type="cylinder" pos="0.59417 1.72826 0.01800" size="0.06172 0.00300" rgba="0.85 0.85 0.88 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_0" type="box" pos="0.64889 1.72826 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 90.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_1" type="box" pos="0.64156 1.75562 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 120.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_2" type="box" pos="0.62153 1.77565 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 150.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_3" type="box" pos="0.59417 1.78298 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 180.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_4" type="box" pos="0.56681 1.77565 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 210.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_5" type="box" pos="0.54678 1.75562 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 240.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_6" type="box" pos="0.53945 1.72826 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 270.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_7" type="box" pos="0.54678 1.70090 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 300.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_8" type="box" pos="0.56681 1.68087 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 330.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_9" type="box" pos="0.59417 1.67354 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 360.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_10" type="box" pos="0.62153 1.68087 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 390.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_y_collar_11" type="box" pos="0.64156 1.70090 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 420.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+    </body>
+    <body name="flower_neg_y" pos="0 0 0">
+      <geom name="flower_neg_y_vis" type="mesh" mesh="flower_neg_y" material="flower_mat" contype="0" conaffinity="0" group="1"/>
+      <geom name="flower_neg_y_col" type="mesh" mesh="flower_neg_y_hull" rgba="0.8 0.8 0.8 0" contype="0" conaffinity="0" group="3"/>
+      <geom name="flower_neg_y_floor" type="cylinder" pos="-0.59417 -1.72826 0.01800" size="0.06172 0.00300" rgba="0.85 0.85 0.88 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_0" type="box" pos="-0.53945 -1.72826 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 90.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_1" type="box" pos="-0.54678 -1.70090 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 120.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_2" type="box" pos="-0.56681 -1.68087 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 150.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_3" type="box" pos="-0.59417 -1.67354 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 180.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_4" type="box" pos="-0.62153 -1.68087 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 210.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_5" type="box" pos="-0.64156 -1.70090 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 240.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_6" type="box" pos="-0.64889 -1.72826 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 270.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_7" type="box" pos="-0.64156 -1.75562 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 300.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_8" type="box" pos="-0.62153 -1.77565 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 330.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_9" type="box" pos="-0.59417 -1.78298 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 360.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_10" type="box" pos="-0.56681 -1.77565 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 390.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_y_collar_11" type="box" pos="-0.54678 -1.75562 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 420.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+    </body>
+    <body name="flower_neg_x" pos="0 0 0">
+      <geom name="flower_neg_x_vis" type="mesh" mesh="flower_neg_x" material="flower_mat" contype="0" conaffinity="0" group="1"/>
+      <geom name="flower_neg_x_col" type="mesh" mesh="flower_neg_x_hull" rgba="0.8 0.8 0.8 0" contype="0" conaffinity="0" group="3"/>
+      <geom name="flower_neg_x_floor" type="cylinder" pos="-1.72826 0.59417 0.01800" size="0.06172 0.00300" rgba="0.85 0.85 0.88 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_0" type="box" pos="-1.67354 0.59417 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 90.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_1" type="box" pos="-1.68087 0.62153 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 120.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_2" type="box" pos="-1.70090 0.64156 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 150.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_3" type="box" pos="-1.72826 0.64889 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 180.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_4" type="box" pos="-1.75562 0.64156 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 210.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_5" type="box" pos="-1.77565 0.62153 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 240.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_6" type="box" pos="-1.78298 0.59417 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 270.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_7" type="box" pos="-1.77565 0.56681 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 300.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_8" type="box" pos="-1.75562 0.54678 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 330.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_9" type="box" pos="-1.72826 0.53945 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 360.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_10" type="box" pos="-1.70090 0.54678 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 390.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_neg_x_collar_11" type="box" pos="-1.68087 0.56681 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 420.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+    </body>
+    <body name="flower_pos_x" pos="0 0 0">
+      <geom name="flower_pos_x_vis" type="mesh" mesh="flower_pos_x" material="flower_mat" contype="0" conaffinity="0" group="1"/>
+      <geom name="flower_pos_x_col" type="mesh" mesh="flower_pos_x_hull" rgba="0.8 0.8 0.8 0" contype="0" conaffinity="0" group="3"/>
+      <geom name="flower_pos_x_floor" type="cylinder" pos="1.72826 -0.59417 0.01800" size="0.06172 0.00300" rgba="0.85 0.85 0.88 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_0" type="box" pos="1.78298 -0.59417 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 90.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_1" type="box" pos="1.77565 -0.56681 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 120.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_2" type="box" pos="1.75562 -0.54678 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 150.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_3" type="box" pos="1.72826 -0.53945 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 180.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_4" type="box" pos="1.70090 -0.54678 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 210.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_5" type="box" pos="1.68087 -0.56681 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 240.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_6" type="box" pos="1.67354 -0.59417 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 270.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_7" type="box" pos="1.68087 -0.62153 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 300.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_8" type="box" pos="1.70090 -0.64156 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 330.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_9" type="box" pos="1.72826 -0.64889 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 360.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_10" type="box" pos="1.75562 -0.64156 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 390.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+      <geom name="flower_pos_x_collar_11" type="box" pos="1.77565 -0.62153 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 420.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
+    </body>
+    <body name="nectar_red_0" pos="-0.37360 0.25914 1.28237">
+      <freejoint name="nectar_red_0_fj"/>
+      <geom name="nectar_red_g_0" class="nectar" rgba="0.8500 0.1200 0.1200 1.0000"/>
+    </body>
+    <body name="nectar_red_1" pos="-0.46360 0.25914 1.28237">
+      <freejoint name="nectar_red_1_fj"/>
+      <geom name="nectar_red_g_1" class="nectar" rgba="0.8500 0.1200 0.1200 1.0000"/>
+    </body>
+    <body name="nectar_red_2" pos="-0.55360 0.25914 1.28237">
+      <freejoint name="nectar_red_2_fj"/>
+      <geom name="nectar_red_g_2" class="nectar" rgba="0.8500 0.1200 0.1200 1.0000"/>
+    </body>
+    <body name="nectar_blue_0" pos="0.37410 -0.25914 1.28237">
+      <freejoint name="nectar_blue_0_fj"/>
+      <geom name="nectar_blue_g_0" class="nectar" rgba="0.1500 0.3500 0.9000 1.0000"/>
+    </body>
+    <body name="nectar_blue_1" pos="0.46410 -0.25914 1.28237">
+      <freejoint name="nectar_blue_1_fj"/>
+      <geom name="nectar_blue_g_1" class="nectar" rgba="0.1500 0.3500 0.9000 1.0000"/>
+    </body>
+    <body name="nectar_blue_2" pos="0.55410 -0.25914 1.28237">
+      <freejoint name="nectar_blue_2_fj"/>
+      <geom name="nectar_blue_g_2" class="nectar" rgba="0.1500 0.3500 0.9000 1.0000"/>
+    </body>
+    <body name="nectar_extra_red_0" pos="-0.15000 0.00000 3.50000">
+      <freejoint name="nectar_extra_red_0_fj"/>
+      <geom name="nectar_extra_red_0_g" class="nectar" rgba="0.8500 0.1200 0.1200 1.0000"/>
+    </body>
+    <body name="nectar_extra_red_1" pos="-0.13000 0.00000 3.50000">
+      <freejoint name="nectar_extra_red_1_fj"/>
+      <geom name="nectar_extra_red_1_g" class="nectar" rgba="0.8500 0.1200 0.1200 1.0000"/>
+    </body>
+    <body name="nectar_extra_red_2" pos="-0.11000 0.00000 3.50000">
+      <freejoint name="nectar_extra_red_2_fj"/>
+      <geom name="nectar_extra_red_2_g" class="nectar" rgba="0.8500 0.1200 0.1200 1.0000"/>
+    </body>
+    <body name="nectar_extra_red_3" pos="-0.09000 0.00000 3.50000">
+      <freejoint name="nectar_extra_red_3_fj"/>
+      <geom name="nectar_extra_red_3_g" class="nectar" rgba="0.8500 0.1200 0.1200 1.0000"/>
+    </body>
+    <body name="nectar_extra_red_4" pos="-0.07000 0.00000 3.50000">
+      <freejoint name="nectar_extra_red_4_fj"/>
+      <geom name="nectar_extra_red_4_g" class="nectar" rgba="0.8500 0.1200 0.1200 1.0000"/>
+    </body>
+    <body name="nectar_extra_blue_0" pos="0.15000 0.00000 3.50000">
+      <freejoint name="nectar_extra_blue_0_fj"/>
+      <geom name="nectar_extra_blue_0_g" class="nectar" rgba="0.1500 0.3500 0.9000 1.0000"/>
+    </body>
+    <body name="nectar_extra_blue_1" pos="0.17000 0.00000 3.50000">
+      <freejoint name="nectar_extra_blue_1_fj"/>
+      <geom name="nectar_extra_blue_1_g" class="nectar" rgba="0.1500 0.3500 0.9000 1.0000"/>
+    </body>
+    <body name="nectar_extra_blue_2" pos="0.19000 0.00000 3.50000">
+      <freejoint name="nectar_extra_blue_2_fj"/>
+      <geom name="nectar_extra_blue_2_g" class="nectar" rgba="0.1500 0.3500 0.9000 1.0000"/>
+    </body>
+    <body name="nectar_extra_blue_3" pos="0.21000 0.00000 3.50000">
+      <freejoint name="nectar_extra_blue_3_fj"/>
+      <geom name="nectar_extra_blue_3_g" class="nectar" rgba="0.1500 0.3500 0.9000 1.0000"/>
+    </body>
+    <body name="nectar_extra_blue_4" pos="0.23000 0.00000 3.50000">
+      <freejoint name="nectar_extra_blue_4_fj"/>
+      <geom name="nectar_extra_blue_4_g" class="nectar" rgba="0.1500 0.3500 0.9000 1.0000"/>
+    </body>
+    <body name="pollen_00" pos="0.59417 1.72826 0.05756">
+      <freejoint name="pollen_fj_00"/>
+      <geom name="pollen_g_00" class="pollen"/>
+    </body>
+    <body name="pollen_01" pos="0.59417 1.72826 0.12726">
+      <freejoint name="pollen_fj_01"/>
+      <geom name="pollen_g_01" class="pollen"/>
+    </body>
+    <body name="pollen_02" pos="0.59417 1.72826 0.19696">
+      <freejoint name="pollen_fj_02"/>
+      <geom name="pollen_g_02" class="pollen"/>
+    </body>
+    <body name="pollen_03" pos="0.59417 1.72826 0.26665">
+      <freejoint name="pollen_fj_03"/>
+      <geom name="pollen_g_03" class="pollen"/>
+    </body>
+    <body name="pollen_04" pos="-0.59417 -1.72826 0.05756">
+      <freejoint name="pollen_fj_04"/>
+      <geom name="pollen_g_04" class="pollen"/>
+    </body>
+    <body name="pollen_05" pos="-0.59417 -1.72826 0.12726">
+      <freejoint name="pollen_fj_05"/>
+      <geom name="pollen_g_05" class="pollen"/>
+    </body>
+    <body name="pollen_06" pos="-0.59417 -1.72826 0.19696">
+      <freejoint name="pollen_fj_06"/>
+      <geom name="pollen_g_06" class="pollen"/>
+    </body>
+    <body name="pollen_07" pos="-0.59417 -1.72826 0.26665">
+      <freejoint name="pollen_fj_07"/>
+      <geom name="pollen_g_07" class="pollen"/>
+    </body>
+    <body name="pollen_08" pos="-1.72826 0.59417 0.05756">
+      <freejoint name="pollen_fj_08"/>
+      <geom name="pollen_g_08" class="pollen"/>
+    </body>
+    <body name="pollen_09" pos="-1.72826 0.59417 0.12726">
+      <freejoint name="pollen_fj_09"/>
+      <geom name="pollen_g_09" class="pollen"/>
+    </body>
+    <body name="pollen_10" pos="-1.72826 0.59417 0.19696">
+      <freejoint name="pollen_fj_10"/>
+      <geom name="pollen_g_10" class="pollen"/>
+    </body>
+    <body name="pollen_11" pos="-1.72826 0.59417 0.26665">
+      <freejoint name="pollen_fj_11"/>
+      <geom name="pollen_g_11" class="pollen"/>
+    </body>
+    <body name="pollen_12" pos="1.72826 -0.59417 0.05756">
+      <freejoint name="pollen_fj_12"/>
+      <geom name="pollen_g_12" class="pollen"/>
+    </body>
+    <body name="pollen_13" pos="1.72826 -0.59417 0.12726">
+      <freejoint name="pollen_fj_13"/>
+      <geom name="pollen_g_13" class="pollen"/>
+    </body>
+    <body name="pollen_14" pos="1.72826 -0.59417 0.19696">
+      <freejoint name="pollen_fj_14"/>
+      <geom name="pollen_g_14" class="pollen"/>
+    </body>
+    <body name="pollen_15" pos="1.72826 -0.59417 0.26665">
+      <freejoint name="pollen_fj_15"/>
+      <geom name="pollen_g_15" class="pollen"/>
+    </body>
+    <body name="pollen_16" pos="-1.78324 -1.78324 0.05156">
+      <freejoint name="pollen_fj_16"/>
+      <geom name="pollen_g_16" class="pollen"/>
+    </body>
+    <body name="pollen_17" pos="-1.70856 -1.78324 0.05156">
+      <freejoint name="pollen_fj_17"/>
+      <geom name="pollen_g_17" class="pollen"/>
+    </body>
+    <body name="pollen_18" pos="-1.63389 -1.78324 0.05156">
+      <freejoint name="pollen_fj_18"/>
+      <geom name="pollen_g_18" class="pollen"/>
+    </body>
+    <body name="pollen_19" pos="-1.55921 -1.78324 0.05156">
+      <freejoint name="pollen_fj_19"/>
+      <geom name="pollen_g_19" class="pollen"/>
+    </body>
+    <body name="pollen_20" pos="1.78324 1.78324 0.05156">
+      <freejoint name="pollen_fj_20"/>
+      <geom name="pollen_g_20" class="pollen"/>
+    </body>
+    <body name="pollen_21" pos="1.70856 1.78324 0.05156">
+      <freejoint name="pollen_fj_21"/>
+      <geom name="pollen_g_21" class="pollen"/>
+    </body>
+    <body name="pollen_22" pos="1.63389 1.78324 0.05156">
+      <freejoint name="pollen_fj_22"/>
+      <geom name="pollen_g_22" class="pollen"/>
+    </body>
+    <body name="pollen_23" pos="1.55921 1.78324 0.05156">
+      <freejoint name="pollen_fj_23"/>
+      <geom name="pollen_g_23" class="pollen"/>
+    </body>
+    <body name="pollen_24" pos="-1.55880 -1.41680 0.05156">
+      <freejoint name="pollen_fj_24"/>
+      <geom name="pollen_g_24" class="pollen"/>
+    </body>
+    <body name="pollen_25" pos="-1.48412 -1.41680 0.05156">
+      <freejoint name="pollen_fj_25"/>
+      <geom name="pollen_g_25" class="pollen"/>
+    </body>
+    <body name="pollen_26" pos="-1.55880 -1.34212 0.05156">
+      <freejoint name="pollen_fj_26"/>
+      <geom name="pollen_g_26" class="pollen"/>
+    </body>
+    <body name="pollen_27" pos="-1.48412 -1.34212 0.05156">
+      <freejoint name="pollen_fj_27"/>
+      <geom name="pollen_g_27" class="pollen"/>
+    </body>
+    <body name="pollen_28" pos="-1.61614 1.19146 0.05156">
+      <freejoint name="pollen_fj_28"/>
+      <geom name="pollen_g_28" class="pollen"/>
+    </body>
+    <body name="pollen_29" pos="-1.54146 1.19146 0.05156">
+      <freejoint name="pollen_fj_29"/>
+      <geom name="pollen_g_29" class="pollen"/>
+    </body>
+    <body name="pollen_30" pos="-1.61614 1.26614 0.05156">
+      <freejoint name="pollen_fj_30"/>
+      <geom name="pollen_g_30" class="pollen"/>
+    </body>
+    <body name="pollen_31" pos="-1.54146 1.26614 0.05156">
+      <freejoint name="pollen_fj_31"/>
+      <geom name="pollen_g_31" class="pollen"/>
+    </body>
+    <body name="pollen_32" pos="1.54146 -1.26614 0.05156">
+      <freejoint name="pollen_fj_32"/>
+      <geom name="pollen_g_32" class="pollen"/>
+    </body>
+    <body name="pollen_33" pos="1.61614 -1.26614 0.05156">
+      <freejoint name="pollen_fj_33"/>
+      <geom name="pollen_g_33" class="pollen"/>
+    </body>
+    <body name="pollen_34" pos="1.54146 -1.19146 0.05156">
+      <freejoint name="pollen_fj_34"/>
+      <geom name="pollen_g_34" class="pollen"/>
+    </body>
+    <body name="pollen_35" pos="1.61614 -1.19146 0.05156">
+      <freejoint name="pollen_fj_35"/>
+      <geom name="pollen_g_35" class="pollen"/>
+    </body>
+    <body name="pollen_36" pos="1.54146 1.19146 0.05156">
+      <freejoint name="pollen_fj_36"/>
+      <geom name="pollen_g_36" class="pollen"/>
+    </body>
+    <body name="pollen_37" pos="1.61614 1.19146 0.05156">
+      <freejoint name="pollen_fj_37"/>
+      <geom name="pollen_g_37" class="pollen"/>
+    </body>
+    <body name="pollen_38" pos="1.54146 1.26614 0.05156">
+      <freejoint name="pollen_fj_38"/>
+      <geom name="pollen_g_38" class="pollen"/>
+    </body>
+    <body name="pollen_39" pos="1.61614 1.26614 0.05156">
+      <freejoint name="pollen_fj_39"/>
+      <geom name="pollen_g_39" class="pollen"/>
+    </body>
+    <body name="robot" pos="-1.60880 -1.33680 0.05900" euler="0 0 0.0">
+      <freejoint name="robot_free"/>
+      <geom name="chassis" type="box" pos="0.00000 0.00000 0.03500" size="0.20000 0.17500 0.06000" mass="3.5" material="chassis_mat" friction="0.4 0.01 0.001"/>
+      <geom name="bumper" type="box" pos="0.00000 0.00000 -0.01700" size="0.21500 0.19000 0.02200" rgba="0.8500 0.1200 0.1200 0.9000" mass="0.35" friction="1.2 0.05 0.005" condim="6" solref="0.004 1" solimp="0.95 0.99 0.001"/>
+      <geom name="front_plow" type="box" pos="0.21000 0.00000 -0.01700" size="0.01200 0.18500 0.02800" rgba="0.2 0.2 0.22 1" mass="0.15" friction="1.4 0.05 0.005" condim="6"/>
+      <camera name="robot_up_cam" pos="0.16000 0.00000 0.28000" xyaxes="0 -1 0  -0.64 0 0.77" fovy="70"/>
+      <site name="robot_up_cam" pos="0.16000 0.00000 0.28000" xyaxes="0 -1 0  -0.64 0 0.77" size="0.02" rgba="0.2 0.9 1 0.35" type="sphere"/>
+      <geom name="hopper" type="box" pos="0.00000 0.00000 0.14000" size="0.08000 0.08000 0.06000" rgba="0.4 0.4 0.15 0.35" mass="0.15" contype="0" conaffinity="0"/>
+      <body name="intake" pos="0.22000 0.00000 0.04000">
+        <geom name="intake_housing" type="box" size="0.03000 0.06000 0.04000" material="intake_mat" mass="0.2"/>
+        <geom name="intake_roller" type="cylinder" size="0.03500 0.02500" euler="0 90 0" rgba="0.15 0.15 0.18 1" mass="0.05" contype="0" conaffinity="0"/>
+        <site name="intake_site" pos="0.04 0 0" size="0.14" rgba="0.2 0.9 0.2 0.15" type="sphere"/>
+      </body>
+      <body name="nectar_intake" pos="-0.22000 0.00000 0.05000">
+        <geom name="nectar_intake_housing" type="box" size="0.04000 0.08000 0.05000" material="intake_mat" mass="0.25" rgba="0.55 0.2 0.55 1"/>
+        <geom name="nectar_intake_roller" type="cylinder" size="0.04500 0.04000" euler="0 90 0" rgba="0.7 0.15 0.5 1" mass="0.08" contype="0" conaffinity="0"/>
+        <site name="nectar_intake_site" pos="-0.05 0 0" size="0.16" rgba="0.9 0.2 0.8 0.18" type="sphere"/>
+      </body>
+      <body name="shooter" pos="0.12000 0.00000 0.14000" euler="0 15.0000 0">
+        <geom name="shooter_housing" type="cylinder" size="0.03000 0.05000" material="shooter_mat" mass="0.25"/>
+        <site name="shooter_muzzle" pos="0 0 0.06" size="0.015" rgba="1 0.5 0 0.5"/>
+      </body>
+      <body name="left_wheel_0" pos="0.11200 0.14000 0.00000">
+        <joint name="left_wheel_j" type="hinge" axis="0 1 0"/>
+        <geom name="left_wheel_g_0" type="cylinder" size="0.04500 0.01500" euler="90 0 0" mass="0.15" rgba="0.1 0.1 0.1 1" friction="1.8 0.02 0.002" condim="6" margin="0.001" gap="0.0005"/>
+      </body>
+      <body name="left_wheel_1" pos="-0.11200 0.14000 0.00000">
+        <joint name="left_wheel_j2" type="hinge" axis="0 1 0"/>
+        <geom name="left_wheel_g_1" type="cylinder" size="0.04500 0.01500" euler="90 0 0" mass="0.15" rgba="0.1 0.1 0.1 1" friction="1.8 0.02 0.002" condim="6" margin="0.001" gap="0.0005"/>
+      </body>
+      <body name="right_wheel_0" pos="0.11200 -0.14000 0.00000">
+        <joint name="right_wheel_j" type="hinge" axis="0 1 0"/>
+        <geom name="right_wheel_g_0" type="cylinder" size="0.04500 0.01500" euler="90 0 0" mass="0.15" rgba="0.1 0.1 0.1 1" friction="1.8 0.02 0.002" condim="6" margin="0.001" gap="0.0005"/>
+      </body>
+      <body name="right_wheel_1" pos="-0.11200 -0.14000 0.00000">
+        <joint name="right_wheel_j2" type="hinge" axis="0 1 0"/>
+        <geom name="right_wheel_g_1" type="cylinder" size="0.04500 0.01500" euler="90 0 0" mass="0.15" rgba="0.1 0.1 0.1 1" friction="1.8 0.02 0.002" condim="6" margin="0.001" gap="0.0005"/>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <velocity name="left_drive" joint="left_wheel_j" kv="20" ctrllimited="true" ctrlrange="-26.666666666666668 26.666666666666668"/>
+    <velocity name="right_drive" joint="right_wheel_j" kv="20" ctrllimited="true" ctrlrange="-26.666666666666668 26.666666666666668"/>
+  </actuator>
+  <equality>
+    <joint name="left_couple" joint1="left_wheel_j" joint2="left_wheel_j2" polycoef="0 1 0 0 0"/>
+    <joint name="right_couple" joint1="right_wheel_j" joint2="right_wheel_j2" polycoef="0 1 0 0 0"/>
+  </equality>
+  <keyframe>
+    <key name="home" qpos="0.00000 0.00000 -0.37360 0.25914 1.28237 1.00000 0.00000 0.00000 0.00000 -0.46360 0.25914 1.28237 1.00000 0.00000 0.00000 0.00000 -0.55360 0.25914 1.28237 1.00000 0.00000 0.00000 0.00000 0.37410 -0.25914 1.28237 1.00000 0.00000 0.00000 0.00000 0.46410 -0.25914 1.28237 1.00000 0.00000 0.00000 0.00000 0.55410 -0.25914 1.28237 1.00000 0.00000 0.00000 0.00000 -0.15000 0.00000 3.50000 1.00000 0.00000 0.00000 0.00000 -0.13000 0.00000 3.50000 1.00000 0.00000 0.00000 0.00000 -0.11000 0.00000 3.50000 1.00000 0.00000 0.00000 0.00000 -0.09000 0.00000 3.50000 1.00000 0.00000 0.00000 0.00000 -0.07000 0.00000 3.50000 1.00000 0.00000 0.00000 0.00000 0.15000 0.00000 3.50000 1.00000 0.00000 0.00000 0.00000 0.17000 0.00000 3.50000 1.00000 0.00000 0.00000 0.00000 0.19000 0.00000 3.50000 1.00000 0.00000 0.00000 0.00000 0.21000 0.00000 3.50000 1.00000 0.00000 0.00000 0.00000 0.23000 0.00000 3.50000 1.00000 0.00000 0.00000 0.00000 0.59417 1.72826 0.05756 1.00000 0.00000 0.00000 0.00000 0.59417 1.72826 0.12726 1.00000 0.00000 0.00000 0.00000 0.59417 1.72826 0.19696 1.00000 0.00000 0.00000 0.00000 0.59417 1.72826 0.26665 1.00000 0.00000 0.00000 0.00000 -0.59417 -1.72826 0.05756 1.00000 0.00000 0.00000 0.00000 -0.59417 -1.72826 0.12726 1.00000 0.00000 0.00000 0.00000 -0.59417 -1.72826 0.19696 1.00000 0.00000 0.00000 0.00000 -0.59417 -1.72826 0.26665 1.00000 0.00000 0.00000 0.00000 -1.72826 0.59417 0.05756 1.00000 0.00000 0.00000 0.00000 -1.72826 0.59417 0.12726 1.00000 0.00000 0.00000 0.00000 -1.72826 0.59417 0.19696 1.00000 0.00000 0.00000 0.00000 -1.72826 0.59417 0.26665 1.00000 0.00000 0.00000 0.00000 1.72826 -0.59417 0.05756 1.00000 0.00000 0.00000 0.00000 1.72826 -0.59417 0.12726 1.00000 0.00000 0.00000 0.00000 1.72826 -0.59417 0.19696 1.00000 0.00000 0.00000 0.00000 1.72826 -0.59417 0.26665 1.00000 0.00000 0.00000 0.00000 -1.78324 -1.78324 0.05156 1.00000 0.00000 0.00000 0.00000 -1.70856 -1.78324 0.05156 1.00000 0.00000 0.00000 0.00000 -1.63389 -1.78324 0.05156 1.00000 0.00000 0.00000 0.00000 -1.55921 -1.78324 0.05156 1.00000 0.00000 0.00000 0.00000 1.78324 1.78324 0.05156 1.00000 0.00000 0.00000 0.00000 1.70856 1.78324 0.05156 1.00000 0.00000 0.00000 0.00000 1.63389 1.78324 0.05156 1.00000 0.00000 0.00000 0.00000 1.55921 1.78324 0.05156 1.00000 0.00000 0.00000 0.00000 -1.55880 -1.41680 0.05156 1.00000 0.00000 0.00000 0.00000 -1.48412 -1.41680 0.05156 1.00000 0.00000 0.00000 0.00000 -1.55880 -1.34212 0.05156 1.00000 0.00000 0.00000 0.00000 -1.48412 -1.34212 0.05156 1.00000 0.00000 0.00000 0.00000 -1.61614 1.19146 0.05156 1.00000 0.00000 0.00000 0.00000 -1.54146 1.19146 0.05156 1.00000 0.00000 0.00000 0.00000 -1.61614 1.26614 0.05156 1.00000 0.00000 0.00000 0.00000 -1.54146 1.26614 0.05156 1.00000 0.00000 0.00000 0.00000 1.54146 -1.26614 0.05156 1.00000 0.00000 0.00000 0.00000 1.61614 -1.26614 0.05156 1.00000 0.00000 0.00000 0.00000 1.54146 -1.19146 0.05156 1.00000 0.00000 0.00000 0.00000 1.61614 -1.19146 0.05156 1.00000 0.00000 0.00000 0.00000 1.54146 1.19146 0.05156 1.00000 0.00000 0.00000 0.00000 1.61614 1.19146 0.05156 1.00000 0.00000 0.00000 0.00000 1.54146 1.26614 0.05156 1.00000 0.00000 0.00000 0.00000 1.61614 1.26614 0.05156 1.00000 0.00000 0.00000 0.00000 -1.60880 -1.33680 0.06000 1.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000 0.00000"/>
+  </keyframe>
+</mujoco>

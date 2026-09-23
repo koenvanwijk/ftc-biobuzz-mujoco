@@ -1,0 +1,56 @@
+BIOBUZZ Field CAD → MuJoCo import report
+========================================
+Source: cad/step/field-cad-step.step (from field-cad-step.zip, v26-27.2)
+         + cad/meshes/field_coarse.glb (cascadio / Onshape export)
+Tooling: trimesh scene graph → per-part quadric decimate → merge STL
+Units: STEP LENGTH_UNIT = metre; Y-up → Z-up via (x,y,z)->(x,z,y)
+Origin: field center; XY half-extent ≈ ±1.8236 m (expected ±1.8288 m)
+
+HIVE tip angle (measured from CAD, 2026-09-23)
+---------------------------------------------
+Bi-stable pose baked into hive_red / hive_blue meshes:
+  Cell-to-cell axis tip from horizontal (about ±X): **30.08°** ≈ **30°**
+  CELL bottom face (AprilTag plate) tip from horizontal: **30°**
+  (plate contains the cell axis; earlier ±120°/60° note was wrong — that is 90° off).
+  MuJoCo cell underside bodies use euler_x so geom +Z faces the tiles:
+  red hive: −150°, blue hive: +150°.
+  Pivot axis height: HIVE_PIVOT_Z = 1.1165 m above tiles.
+
+Imported (visual mesh + convex hull collision):
+  hive_frame.stl   — A-Frame legs/top, ACM panels, feet, under-tile bars
+  hive_red.stl     — red CELLs incl. Goal Ribs + top/bottom/back skins, churros, pivot
+  hive_blue.stl    — blue CELLs incl. Goal Ribs + skins, churros, pivot
+  flower_pos_y.stl / flower_neg_y.stl / flower_neg_x.stl / flower_pos_x.stl
+
+AprilTags:
+  Not imported as CAD solids. Textured 36h11 planes are parented under
+  red_cell_* / blue_cell_* bodies (children of hive_red / hive_blue) at CAD
+  plate centroids so xpos follows if a hive tips later.
+  IDs: red scoring 30–33, red audience 34–37, blue audience 38–41, blue scoring 42–45.
+
+Not imported (kept as primitives or omitted):
+  Soft tiles, perimeter panels/glass, gaffer tape, fasteners, pollen/nectar solids.
+
+Fallback: if an STL is missing, scene.py uses primitive HIVE/FLOWER approximations
+tipped at HIVE_TIP_ANGLE_DEG (30°).
+
+Mesh sizes (visual STLs, after re-export with Goal Ribs):
+  hive_red.stl / hive_blue.stl ≈ 1.1 MB each (~22k faces)
+  hive_frame.stl ≈ 0.7 MB (~14k faces)
+
+AprilTag placement (post-fix)
+-----------------------------
+Tags are parented under red_cell_* / blue_cell_* bodies (children of hive_red /
+hive_blue). Strip centers are snapped to Goal-Rib/bottom-skin faces of the
+exported STL (within ~25 mm of mesh) with CAD tip euler_x = −150° (red) / +150° (blue)
+so geom +Z faces the tiles along the 30° bottom-face normal.
+
+CELL rim meshes (2026-09-23)
+----------------------------
+cell_rim_front.stl / cell_rim_back.stl — extruded solid rims from CAD Goal Rib
+(am-5866) aperture silhouette (cell-local frame, opening at +Y).
+Outer extents ≈ 0.552 × 0.400 m. Thinned 2026-09-23 (balls lodged behind thick rim):
+ring width 10 mm, thickness 10 mm; aperture ≈ 0.532 × 0.380 m. Front face Y kept.
+Invisible cup aperture matches (CELL_CUP_OPEN_*); shallow 4 mm sill, no deep lip pocket.
+Placed under each CELL_SHELLS body (euler Z=180° when open_sign=-1).
+Opaque alliance color; translucent hive skins unchanged.

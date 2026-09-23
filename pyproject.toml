@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ftc-biobuzz-mujoco"
+version = "1.1.0"
+description = "MuJoCo simulation of FTC BIOBUZZ 2026–2027 with tank drive and Blocks-style auto"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "mujoco>=3.1.0",
+  "numpy>=1.24",
+  "pygame>=2.5",
+  "trimesh>=4.0",
+  "Pillow>=10.0",
+  "opencv-python-headless>=4.8",
+]
+
+[project.scripts]
+ftc-teleop = "ftc_sim.teleop:main"
+ftc-auto = "ftc_sim.auto:main"
+ftc-viewer = "ftc_sim.viewer:main"
+
+[tool.setuptools.packages.find]
+include = ["ftc_sim*"]
+
+[tool.setuptools.package-data]
+ftc_sim = ["assets/*.xml", "assets/meshes/*", "assets/textures/*"]

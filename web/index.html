@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FTC BIOBUZZ — MuJoCo WASM</title>
+    <style>
+      :root {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        color: #f2f4f8;
+        background: #0b0d12;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #0b0d12;
+      }
+      #app {
+        position: relative;
+        width: 100%;
+        height: 100%;
+      }
+      canvas#view {
+        display: block;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+      #loading {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        background: radial-gradient(circle at 50% 30%, #1a2233, #0b0d12 70%);
+        z-index: 20;
+        transition: opacity 0.35s ease;
+      }
+      #loading.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #loading h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        letter-spacing: 0.04em;
+      }
+      #loading p {
+        margin: 0;
+        color: #9aa6bd;
+        max-width: 28rem;
+        text-align: center;
+      }
+      .spinner {
+        width: 42px;
+        height: 42px;
+        border: 3px solid #31405c;
+        border-top-color: #f5c542;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      #hud {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: none;
+      }
+      #hud .panel {
+        pointer-events: auto;
+        background: rgba(10, 14, 22, 0.78);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 10px 12px;
+        backdrop-filter: blur(8px);
+        min-width: 220px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      }
+      #hud .title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+      }
+      #hud .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: #d7deea;
+        line-height: 1.45;
+      }
+      #hud .tip {
+        font-size: 0.78rem;
+        color: #9aa6bd;
+        margin-top: 6px;
+      }
+      #controls {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 10;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+      button {
+        appearance: none;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(20, 28, 42, 0.9);
+        color: #f2f4f8;
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:hover { background: rgba(40, 56, 84, 0.95); }
+      button.primary {
+        background: linear-gradient(135deg, #f0b429, #e0891a);
+        color: #1a1205;
+        border: none;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      #toast {
+        position: absolute;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(10, 14, 22, 0.85);
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+        z-index: 10;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        pointer-events: none;
+      }
+      #toast.show { opacity: 1; }
+      #pip-label {
+        position: absolute;
+        right: 12px;
+        /* JS (_layoutPipLabel) pins bottom/width to the WebGL PiP box */
+        bottom: calc(12px + min(28vw, 240px));
+        width: min(28vw, 320px);
+        text-align: center;
+        box-sizing: border-box;
+        z-index: 11;
+        pointer-events: none;
+        background: rgba(10, 14, 22, 0.88);
+        border: 1px solid rgba(51, 221, 255, 0.55);
+        border-radius: 8px 8px 0 0;
+        border-bottom: none;
+        padding: 4px 10px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #9aecff;
+        letter-spacing: 0.02em;
+        box-shadow: 0 0 0 1px rgba(51, 221, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="loading">
+        <div class="spinner" aria-hidden="true"></div>
+        <h1>BIOBUZZ MuJoCo</h1>
+        <p id="loading-status">WASM + scene laden…</p>
+      </div>
+      <div id="hud">
+        <div class="panel">
+          <div class="title">Teleop</div>
+          <div class="row"><span>Mode</span><strong id="hud-mode">tank</strong></div>
+          <div class="row"><span>Score rood</span><strong id="hud-score-red">0</strong></div>
+          <div class="row"><span>Score blauw</span><strong id="hud-score-blue">0</strong></div>
+          <div class="row"><span>Hopper</span><strong id="hud-hopper">0 / 8</strong></div>
+          <div class="row"><span>Achter</span><strong id="hud-nectar">0 / 4</strong></div>
+          <div class="row"><span>Intake</span><strong id="hud-intake">AAN</strong></div>
+          <div class="row"><span>FPS</span><strong id="hud-fps">—</strong></div>
+          <div class="tip">E = intake · C = FIFO achter uit · X = FIFO achter → bloem · Space/F shoot · R reset · T mode</div>
+        </div>
+      </div>
+      <div id="controls">
+        <button id="btn-auto" class="primary" type="button">Autonoom</button>
+        <button id="btn-reset" type="button">Reset</button>
+      </div>
+      <div id="toast"></div>
+      <div id="pip-label">Robot cam (up)</div>
+      <canvas id="view"></canvas>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

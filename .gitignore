@@ -1,0 +1,30 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Node / Vite
+web/node_modules/
+web/dist/
+*.local
+
+# Large CAD / derived (sim uses ftc_sim/assets instead)
+cad/meshes/field_full.glb
+cad/meshes/field_coarse.glb
+cad/step/
+cad/field-cad-step.zip
+cad/**/*.step
+cad/**/*.STEP
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs / tunnels
+*.log
+/tmp/
