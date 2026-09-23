@@ -1,0 +1,22 @@
+{
+  "files": [
+    "cell_rim_back.stl",
+    "cell_rim_front.stl",
+    "flower_neg_x.stl",
+    "flower_neg_x_hull.stl",
+    "flower_neg_y.stl",
+    "flower_neg_y_hull.stl",
+    "flower_pos_x.stl",
+    "flower_pos_x_hull.stl",
+    "flower_pos_y.stl",
+    "flower_pos_y_hull.stl",
+    "hive_blue.stl",
+    "hive_blue_hull.stl",
+    "hive_frame.stl",
+    "hive_frame_hull.stl",
+    "hive_red.stl",
+    "hive_red_hull.stl",
+    "cell_shell.stl",
+    "cell_back_cap.stl"
+  ]
+}

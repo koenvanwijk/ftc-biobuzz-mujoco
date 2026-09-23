@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FTC Blocks + BIOBUZZ MuJoCo</title>
+  <link rel="stylesheet" href="/src/ui/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="toolbar">
+      <div class="brand">
+        <strong>FTC Blocks + BIOBUZZ MuJoCo</strong>
+        <span class="muted" id="brandSub">BIOBUZZ field</span>
+      </div>
+      <div class="toolbar-actions">
+        <label class="example-picker">
+          Wereld
+          <select id="worldSelect">
+            <option value="biobuzz">BIOBUZZ</option>
+            <option value="simple">Vereenvoudigd</option>
+          </select>
+        </label>
+        <label class="example-picker">
+          Voorbeeld
+          <select id="exampleSelect">
+            <option value="">— kies —</option>
+            <option value="StarterBot_TankDrive.blk">TankDrive</option>
+            <option value="StarterBot_Mechanisms.blk">Mechanisms</option>
+            <option value="StarterBot_EncoderAuto.blk">EncoderAuto</option>
+            <option value="StarterBot_ImuAprilTag.blk">ImuAprilTag</option>
+          </select>
+        </label>
+        <button id="btnLoadExample" type="button">Open in editor</button>
+        <button id="btnRefreshCode" type="button">Code vernieuwen</button>
+        <button id="btnExportBlk" type="button">Export .blk</button>
+        <button id="btnExportJava" type="button">Export Java</button>
+        <span class="sep"></span>
+        <button id="btnInit" class="primary" type="button">INIT</button>
+        <button id="btnStart" class="primary" type="button" disabled>START</button>
+        <button id="btnStop" class="danger" type="button" disabled>STOP</button>
+        <button id="btnReset" type="button">Reset sim</button>
+      </div>
+      <div id="runStatus" class="run-status">Idle</div>
+    </header>
+
+    <main class="main">
+      <section class="panel editor-panel">
+        <div class="panel-title">Blocks-editor (vendor, offline)</div>
+        <iframe
+          id="blocksFrame"
+          title="FTC Offline Blocks"
+          src="./vendor/ftc-blocks/FtcOfflineBlocksProjects.html"
+          allow="gamepad"
+        ></iframe>
+      </section>
+
+      <section class="panel sim-panel">
+        <div class="panel-title">MuJoCo-weergave</div>
+        <div id="biobuzzHud" class="biobuzz-hud" hidden>
+          <span>Hopper <strong id="hudHopper">0 / 8</strong></span>
+          <span>AprilTags <strong id="hudApril">0</strong></span>
+          <span>Rear <strong id="hudNectar">0 / 4</strong></span>
+          <span>Score <strong id="hudScore">R0 · B0</strong></span>
+          <span>Intake <strong id="hudIntake">uit</strong></span>
+          <span>Control <strong id="hudOwner">Teleop</strong></span>
+        </div>
+        <canvas id="simCanvas"></canvas>
+        <div class="on-screen-pad" id="gamepadPad" aria-label="Virtuele gamepad">
+          <div class="pad-row">
+            <button type="button" data-axis="ly" data-dir="-1">L↑</button>
+            <button type="button" data-axis="ry" data-dir="-1">R↑</button>
+          </div>
+          <div class="pad-row">
+            <button type="button" data-axis="ly" data-dir="1">L↓</button>
+            <button type="button" data-axis="ry" data-dir="1">R↓</button>
+          </div>
+          <p class="muted small" id="teleopHint">Idle teleop / OpMode gamepad</p>
+        </div>
+      </section>
+
+      <aside class="panel side-panel">
+        <div class="panel-title">Telemetry</div>
+        <pre id="telemetryOut" class="telemetry"></pre>
+        <div class="panel-title">JS (gegenereerd)</div>
+        <pre id="jsOut" class="code-out"></pre>
+        <div class="panel-title">Java (preview)</div>
+        <pre id="javaOut" class="code-out"></pre>
+        <div class="panel-title">Runtime-log</div>
+        <pre id="logOut" class="log-out"></pre>
+      </aside>
+    </main>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

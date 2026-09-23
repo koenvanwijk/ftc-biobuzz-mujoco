@@ -1,0 +1,125 @@
+{
+  "name": "BIOBUZZ",
+  "label": "BIOBUZZ field (hive, flowers, pollen, nectar) \u2014 soft mechanisms bridged",
+  "world": "biobuzz",
+  "mjcf": "assets/biobuzz_scene.xml",
+  "assetPath": "assets",
+  "supplyVoltage": 12.5,
+  "simTimestep": 0.002,
+  "driveFeel": {
+    "wheelRadiusM": 0.045,
+    "maxLinearVel": 1.2,
+    "maxWheelVelRadPerSec": 26.666666666666668,
+    "note": "Uses setTankPower + updateDriveSlew from BIOBUZZ teleop for matching feel"
+  },
+  "drive": {
+    "left": {
+      "configName": "leftDrive",
+      "jsId": "leftDriveAsDcMotor",
+      "joint": "left_wheel_j",
+      "actuator": "left_drive",
+      "encoderTicksPerRev": 28,
+      "gearRatio": 20,
+      "maxMotorRpm": 6000,
+      "wheelRadiusM": 0.045,
+      "invertEncoder": false,
+      "defaultDirection": "FORWARD",
+      "bridge": "setTankPower/updateDriveSlew"
+    },
+    "right": {
+      "configName": "rightDrive",
+      "jsId": "rightDriveAsDcMotor",
+      "joint": "right_wheel_j",
+      "actuator": "right_drive",
+      "encoderTicksPerRev": 28,
+      "gearRatio": 20,
+      "maxMotorRpm": 6000,
+      "wheelRadiusM": 0.045,
+      "invertEncoder": false,
+      "defaultDirection": "FORWARD",
+      "bridge": "setTankPower/updateDriveSlew"
+    }
+  },
+  "motors": {
+    "flywheel": {
+      "configName": "flywheel",
+      "jsId": "flywheelAsDcMotor",
+      "joint": null,
+      "actuator": null,
+      "softMechanism": "IntakeShooter.fire",
+      "mapping": "Edge-trigger shoot when |power| crosses above threshold 0.3 (rising edge). Continuous high power does not re-fire until power drops \u22640.3.",
+      "encoderTicksPerRev": 28,
+      "gearRatio": 1,
+      "maxMotorRpm": 6000,
+      "invertEncoder": false,
+      "sensorNote": "No MJCF joint \u2014 encoder reads stay 0; telemetry shows commanded power / last shoot"
+    },
+    "intakeMotor": {
+      "configName": "intakeMotor",
+      "jsId": "intakeMotorAsDcMotor",
+      "joint": null,
+      "actuator": null,
+      "softMechanism": "IntakeShooter.intakePower",
+      "mapping": "power > 0.05 \u21d2 intake on (capture); power < -0.05 \u21d2 rear FIFO spit (same as hold C). Magnitude threshold 0.05.",
+      "encoderTicksPerRev": 28,
+      "gearRatio": 20,
+      "maxMotorRpm": 6000,
+      "invertEncoder": false,
+      "sensorNote": "No MJCF joint \u2014 encoder reads stay 0"
+    }
+  },
+  "servos": {
+    "pollenServo": {
+      "configName": "pollenServo",
+      "jsId": "pollenServoAsServo",
+      "joint": null,
+      "actuator": null,
+      "softMechanism": "IntakeShooter.tryPlaceNectar",
+      "mapping": "Rising edge when position01 crosses above 0.7 \u2192 FIFO rear \u2192 flower place (or drop). Shown in telemetry; no joint.",
+      "rangeRad": [
+        -1.57,
+        1.57
+      ],
+      "initialPosition": 0.5,
+      "placeThreshold": 0.7
+    }
+  },
+  "crServos": {
+    "crServo": {
+      "configName": "crServo",
+      "jsId": "crServoAsCRServo",
+      "joint": null,
+      "actuator": null,
+      "softMechanism": "IntakeShooter reverse eject",
+      "mapping": "While |power| > 0.3, force rear FIFO eject (intakePower = -1), like hold C in teleop. Overrides intakeMotor while active.",
+      "maxRadPerSec": 6.28,
+      "ejectThreshold": 0.3
+    }
+  },
+  "thresholds": {
+    "intakeOn": 0.05,
+    "flywheelShoot": 0.3,
+    "pollenServoPlace": 0.7,
+    "crServoEject": 0.3
+  },
+  "initialPose": {
+    "note": "Uses MJCF keyframe 0 (robot start pose on BIOBUZZ field)"
+  },
+  "imu": {
+    "configName": "imu",
+    "jsId": "imuAsIMU",
+    "simulated": true,
+    "source": "MuJoCo body quaternion + freejoint angular velocity",
+    "note": "Simulator extension \u2014 not a calibrated IMU"
+  },
+  "webcam": {
+    "configName": "Webcam 1",
+    "displayName": "Webcam 1",
+    "simulated": true,
+    "cameraSite": "robot_up_cam",
+    "aprilTagSites": "apriltag_30..apriltag_45",
+    "note": "Simulator extension \u2014 synthetic AprilTags, no real CV",
+    "enabled": true,
+    "world": "biobuzz"
+  }
+}

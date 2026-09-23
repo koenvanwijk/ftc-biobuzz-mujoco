@@ -81,3 +81,15 @@ Intake/shooter is dezelfde benadering als `ftc_sim/mechanisms.py` (capture-zone 
 - Geen native MuJoCo visualizer — eigen Three.js-sync
 
 De Python-sim (`python -m ftc_sim.viewer` / `teleop`) blijft ongewijzigd.
+
+## Combined Blocks app
+
+For **FTC Blocks editor + this BIOBUZZ field** in one UI, use [`../web-blocks/`](../web-blocks/) (same repo):
+
+```bash
+cd web-blocks && npm install && npm run dev
+```
+
+Open http://localhost:5174/ (default world=biobuzz). This teleop-only viewer on :5173 stays unchanged.
+
+GitHub Pages (after merge): https://koenvanwijk.github.io/ftc-biobuzz-mujoco/
