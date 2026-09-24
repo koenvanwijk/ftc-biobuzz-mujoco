@@ -1,0 +1,26 @@
+name: Temporary telemetry branch CI
+
+on:
+  push:
+    branches:
+      - 'feat/resizable-telemetry'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-blocks
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web-blocks/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
