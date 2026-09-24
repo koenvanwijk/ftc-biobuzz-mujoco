@@ -7,6 +7,7 @@ import { BlocksBridge } from './editor/blocksBridge.js';
 import { seedBlkProject } from './editor/seedProject.js';
 import { createRuntime } from './ftc-runtime/createRuntime.js';
 import { initSplitLayout } from './ui/splitLayout.js';
+import { composeTelemetry } from './ui/telemetryView.js';
 
 const $ = (id) => document.getElementById(id);
 const log = (msg) => {
@@ -28,6 +29,8 @@ let latestCommands = {};
 let anim = 0;
 let physicsAccumulator = 0;
 let teleopInput = null;
+let latestOpModeTelemetry = '';
+let lastRenderedTelemetry = null;
 let opModeOwns = false; // true from INIT through RUN until DONE/ERROR/Idle after STOP
 
 function parseWorldFromUrl() {
@@ -78,7 +81,7 @@ async function boot() {
   simConfig = await (await fetch(configUrl)).json();
   runtime = createRuntime(simConfig, {
     onTelemetry: (t) => {
-      $('telemetryOut').textContent = mergeTelemetry(t);
+      setOpModeTelemetry(t);
     },
   });
 
@@ -147,10 +150,10 @@ async function boot() {
       if (opModeOwns) adapter.applyCommands(cmds);
     },
     onTelemetryUpdate: (text) => {
-      $('telemetryOut').textContent = mergeTelemetry(text);
+      setOpModeTelemetry(text);
     },
     onTelemetryClear: () => {
-      $('telemetryOut').textContent = worldId === 'biobuzz' ? adapter.mechanismTelemetryText() : '';
+      setOpModeTelemetry('');
     },
     onError: (message, label) => {
       log(`FOUT${label ? ` @ ${label}` : ''}: ${message}`);
@@ -185,11 +188,20 @@ async function boot() {
   updateBiobuzzHud();
 }
 
-function mergeTelemetry(opModeText) {
-  if (worldId !== 'biobuzz' || !adapter?.mechanismTelemetryText) return opModeText || '';
-  const mech = adapter.mechanismTelemetryText();
-  if (!opModeText) return mech;
-  return `${opModeText}\n---\n${mech}`;
+function setOpModeTelemetry(text) {
+  latestOpModeTelemetry = String(text || '');
+  renderTelemetry();
+}
+
+function renderTelemetry() {
+  const mechanismText =
+    worldId === 'biobuzz' && adapter?.mechanismTelemetryText
+      ? adapter.mechanismTelemetryText()
+      : '';
+  const text = composeTelemetry(latestOpModeTelemetry, mechanismText);
+  if (text === lastRenderedTelemetry) return;
+  lastRenderedTelemetry = text;
+  $('telemetryOut').textContent = text;
 }
 
 function updateBiobuzzHud() {
@@ -294,9 +306,11 @@ function wireUi() {
     adapter.resetPose();
     runtime.resetAll();
     latestCommands = {};
+    latestOpModeTelemetry = '';
+    lastRenderedTelemetry = null;
     opModeOwns = false;
     clearGamepadOverrides();
-    $('telemetryOut').textContent = '';
+    renderTelemetry();
     log('Sim gereset');
     updateButtons('Idle');
     $('runStatus').textContent = 'Idle';
@@ -315,8 +329,11 @@ function wireUi() {
       adapter.resetPose();
       runtime.resetAll();
       latestCommands = {};
+      latestOpModeTelemetry = '';
+      lastRenderedTelemetry = null;
       adapter.zeroAll();
       opModeOwns = true;
+      renderTelemetry();
       const sensors = adapter.readSensors();
       await runner.init(code, {
         sensors,
@@ -505,6 +522,9 @@ function startLoop() {
     if (viewer.sync) viewer.sync();
     if (viewer.render) viewer.render();
     updateBiobuzzHud();
+    // Keep BIOBUZZ mechanism/HIVE telemetry live even when the OpMode does not
+    // emit a new telemetry.update() in this render frame.
+    renderTelemetry();
   };
   anim = requestAnimationFrame(frame);
 }
