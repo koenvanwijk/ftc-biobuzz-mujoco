@@ -50,6 +50,24 @@ npm run dev -- --host 0.0.0.0 --port 5173
 
 Details: [`web/README.md`](web/README.md). De Python-sim blijft ongewijzigd.
 
+
+## Browser: FTC Blocks + BIOBUZZ (combined)
+
+Combined **FTC Offline Blocks** editor + BIOBUZZ MuJoCo field lives in [`web-blocks/`](web-blocks/).
+
+```bash
+cd web-blocks
+npm install
+npm run dev
+# http://localhost:5174/
+```
+
+GitHub Pages (built from `web-blocks/` via Actions):  
+**https://koenvanwijk.github.io/ftc-biobuzz-mujoco/**
+
+The teleop-only WASM app in [`web/`](web/) is unchanged (port 5173).
+
+
 ## Besturing (teleop)
 
 | Input | Actie |

@@ -1,0 +1,92 @@
+<!--
+  VEREEENVOUDIGD MuJoCo-model voor REVStarterBot2026.
+  Dit is GEEN gevalideerde fysische replica van een echte FTC-robot.
+  Alleen bedoeld voor browser-simulatie van Blocks-programma's.
+-->
+<mujoco model="REVStarterBot2026_simplified">
+  <compiler angle="radian" coordinate="local" inertiafromgeom="true"/>
+  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>
+
+  <visual>
+    <headlight diffuse="0.7 0.7 0.7" ambient="0.25 0.25 0.25"/>
+    <rgba haze="0.12 0.15 0.2 1"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.12 0.15 0.22" rgb2="0.02 0.03 0.05" width="256" height="256"/>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.25 0.3 0.35" rgb2="0.18 0.2 0.24" width="512" height="512"/>
+    <material name="grid" texture="grid" texrepeat="8 8" reflectance="0.1"/>
+    <material name="chassis" rgba="0.25 0.55 0.95 1"/>
+    <material name="wheel" rgba="0.12 0.12 0.12 1"/>
+    <material name="accent" rgba="0.95 0.55 0.15 1"/>
+    <material name="intake" rgba="0.35 0.8 0.45 1"/>
+    <material name="flywheel" rgba="0.85 0.3 0.35 1"/>
+  </asset>
+
+  <worldbody>
+    <light pos="1.5 -1.5 2.5" dir="-0.4 0.4 -1" diffuse="1 0.95 0.85"/>
+    <geom name="floor" type="plane" size="3 3 0.05" material="grid" friction="1.2 0.05 0.001"/>
+
+    <!-- Robot base (differential drive) -->
+    <body name="chassis" pos="0 0 0.06">
+      <freejoint name="root"/>
+      <geom name="chassis_g" type="box" size="0.18 0.14 0.04" material="chassis" mass="4.0"
+            friction="0.8 0.05 0.001"/>
+      <!-- Visible “arrow” for heading -->
+      <geom name="nose" type="box" size="0.04 0.03 0.015" pos="0.16 0 0.03" material="accent" mass="0.05"/>
+
+      <!-- Left drive wheel (axis = Y) -->
+      <body name="left_wheel" pos="0 0.15 0">
+        <joint name="left_wheel_j" type="hinge" axis="0 1 0" damping="0.05" armature="0.01"/>
+        <geom name="left_wheel_g" type="cylinder" size="0.05 0.02" euler="1.5708 0 0"
+              material="wheel" mass="0.25" friction="1.8 0.05 0.002" condim="6"/>
+      </body>
+
+      <!-- Right drive wheel -->
+      <body name="right_wheel" pos="0 -0.15 0">
+        <joint name="right_wheel_j" type="hinge" axis="0 1 0" damping="0.05" armature="0.01"/>
+        <geom name="right_wheel_g" type="cylinder" size="0.05 0.02" euler="1.5708 0 0"
+              material="wheel" mass="0.25" friction="1.8 0.05 0.002" condim="6"/>
+      </body>
+
+      <!-- Flywheel (spinning disk on top) -->
+      <body name="flywheel_body" pos="0.05 0 0.08">
+        <joint name="flywheel_j" type="hinge" axis="0 0 1" damping="0.02" armature="0.005"/>
+        <geom name="flywheel_g" type="cylinder" size="0.06 0.01" material="flywheel" mass="0.3"/>
+      </body>
+
+      <!-- Intake roller -->
+      <body name="intake_body" pos="0.18 0 0.02">
+        <joint name="intake_j" type="hinge" axis="0 1 0" damping="0.02" armature="0.005"/>
+        <geom name="intake_g" type="cylinder" size="0.035 0.08" euler="1.5708 0 0"
+              material="intake" mass="0.2"/>
+      </body>
+
+      <!-- Positional pollen servo (arm) -->
+      <body name="pollen_base" pos="-0.12 0 0.06">
+        <joint name="pollen_servo_j" type="hinge" axis="0 1 0" range="-1.57 1.57"
+               damping="0.5" armature="0.002" limited="true"/>
+        <geom name="pollen_arm" type="capsule" fromto="0 0 0  0.12 0 0" size="0.012"
+              rgba="0.9 0.85 0.2 1" mass="0.08"/>
+      </body>
+
+      <!-- CRServo continuous spinner -->
+      <body name="cr_servo_body" pos="-0.05 0.1 0.07">
+        <joint name="cr_servo_j" type="hinge" axis="0 0 1" damping="0.05" armature="0.002"/>
+        <geom name="cr_servo_g" type="box" size="0.03 0.01 0.01" rgba="0.7 0.4 0.9 1" mass="0.05"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- Velocity actuators: ctrl = desired joint angular velocity (rad/s) -->
+    <velocity name="left_drive" joint="left_wheel_j" kv="8" ctrllimited="true" ctrlrange="-31.4 31.4"/>
+    <velocity name="right_drive" joint="right_wheel_j" kv="8" ctrllimited="true" ctrlrange="-31.4 31.4"/>
+    <velocity name="flywheel_act" joint="flywheel_j" kv="4" ctrllimited="true" ctrlrange="-628 628"/>
+    <velocity name="intake_act" joint="intake_j" kv="4" ctrllimited="true" ctrlrange="-31.4 31.4"/>
+    <!-- Position actuator for pollen servo: ctrl = joint angle (rad) -->
+    <position name="pollen_servo_act" joint="pollen_servo_j" kp="40" ctrllimited="true" ctrlrange="-1.57 1.57"/>
+    <!-- CRServo as velocity device -->
+    <velocity name="cr_servo_act" joint="cr_servo_j" kv="3" ctrllimited="true" ctrlrange="-6.28 6.28"/>
+  </actuator>
+</mujoco>

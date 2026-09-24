@@ -1,0 +1,100 @@
+<xml xmlns="https://developers.google.com/blockly/xml">
+  <block type="procedures_defnoreturn" id="run2" deletable="false" x="20" y="20">
+    <field name="NAME">runOpMode</field>
+    <comment pinned="false" h="60" w="360">BIOBUZZ soft: flywheel=shoot edge, intake=±capture/spit, pollenServo&gt;0.7=place, crServo=rear eject.</comment>
+    <statement name="STACK">
+      <block type="linearOpMode_waitForStart" id="wfs2">
+        <next>
+          <block type="controls_whileUntil" id="loop2">
+            <field name="MODE">WHILE</field>
+            <value name="BOOL"><block type="linearOpMode_opModeIsActive" id="a2"/></value>
+            <statement name="DO">
+              <block type="dcMotor_setProperty_Number" id="fw">
+                <field name="IDENTIFIER">flywheelAsDcMotor</field>
+                <field name="PROP">Power</field>
+                <data>{"IDENTIFIER":"flywheel"}</data>
+                <value name="VALUE">
+                  <block type="gamepad_getProperty_Number" id="rt">
+                    <field name="IDENTIFIER">gamepad1</field>
+                    <field name="PROP">RightTrigger</field>
+                  </block>
+                </value>
+                <next>
+                  <block type="dcMotor_setProperty_Number" id="in">
+                    <field name="IDENTIFIER">intakeMotorAsDcMotor</field>
+                    <field name="PROP">Power</field>
+                    <data>{"IDENTIFIER":"intakeMotor"}</data>
+                    <value name="VALUE">
+                      <block type="gamepad_getProperty_Number" id="lt">
+                        <field name="IDENTIFIER">gamepad1</field>
+                        <field name="PROP">LeftTrigger</field>
+                      </block>
+                    </value>
+                    <next>
+                      <block type="controls_if" id="ifA">
+                        <value name="IF0"><block type="gamepad_getProperty_Boolean" id="btnA">
+                          <field name="IDENTIFIER">gamepad1</field>
+                          <field name="PROP">A</field>
+                        </block></value>
+                        <statement name="DO0">
+                          <block type="servo_setProperty_Number" id="sv">
+                            <field name="IDENTIFIER">pollenServoAsServo</field>
+                            <field name="PROP">Position</field>
+                            <data>{"IDENTIFIER":"pollenServo"}</data>
+                            <value name="VALUE"><block type="math_number" id="p1"><field name="NUM">1</field></block></value>
+                          </block>
+                        </statement>
+                        <next>
+                          <block type="controls_if" id="ifB">
+                            <value name="IF0"><block type="gamepad_getProperty_Boolean" id="btnB">
+                              <field name="IDENTIFIER">gamepad1</field>
+                              <field name="PROP">B</field>
+                            </block></value>
+                            <statement name="DO0">
+                              <block type="servo_setProperty_Number" id="sv0">
+                                <field name="IDENTIFIER">pollenServoAsServo</field>
+                                <field name="PROP">Position</field>
+                                <data>{"IDENTIFIER":"pollenServo"}</data>
+                                <value name="VALUE"><block type="math_number" id="p0"><field name="NUM">0</field></block></value>
+                              </block>
+                            </statement>
+                            <next>
+                              <block type="crServo_setProperty_Number" id="cr">
+                                <field name="IDENTIFIER">crServoAsCRServo</field>
+                                <field name="PROP">Power</field>
+                                <data>{"IDENTIFIER":"crServo"}</data>
+                                <value name="VALUE">
+                                  <block type="math_arithmetic" id="negY">
+                                    <field name="OP">MINUS</field>
+                                    <value name="A"><block type="math_number"><field name="NUM">0</field></block></value>
+                                    <value name="B">
+                                      <block type="gamepad_getProperty_Number" id="lsx">
+                                        <field name="IDENTIFIER">gamepad1</field>
+                                        <field name="PROP">LeftStickX</field>
+                                      </block>
+                                    </value>
+                                  </block>
+                                </value>
+                                <next>
+                                  <block type="telemetry_addTextData_All" id="tx">
+                                    <value name="KEY"><block type="text"><field name="TEXT">mech</field></block></value>
+                                    <value name="TEXT"><block type="text"><field name="TEXT">ok</field></block></value>
+                                    <next><block type="telemetry_update" id="tu2"/></next>
+                                  </block>
+                                </next>
+                              </block>
+                            </next>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </statement>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+</xml><?xml version='1.0' encoding='UTF-8' standalone='yes' ?><Extra><OpModeMeta flavor="TELEOP" group="Sim" /><Enabled value="true" /></Extra> 

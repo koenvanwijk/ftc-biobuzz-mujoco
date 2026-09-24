@@ -1,0 +1,21 @@
+{
+  "name": "ftc-blocks-mujoco",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser FTC Blocks + BIOBUZZ MuJoCo (combined editor + field sim)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 5174",
+    "test": "node --test tests/unit/*.test.js tests/integration/*.test.js",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@mujoco/mujoco": "^3.14.0",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  }
+}

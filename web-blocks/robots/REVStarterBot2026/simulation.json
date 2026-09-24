@@ -1,0 +1,109 @@
+{
+  "name": "REVStarterBot2026",
+  "label": "Vereenvoudigd MuJoCo-model (geen gevalideerde replica) \u2014 fallback world=simple",
+  "mjcf": "scene.xml",
+  "supplyVoltage": 12.5,
+  "simTimestep": 0.002,
+  "drive": {
+    "left": {
+      "configName": "leftDrive",
+      "jsId": "leftDriveAsDcMotor",
+      "joint": "left_wheel_j",
+      "actuator": "left_drive",
+      "encoderTicksPerRev": 28,
+      "gearRatio": 20,
+      "maxMotorRpm": 6000,
+      "wheelRadiusM": 0.05,
+      "invertEncoder": false,
+      "defaultDirection": "FORWARD"
+    },
+    "right": {
+      "configName": "rightDrive",
+      "jsId": "rightDriveAsDcMotor",
+      "joint": "right_wheel_j",
+      "actuator": "right_drive",
+      "encoderTicksPerRev": 28,
+      "gearRatio": 20,
+      "maxMotorRpm": 6000,
+      "wheelRadiusM": 0.05,
+      "invertEncoder": false,
+      "defaultDirection": "FORWARD"
+    }
+  },
+  "motors": {
+    "flywheel": {
+      "configName": "flywheel",
+      "jsId": "flywheelAsDcMotor",
+      "joint": "flywheel_j",
+      "actuator": "flywheel_act",
+      "encoderTicksPerRev": 28,
+      "gearRatio": 1,
+      "maxMotorRpm": 6000,
+      "invertEncoder": false
+    },
+    "intakeMotor": {
+      "configName": "intakeMotor",
+      "jsId": "intakeMotorAsDcMotor",
+      "joint": "intake_j",
+      "actuator": "intake_act",
+      "encoderTicksPerRev": 28,
+      "gearRatio": 20,
+      "maxMotorRpm": 6000,
+      "invertEncoder": false
+    }
+  },
+  "servos": {
+    "pollenServo": {
+      "configName": "pollenServo",
+      "jsId": "pollenServoAsServo",
+      "joint": "pollen_servo_j",
+      "actuator": "pollen_servo_act",
+      "rangeRad": [
+        -1.57,
+        1.57
+      ],
+      "initialPosition": 0.5
+    }
+  },
+  "crServos": {
+    "crServo": {
+      "configName": "crServo",
+      "jsId": "crServoAsCRServo",
+      "joint": "cr_servo_j",
+      "actuator": "cr_servo_act",
+      "maxRadPerSec": 6.28
+    }
+  },
+  "initialPose": {
+    "basePos": [
+      0,
+      0,
+      0.06
+    ],
+    "baseQuatWxyz": [
+      1,
+      0,
+      0,
+      0
+    ]
+  },
+  "world": "simple",
+  "imu": {
+    "configName": "imu",
+    "jsId": "imuAsIMU",
+    "simulated": true,
+    "source": "MuJoCo body quaternion + freejoint angular velocity",
+    "note": "Simulator extension \u2014 not a calibrated IMU",
+    "body": "chassis",
+    "freeJoint": "root"
+  },
+  "webcam": {
+    "configName": "Webcam 1",
+    "displayName": "Webcam 1",
+    "simulated": true,
+    "cameraSite": null,
+    "aprilTagSites": "(none in simple world \u2014 detections always [])",
+    "note": "Simulator extension \u2014 synthetic AprilTags, no real CV",
+    "enabled": true
+  }
+}

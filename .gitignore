@@ -9,6 +9,8 @@ __pycache__/
 # Node / Vite
 web/node_modules/
 web/dist/
+web-blocks/node_modules/
+web-blocks/dist/
 *.local
 
 # Large CAD / derived (sim uses ftc_sim/assets instead)
