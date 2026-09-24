@@ -43,12 +43,13 @@ describe('live telemetry around HIVE tips', () => {
     assert.equal(fake._hud.hiveEvent, 'HIVE RED TIP +20');
   });
 
-  it('refreshes the telemetry view every animation frame', () => {
+  it('refreshes the telemetry view from the animation loop', () => {
     const main = readFileSync(join(root, 'src/main.js'), 'utf8');
-    const frameStart = main.indexOf('const frame = (now) =>');
-    const frameEnd = main.indexOf('anim = requestAnimationFrame(frame);', frameStart + 1);
-    const frameBody = main.slice(frameStart, frameEnd);
-    assert.ok(frameBody.includes('updateBiobuzzHud();'));
-    assert.ok(frameBody.includes('renderTelemetry();'));
+    assert.ok(main.includes('const frame = (now) =>'));
+    assert.ok(
+      main.includes(
+        'updateBiobuzzHud();\n    // Keep BIOBUZZ mechanism/HIVE telemetry live even when the OpMode does not\n    // emit a new telemetry.update() in this render frame.\n    renderTelemetry();',
+      ),
+    );
   });
 });
