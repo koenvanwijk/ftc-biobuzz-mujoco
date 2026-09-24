@@ -17,15 +17,11 @@ function visionToolboxXml() {
 
 function expectBlock(xml, type, prop = null) {
   const marker = '<block type="' + type + '"';
-  const start = xml.indexOf(marker);
-  assert.ok(start >= 0, 'missing toolbox block: ' + type);
+  assert.ok(xml.includes(marker), 'missing toolbox block: ' + type);
   if (prop != null) {
-    const close = xml.indexOf('</block>', start);
-    const chunk = xml.slice(start, close + 8);
-    assert.ok(
-      chunk.includes('<field name="PROP">' + prop + '</field>'),
-      'missing toolbox preset ' + type + '.' + prop,
-    );
+    const preset =
+      '<block type="' + type + '"><field name="PROP">' + prop + '</field></block>';
+    assert.ok(xml.includes(preset), 'missing toolbox preset ' + type + '.' + prop);
   }
 }
 
