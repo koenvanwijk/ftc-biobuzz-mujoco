@@ -15,6 +15,6 @@
   1. `createImuDropdown()` — was leeg; nu `[['imu', 'imuAsIMU']]` (config-naam `imu` → JS-id `imuAsIMU`).
   2. `createWebcamDeviceNameDropdown()` — was leeg; nu `[['Webcam 1', 'Webcam 1']]`.
   3. `getToolbox()` Sensors-sectie — na VoltageSensor: subcategory **IMU** met `imu_initialize` (shadow `imuParameters_create` + RevHub orientation), `imu_getProperty_YawPitchRollAngles`, `imu_resetYaw`, `imu_getRobotAngularVelocity`, YPR getters.
-  4. Top-level **Vision** category — AprilTag essentials + VisionPortal essentials + `navigation_webcamName`.
+  4. Top-level **Vision** category — expanded AprilTag SDK 12/BIOBUZZ set (processor create/config, all `ftcPose.*` presets, single/cluster type checks, cluster metadata including `metadata.shortName`, `fieldPosition`, `fieldOrientation`, and current/BIOBUZZ game libraries) + VisionPortal essentials + `navigation_webcamName`.
 - **Reden:** user-requested simulated Webcam + IMU; hergebruikt officiële block definitions/generators (geen parallel blockset). Geen stille placeholders — runtime is een **gesimuleerde** bridge (zie `src/config/extensions.md`).
 - **Impact:** toolbox toont IMU/Vision; gegenereerde JS roept `imuAsIMU` / `aprilTagAccess` / `visionPortalAccess` / `yawPitchRollAnglesAccess` aan zoals op een echte RC.

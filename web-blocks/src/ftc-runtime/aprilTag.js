@@ -5,7 +5,43 @@
  */
 
 function emptyLibrary() {
-  return { __type: 'AprilTagLibrary', tags: [] };
+  return { __type: 'AprilTagLibrary', tags: [], clusters: [] };
+}
+
+const BIOBUZZ_CLUSTERS = [
+  { name: 'RED SCORING', shortName: 'RS', memberIds: [30, 31, 32, 33] },
+  { name: 'RED AUDIENCE', shortName: 'RA', memberIds: [34, 35, 36, 37] },
+  { name: 'BLUE AUDIENCE', shortName: 'BA', memberIds: [38, 39, 40, 41] },
+  { name: 'BLUE SCORING', shortName: 'BS', memberIds: [42, 43, 44, 45] },
+];
+
+const SAMPLE_TAGS = [
+  { id: 583, name: 'Nemo', tagsize: 4, distanceUnit: 'INCH' },
+  { id: 584, name: 'Jonah', tagsize: 4, distanceUnit: 'INCH' },
+  { id: 585, name: 'Cousteau', tagsize: 6, distanceUnit: 'INCH' },
+  { id: 586, name: 'Ariel', tagsize: 6, distanceUnit: 'INCH' },
+];
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function bioBuzzLibrary(includeSamples = false) {
+  return {
+    __type: 'AprilTagLibrary',
+    // BIOBUZZ defines clusters rather than single detections. Keep cluster-member
+    // IDs in cluster metadata instead of pretending they are standalone tags.
+    tags: includeSamples ? cloneJson(SAMPLE_TAGS) : [],
+    clusters: cloneJson(BIOBUZZ_CLUSTERS),
+  };
+}
+
+function sampleLibrary() {
+  return {
+    __type: 'AprilTagLibrary',
+    tags: cloneJson(SAMPLE_TAGS),
+    clusters: [],
+  };
 }
 
 function parseMaybeJson(arg) {
@@ -134,12 +170,21 @@ export function createAprilTagAccess(readDetections) {
       return api.createMetadata();
     },
 
-    getCurrentGameTagLibrary: emptyLibrary,
+    // SDK 12 game database surface used by the toolbox. BIOBUZZ itself has
+    // clusters and no standalone season tags; getCurrentGameTagLibrary also
+    // includes the four standard Sample OpMode tags, matching FTC behavior.
+    getCurrentGameTagLibrary() {
+      return bioBuzzLibrary(true);
+    },
     getCenterStageTagLibrary: emptyLibrary,
     getIntoTheDeepTagLibrary: emptyLibrary,
     getDecodeTagLibrary: emptyLibrary,
-    getBioBuzzTagLibrary: emptyLibrary,
-    getSampleTagLibrary: emptyLibrary,
+    getBioBuzzTagLibrary() {
+      return bioBuzzLibrary(false);
+    },
+    getSampleTagLibrary() {
+      return sampleLibrary();
+    },
 
     createAprilTagLibraryBuilder() {
       return { __type: 'AprilTagLibrary.Builder', tags: [] };
@@ -162,8 +207,13 @@ export function createAprilTagAccess(readDetections) {
     buildAprilTagLibrary(builder) {
       return { __type: 'AprilTagLibrary', tags: (builder && builder.tags) || [] };
     },
-    lookupTag() {
-      return null;
+    lookupTag(library, id) {
+      const lib = parseMaybeJson(library) || emptyLibrary();
+      const tag = Array.isArray(lib.tags)
+        ? lib.tags.find((item) => Number(item.id) === Number(id))
+        : null;
+      // The official generator wraps this call in JSON.parse(...).
+      return JSON.stringify(tag || null);
     },
 
     /** @internal */

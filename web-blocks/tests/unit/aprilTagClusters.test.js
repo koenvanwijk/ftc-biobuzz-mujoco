@@ -76,6 +76,20 @@ describe('BIOBUZZ AprilTag clusters', () => {
     assert.equal(detect([30, 31, 32])[0].percentClusterFound, 75);
   });
 
+  it('exposes complete cluster metadata for Blocks getters', () => {
+    const det = detect([30, 31, 32, 33])[0];
+    assert.equal(det.metadata.distanceUnit, 'METER');
+    assert.deepEqual(det.metadata.fieldPosition, [1.0, 0.1525, 0.0]);
+
+    const q = det.metadata.fieldOrientation;
+    assert.ok(q);
+    assert.ok(Math.abs(Math.hypot(q.w, q.x, q.y, q.z) - 1) < 1e-12);
+    assert.ok(Math.abs(q.w - 1) < 1e-12);
+    assert.ok(Math.abs(q.x) < 1e-12);
+    assert.ok(Math.abs(q.y) < 1e-12);
+    assert.ok(Math.abs(q.z) < 1e-12);
+  });
+
   it('uses the CELL opening center as cluster pose origin', () => {
     const det = detect([30, 31, 32, 33])[0];
     // red_scoring_shell at [1,0,0], local +Y opening, depth=0.305 m.

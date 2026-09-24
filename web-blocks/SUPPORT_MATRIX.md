@@ -27,7 +27,7 @@ Legenda: **W** = working · **P** = partial · **U** = unsupported (faalt luid)
 | ControlHub voltage | W | Vaste configureerbare spanning |
 | ServoController pwm enable/status | P | State only |
 | REVModule bulk caching | P | Stub methodes |
-| Webcam / Vision / AprilTag | P | **Simulated extension**: VisionPortal stubs + synthetic AprilTags. BIOBUZZ IDs 30–45 worden volgens SDK 12 als 4 CELL-clusters teruggegeven (`percentClusterFound`, cluster metadata, opening-center pose + roll). Camera controls zijn no-op stubs; geen echte CV. |
+| Webcam / Vision / AprilTag | P | **Simulated extension**: VisionPortal stubs + synthetic AprilTags. BIOBUZZ IDs 30–45 worden volgens SDK 12 als 4 CELL-clusters teruggegeven (`percentClusterFound`, volledige cluster metadata incl. `name`/`shortName`/`fieldPosition`/`fieldOrientation`, opening-center pose + roll). De Vision-toolbox bevat de praktische single/cluster + game-library blocks. Camera controls zijn no-op stubs; geen echte CV. |
 | IMU (imuAsIMU) | P | **Simulated extension**: yaw/pitch/roll + ω from MuJoCo body quat; `resetYaw` offset. |
 | Infinite loop zonder UI-freeze | W | Interpreter budget in worker |
 | .blk export/import | W | Via bridge + Extra XML |
