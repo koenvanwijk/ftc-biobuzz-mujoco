@@ -8,7 +8,7 @@ They reuse official FTC Blocks definitions/generators from the vendor pin. They 
 |--------|-------------|----------------|----------|
 | IMU | `imu` | `imuAsIMU` | Yaw/pitch/roll + angular velocity from MuJoCo body quaternion / free-joint `qvel`. `resetYaw()` stores a yaw offset. |
 | Webcam | `Webcam 1` | `navigationAccess.getWebcamName("Webcam 1")` | Name handle for VisionPortal only — no image stream. |
-| AprilTag | (processor) | `aprilTagAccess` | Synthetic detections from MJCF sites `apriltag_30`…`apriltag_45` relative to camera site `robot_up_cam` (BIOBUZZ). |
+| AprilTag | (processor) | `aprilTagAccess` | Synthetic SDK-12-style BIOBUZZ cluster detections from MJCF sites `apriltag_30`…`apriltag_45`, relative to `robot_up_cam`. |
 | VisionPortal | — | `visionPortalAccess` | Streaming state stubs (`STREAMING` / stop / resume). Exposure/focus/gain/WB/PTZ are **no-op stubs** (get/set succeed, no image effect). |
 | YawPitchRollAngles | — | `yawPitchRollAnglesAccess` | `getYaw` / `getPitch` / `getRoll` (degrees default; radians if `AngleUnit` says so). |
 
@@ -29,7 +29,7 @@ They reuse official FTC Blocks definitions/generators from the vendor pin. They 
 
 ## Known gaps (simulated)
 
-- No real image CV / lens intrinsics / distortion.
+- BIOBUZZ cluster members 30–45 are grouped into the four official CELL clusters; one visible member yields one cluster detection, and cluster pose targets the moving CELL opening center.\n- No real image CV / lens intrinsics / distortion.
 - FOV is a hemisphere + max range (default 3 m), not a calibrated frustum.
 - Tag “facing camera” uses site ±Z · direction-to-camera threshold (approx.).
 - `robot_up_cam` is upward-tilted; horizontal wall tags may rarely appear — many BIOBUZZ tags lie on horizontal faces.
