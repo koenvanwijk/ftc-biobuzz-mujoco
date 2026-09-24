@@ -347,22 +347,24 @@ export class MujocoThreeViewer {
     }
   }
 
-  /** CSS-pixel PiP box (bottom-right). Drawing-buffer coords = css * pixelRatio. */
+  /** CSS-pixel PiP box (bottom-right, inset so cyan border stays fully visible). */
   _pipCssBox() {
     const cw = this.canvas.clientWidth || window.innerWidth;
     const ch = this.canvas.clientHeight || window.innerHeight;
-    const margin = 12;
+    // Extra right inset: panel overflow / splitters used to clip the PiP edge.
+    const margin = 16;
+    const rightInset = 48;
     const pipW = Math.min(320, Math.max(160, Math.floor(cw * 0.28)));
     const pipH = Math.floor(pipW * 0.75);
-    return { cw, ch, margin, pipW, pipH };
+    return { cw, ch, margin, rightInset, pipW, pipH };
   }
 
   _layoutPipLabel() {
     const label = this._pipLabel || document.getElementById('pip-label');
     if (!label) return;
     this._pipLabel = label;
-    const { margin, pipW, pipH } = this._pipCssBox();
-    label.style.right = `${margin}px`;
+    const { margin, rightInset, pipW, pipH } = this._pipCssBox();
+    label.style.right = `${rightInset}px`;
     label.style.bottom = `${margin + pipH}px`;
     label.style.width = `${pipW}px`;
     label.style.textAlign = 'center';
@@ -384,15 +386,17 @@ export class MujocoThreeViewer {
   render() {
     this.controls.update();
     const dpr = this.renderer.getPixelRatio();
-    const { cw, ch, margin: marginCss, pipW: pipWcss, pipH: pipHcss } = this._pipCssBox();
+    const { cw, ch, margin: marginCss, rightInset: rightInsetCss, pipW: pipWcss, pipH: pipHcss } = this._pipCssBox();
     // Prefer drawing-buffer size (includes DPR); fall back to css*dpr.
     const w = this.canvas.width || Math.max(1, Math.floor(cw * dpr));
     const h = this.canvas.height || Math.max(1, Math.floor(ch * dpr));
     const pipW = Math.max(1, Math.round(pipWcss * dpr));
     const pipH = Math.max(1, Math.round(pipHcss * dpr));
     const margin = Math.round(marginCss * dpr);
+    const rightInset = Math.round(rightInsetCss * dpr);
     const border = Math.max(2, Math.round(2 * dpr));
-    const x = w - pipW - margin;
+    // Keep full cyan border inside the visible canvas (rightInset + border).
+    const x = Math.max(margin, w - pipW - rightInset - border);
     const y = margin;
 
     // Main orbit view
