@@ -6,6 +6,7 @@ import { OpModeRunner } from './execution/OpModeRunner.js';
 import { BlocksBridge } from './editor/blocksBridge.js';
 import { seedBlkProject } from './editor/seedProject.js';
 import { createRuntime } from './ftc-runtime/createRuntime.js';
+import { initSplitLayout } from './ui/splitLayout.js';
 
 const $ = (id) => document.getElementById(id);
 const log = (msg) => {
@@ -35,8 +36,37 @@ function parseWorldFromUrl() {
   return 'biobuzz';
 }
 
+
+/** @type {{ applyPreset: (name: string) => void, destroy: () => void } | null} */
+let splitLayoutApi = null;
+
+function initAppSplitLayout() {
+  const mainEl = document.getElementById('mainSplit') || document.querySelector('main.main');
+  if (!mainEl || splitLayoutApi) return;
+  splitLayoutApi = initSplitLayout({
+    mainEl,
+    panels: {
+      editor: mainEl.querySelector('.editor-panel'),
+      sim: mainEl.querySelector('.sim-panel'),
+      code: mainEl.querySelector('.side-panel'),
+    },
+    splitters: [
+      document.getElementById('splitter0'),
+      document.getElementById('splitter1'),
+    ].filter(Boolean),
+    onLayoutChange: () => {
+      try {
+        viewer?.resize?.();
+      } catch {
+        /* viewer may not be ready yet */
+      }
+    },
+  });
+}
+
 async function boot() {
   worldId = parseWorldFromUrl();
+  initAppSplitLayout();
   const sel = $('worldSelect');
   if (sel) sel.value = worldId;
 
@@ -78,7 +108,7 @@ async function boot() {
     teleopInput = new InputHandler();
     $('biobuzzHud').hidden = false;
     $('teleopHint').textContent =
-      'Idle teleop: W/S·I/K tank · E intake · Space/F shoot · X place · C reverse · T arcade. Blocks OpMode owns actuators while running.';
+      'Idle teleop: W/S·I/K tank · pijltjes · E intake · Space/F shoot · X place · C reverse · T arcade. OpMode: sticks + E/C/X/Space/F/G/B/Y + UJHL dpad → gamepad1.';
   } else {
     mujocoBundle = await loadSimpleSim(publicUrl('robots/REVStarterBot2026/scene.xml'), (s) => {
       $('runStatus').textContent = s;
@@ -98,7 +128,7 @@ async function boot() {
     viewer.init();
     $('biobuzzHud').hidden = true;
     $('teleopHint').textContent =
-      'Toetsenbord: W/S = links, I/K = rechts · doodzone 0.05 (via gamepad1 overrides tijdens OpMode)';
+      'Toetsenbord OpMode: W/S·I/K·pijltjes sticks · E=RB C=LB X Space/F=RT G/B/Y · U/J/H/L=dpad · doodzone 0.05';
   }
 
   runner = new OpModeRunner({
@@ -108,7 +138,9 @@ async function boot() {
       // OpMode owns actuators only while INIT / WAIT_FOR_START / RUN.
       // STOP / DONE / ERROR / Idle → idle BIOBUZZ teleop may drive.
       const base = String(phase || '').split(' ')[0];
-      opModeOwns = base === 'INIT' || base === 'WAIT_FOR_START' || base === 'RUN';
+      const nextOwns = base === 'INIT' || base === 'WAIT_FOR_START' || base === 'RUN';
+      if (opModeOwns && !nextOwns) clearGamepadOverrides();
+      opModeOwns = nextOwns;
     },
     onCommands: (cmds) => {
       latestCommands = cmds;
@@ -125,11 +157,13 @@ async function boot() {
       $('runStatus').textContent = 'ERROR';
       adapter.zeroAll();
       opModeOwns = false;
+      clearGamepadOverrides();
       updateButtons('ERROR');
     },
     onDone: (reason) => {
       log(`OpMode klaar (${reason})`);
       opModeOwns = false;
+      clearGamepadOverrides();
       adapter.zeroAll();
       updateButtons('DONE');
     },
@@ -261,6 +295,7 @@ function wireUi() {
     runtime.resetAll();
     latestCommands = {};
     opModeOwns = false;
+    clearGamepadOverrides();
     $('telemetryOut').textContent = '';
     log('Sim gereset');
     updateButtons('Idle');
@@ -291,6 +326,7 @@ function wireUi() {
     } catch (e) {
       log(`INIT mislukt: ${e.message}`);
       opModeOwns = false;
+      clearGamepadOverrides();
     }
   };
 
@@ -304,6 +340,7 @@ function wireUi() {
       adapter.zeroAll();
       latestCommands = {};
       opModeOwns = false;
+      clearGamepadOverrides();
     });
     log('STOP — drive + mechanisms zeroed; idle teleop hervat');
   };
@@ -321,12 +358,25 @@ function downloadText(filename, text) {
   URL.revokeObjectURL(a.href);
 }
 
+
+function clearGamepadOverrides() {
+  try {
+    runtime?.gamepad1?.clearOverrides?.();
+    runtime?.gamepad2?.clearOverrides?.();
+  } catch {
+    /* ignore */
+  }
+}
+
 function wireGamepadFallback() {
   const keys = Object.create(null);
   window.addEventListener('keydown', (e) => {
     keys[e.key.toLowerCase()] = true;
     // During OpMode: feed gamepad1 for Blocks. Idle BIOBUZZ uses InputHandler instead.
-    if (opModeOwns || worldId === 'simple') applyKeys(keys);
+    if (opModeOwns || worldId === 'simple') {
+      if (e.key.startsWith('Arrow') || e.key === ' ' || e.code === 'Space') e.preventDefault();
+      applyKeys(keys);
+    }
   });
   window.addEventListener('keyup', (e) => {
     keys[e.key.toLowerCase()] = false;
@@ -353,17 +403,41 @@ function wireGamepadFallback() {
 }
 
 function applyKeys(keys) {
-  // During OpMode: feed gamepad1 overrides for Blocks tank drive.
+  // During OpMode: feed gamepad1 overrides for Blocks tank/arcade drive.
   // During biobuzz idle: InputHandler owns drive (see startLoop).
+  // Axes: W/S → leftStickY · I/K or ↑/↓ → rightStickY · ←/→ → leftStickX
+  // Buttons: E=RB, C=LB, X=X, Space/F=RT, G=A, B=B, Y=Y, U/J/H/L=Dpad
   if (worldId === 'biobuzz' && !opModeOwns) return;
   let ly = 0;
   let ry = 0;
+  let lx = 0;
   if (keys.w) ly -= 1;
   if (keys.s) ly += 1;
-  if (keys.i) ry -= 1;
-  if (keys.k) ry += 1;
-  runtime.gamepad1.setAxisOverride('leftStickY', ly);
-  runtime.gamepad1.setAxisOverride('rightStickY', ry);
+  if (keys.i || keys.arrowup) ry -= 1;
+  if (keys.k || keys.arrowdown) ry += 1;
+  if (keys.arrowleft) lx -= 1;
+  if (keys.arrowright) lx += 1;
+  const clamp = (v) => Math.max(-1, Math.min(1, v));
+  const gp = runtime.gamepad1;
+  gp.setAxisOverride('leftStickY', clamp(ly));
+  gp.setAxisOverride('rightStickY', clamp(ry));
+  gp.setAxisOverride('leftStickX', clamp(lx));
+
+  const space = !!(keys[' '] || keys.space);
+  const shoot = space || !!keys.f;
+  gp.setAxisOverride('rightTrigger', shoot ? 1 : 0);
+
+  // Every named button each frame so release clears (false deletes override).
+  gp.setButtonOverride('RightBumper', !!keys.e);
+  gp.setButtonOverride('LeftBumper', !!keys.c);
+  gp.setButtonOverride('X', !!keys.x);
+  gp.setButtonOverride('A', !!keys.g);
+  gp.setButtonOverride('B', !!keys.b);
+  gp.setButtonOverride('Y', !!keys.y);
+  gp.setButtonOverride('DpadUp', !!keys.u);
+  gp.setButtonOverride('DpadDown', !!keys.j);
+  gp.setButtonOverride('DpadLeft', !!keys.h);
+  gp.setButtonOverride('DpadRight', !!keys.l);
 }
 
 function readGamepadSnapshot() {

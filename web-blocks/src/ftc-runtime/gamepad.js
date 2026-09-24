@@ -34,7 +34,14 @@ export class GamepadBridge {
   }
 
   setButtonOverride(name, pressed) {
-    this._buttons[name] = !!pressed;
+    if (pressed) this._buttons[name] = true;
+    else delete this._buttons[name];
+  }
+
+  /** Clear keyboard/UI axis + button overrides (e.g. when leaving OpMode). */
+  clearOverrides() {
+    for (const k of Object.keys(this._override)) this._override[k] = 0;
+    this._buttons = Object.create(null);
   }
 
   poll() {

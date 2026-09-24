@@ -24,12 +24,18 @@ Fallback: **http://localhost:5174/?world=simple** of kies *Vereenvoudigd* in de 
 5. **START** / **STOP** — STOP zerot drive + mechanisms; daarna idle teleop weer actief.
 6. Export **.blk** / **Java**.
 
+### UI — panelen
+
+De drie panelen (Blocks / Sim / Code) zijn **versleepbaar** via de verticale splits (horizontaal op smalle schermen). Toolbar: **Blocks · Sim · Code · Gelijk** vergroot één paneel of herstelt de standaardverdeling (~40/35/25). Per paneel: **◀** inklappen, **⛶** vergroten. Breedtes en inklapstatus blijven bewaard in `localStorage` (`ftc-blocks-layout-v1`). Na layout-wijziging krijgt de MuJoCo-canvas een resize (window-event + `viewer.resize()`).
+
+
 ### Idle teleop (BIOBUZZ, geen actieve OpMode)
 
 | Input | Actie |
 |-------|--------|
 | W/S · I/K | Tank L/R |
-| WASD / pijltjes | Arcade |
+| ↑/↓ | Tank rechts (zelfde als I/K) |
+| A/D of ←/→ | Arcade-bocht (forceert arcade) |
 | E / RB | Intake toggle |
 | C / LB | Rear FIFO spit (hold) |
 | Space/F / RT | Shoot pulse |
@@ -37,7 +43,23 @@ Fallback: **http://localhost:5174/?world=simple** of kies *Vereenvoudigd* in de 
 | T | Tank/arcade toggle |
 | R | Reset keyframe + preload |
 
-Tijdens INIT/WAIT/RUN heeft de **Blocks OpMode** exclusief actuator-controle.
+### OpMode toetsenbord → `gamepad1` overrides
+
+| Input | Override |
+|-------|----------|
+| W / S | `leftStickY` −1 / +1 |
+| I / K of ↑ / ↓ | `rightStickY` −1 / +1 |
+| ← / → | `leftStickX` −1 / +1 |
+| E | `RightBumper` |
+| C | `LeftBumper` |
+| X | button `X` |
+| Space / F | `rightTrigger` 1 (shoot) |
+| G | button `A` |
+| B | button `B` |
+| Y | button `Y` |
+| U / J / H / L | `DpadUp` / `Down` / `Left` / `Right` |
+
+Tijdens INIT/WAIT/RUN heeft de **Blocks OpMode** exclusief actuator-controle. Axis/button overrides worden gewist bij STOP/DONE/ERROR/reset.
 
 ## Hardware ↔ BIOBUZZ mapping
 

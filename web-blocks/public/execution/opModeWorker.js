@@ -153,6 +153,19 @@ function startOpMode(code) {
     // evalIfTruthy evaluates generated expressions in the worker global scope.
     self.miscAccess = miscNative;
     interp.setProperty(globalObject, 'miscAccess', misc);
+
+    const elapsedNative = createElapsedTimeAccessNative();
+    const colorNative = createColorAccessNative();
+    const rangeNative = createRangeAccessNative();
+    const systemNative = createSystemAccessNative();
+    self.elapsedTimeAccess = elapsedNative;
+    self.colorAccess = colorNative;
+    self.rangeAccess = rangeNative;
+    self.systemAccess = systemNative;
+    interp.setProperty(globalObject, 'elapsedTimeAccess', wrapElapsedTimeAccess(interp, elapsedNative));
+    interp.setProperty(globalObject, 'colorAccess', wrapNativeAccess(interp, colorNative));
+    interp.setProperty(globalObject, 'rangeAccess', wrapNativeAccess(interp, rangeNative));
+    interp.setProperty(globalObject, 'systemAccess', wrapNativeAccess(interp, systemNative));
     interp.setProperty(
       globalObject,
       'listLength',
@@ -1353,6 +1366,230 @@ function createVisionPortalAccessNative() {
   };
 }
 
+
+function createElapsedTimeAccessNative() {
+  const normalizeResolution = (resolution) => {
+    if (resolution == null) return 'SECONDS';
+    if (typeof resolution === 'object' && resolution !== null) {
+      const s = resolution.name || resolution.resolution || String(resolution);
+      return String(s).toUpperCase().includes('MILLI') ? 'MILLISECONDS' : 'SECONDS';
+    }
+    const s = String(resolution).toUpperCase();
+    return s.includes('MILLI') ? 'MILLISECONDS' : 'SECONDS';
+  };
+  const parseStartSec = (startTime) => {
+    if (startTime == null || startTime === '') return simTimeSec || 0;
+    const n = Number(startTime);
+    if (!Number.isFinite(n)) return simTimeSec || 0;
+    if (Math.abs(n) > 1e12) return n / 1e9;
+    return n;
+  };
+  const elapsedSec = (t) => {
+    const start = t && typeof t.startSec === 'number' ? t.startSec : 0;
+    return (simTimeSec || 0) - start;
+  };
+  return {
+    create() {
+      return { startSec: simTimeSec || 0, resolution: 'SECONDS' };
+    },
+    create_withStartTime(startTime) {
+      return { startSec: parseStartSec(startTime), resolution: 'SECONDS' };
+    },
+    create_withResolution(resolution) {
+      return { startSec: simTimeSec || 0, resolution: normalizeResolution(resolution) };
+    },
+    getStartTime(t) {
+      const start = t && typeof t.startSec === 'number' ? t.startSec : 0;
+      return normalizeResolution(t && t.resolution) === 'MILLISECONDS' ? start * 1000 : start;
+    },
+    getTime(t) {
+      const sec = elapsedSec(t);
+      return normalizeResolution(t && t.resolution) === 'MILLISECONDS' ? sec * 1000 : sec;
+    },
+    getSeconds(t) {
+      return elapsedSec(t);
+    },
+    getMilliseconds(t) {
+      return elapsedSec(t) * 1000;
+    },
+    getResolution(t) {
+      return normalizeResolution(t && t.resolution);
+    },
+    reset(t) {
+      if (t && typeof t === 'object') t.startSec = simTimeSec || 0;
+    },
+    log(t, label) {
+      const sec = elapsedSec(t);
+      const msg = (label != null ? String(label) : 'ElapsedTime') + ': ' + sec.toFixed(3) + ' s';
+      try {
+        self.postMessage({ type: 'log', message: msg });
+      } catch (_) {
+        /* ignore */
+      }
+      if (typeof console !== 'undefined' && console.log) console.log(msg);
+    },
+    toText(t) {
+      return String(elapsedSec(t));
+    },
+  };
+}
+
+function createRangeAccessNative() {
+  return {
+    clip(n, min, max) {
+      const v = Number(n);
+      const lo = Number(min);
+      const hi = Number(max);
+      if (Number.isNaN(v)) return lo;
+      return Math.min(Math.max(v, lo), hi);
+    },
+    scale(n, x1, x2, y1, y2) {
+      const v = Number(n);
+      const a = Number(x1);
+      const b = Number(x2);
+      const c = Number(y1);
+      const d = Number(y2);
+      if (a === b) return c;
+      return c + ((v - a) * (d - c)) / (b - a);
+    },
+  };
+}
+
+function createSystemAccessNative() {
+  return {
+    nanoTime() {
+      return Math.floor((simTimeSec || 0) * 1e9);
+    },
+    currentTimeMillis() {
+      return Math.floor((simTimeSec || 0) * 1000);
+    },
+  };
+}
+
+function createColorAccessNative() {
+  const clampByte = (n) => {
+    const v = Math.round(Number(n) || 0);
+    return Math.max(0, Math.min(255, v));
+  };
+  const argbToColor = (a, r, g, b) => {
+    const aa = clampByte(a);
+    const rr = clampByte(r);
+    const gg = clampByte(g);
+    const bb = clampByte(b);
+    return ((aa << 24) | (rr << 16) | (gg << 8) | bb) | 0;
+  };
+  const rgbToColor = (r, g, b) => argbToColor(255, r, g, b);
+  const unpack = (color) => {
+    const c = Number(color) | 0;
+    return {
+      a: (c >>> 24) & 0xff,
+      r: (c >>> 16) & 0xff,
+      g: (c >>> 8) & 0xff,
+      b: c & 0xff,
+    };
+  };
+  const rgbToHsv = (r, g, b) => {
+    const rr = clampByte(r) / 255;
+    const gg = clampByte(g) / 255;
+    const bb = clampByte(b) / 255;
+    const max = Math.max(rr, gg, bb);
+    const min = Math.min(rr, gg, bb);
+    const d = max - min;
+    let h = 0;
+    if (d !== 0) {
+      if (max === rr) h = ((gg - bb) / d) % 6;
+      else if (max === gg) h = (bb - rr) / d + 2;
+      else h = (rr - gg) / d + 4;
+      h *= 60;
+      if (h < 0) h += 360;
+    }
+    const s = max === 0 ? 0 : d / max;
+    return { h, s, v: max };
+  };
+  const hsvToRgb = (h, s, v) => {
+    let hh = Number(h) || 0;
+    const ss = Math.max(0, Math.min(1, Number(s) || 0));
+    const vv = Math.max(0, Math.min(1, Number(v) || 0));
+    hh = ((hh % 360) + 360) % 360;
+    const c = vv * ss;
+    const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
+    const m = vv - c;
+    let rp = 0;
+    let gp = 0;
+    let bp = 0;
+    if (hh < 60) { rp = c; gp = x; bp = 0; }
+    else if (hh < 120) { rp = x; gp = c; bp = 0; }
+    else if (hh < 180) { rp = 0; gp = c; bp = x; }
+    else if (hh < 240) { rp = 0; gp = x; bp = c; }
+    else if (hh < 300) { rp = x; gp = 0; bp = c; }
+    else { rp = c; gp = 0; bp = x; }
+    return {
+      r: Math.round((rp + m) * 255),
+      g: Math.round((gp + m) * 255),
+      b: Math.round((bp + m) * 255),
+    };
+  };
+  const NAMED = {
+    black: 0xff000000 | 0,
+    blue: 0xff0000ff | 0,
+    cyan: 0xff00ffff | 0,
+    dkgray: 0xff444444 | 0,
+    darkgray: 0xff444444 | 0,
+    gray: 0xff888888 | 0,
+    grey: 0xff888888 | 0,
+    green: 0xff00ff00 | 0,
+    ltgray: 0xffcccccc | 0,
+    lightgray: 0xffcccccc | 0,
+    magenta: 0xffff00ff | 0,
+    red: 0xffff0000 | 0,
+    white: 0xffffffff | 0,
+    yellow: 0xffffff00 | 0,
+    transparent: 0x00000000 | 0,
+  };
+  return {
+    getRed(color) { return unpack(color).r; },
+    getGreen(color) { return unpack(color).g; },
+    getBlue(color) { return unpack(color).b; },
+    getAlpha(color) { return unpack(color).a; },
+    getHue(color) { const u = unpack(color); return rgbToHsv(u.r, u.g, u.b).h; },
+    getSaturation(color) { const u = unpack(color); return rgbToHsv(u.r, u.g, u.b).s; },
+    getValue(color) { const u = unpack(color); return rgbToHsv(u.r, u.g, u.b).v; },
+    rgbToColor,
+    argbToColor,
+    hsvToColor(h, s, v) {
+      const rgb = hsvToRgb(h, s, v);
+      return rgbToColor(rgb.r, rgb.g, rgb.b);
+    },
+    ahsvToColor(a, h, s, v) {
+      const rgb = hsvToRgb(h, s, v);
+      return argbToColor(a, rgb.r, rgb.g, rgb.b);
+    },
+    textToColor(text) {
+      const raw = String(text == null ? '' : text).trim();
+      if (!raw) return 0;
+      const lower = raw.toLowerCase();
+      if (lower in NAMED) return NAMED[lower];
+      let hex = raw.startsWith('#')
+        ? raw.slice(1)
+        : raw.startsWith('0x') || raw.startsWith('0X')
+          ? raw.slice(2)
+          : raw;
+      if (/^[0-9a-fA-F]{6}$/.test(hex)) hex = 'FF' + hex;
+      if (/^[0-9a-fA-F]{8}$/.test(hex)) return parseInt(hex, 16) | 0;
+      return 0;
+    },
+    rgbToHue(r, g, b) { return rgbToHsv(r, g, b).h; },
+    rgbToSaturation(r, g, b) { return rgbToHsv(r, g, b).s; },
+    rgbToValue(r, g, b) { return rgbToHsv(r, g, b).v; },
+    toText(color) {
+      const u = unpack(color);
+      const hex = ((u.a << 24) | (u.r << 16) | (u.g << 8) | u.b) >>> 0;
+      return '#' + hex.toString(16).padStart(8, '0').toUpperCase();
+    },
+    showColor() { return undefined; },
+  };
+}
+
 function createMiscAccessNative() {
   return {
     formatNumber(n, precision) {
@@ -1373,6 +1610,50 @@ function createMiscAccessNative() {
       return Math.max(a, b);
     },
   };
+}
+
+
+function wrapElapsedTimeAccess(interp, native) {
+  const obj = interp.nativeToPseudo({});
+  for (const key of Object.keys(native)) {
+    const fn = native[key];
+    if (typeof fn !== 'function') {
+      interp.setProperty(obj, key, fn);
+      continue;
+    }
+    if (key === 'reset') {
+      interp.setProperty(
+        obj,
+        key,
+        interp.createNativeFunction(function (t) {
+          // Mutate the interpreter pseudo-object in place (pseudoToNative would copy).
+          if (t && typeof t === 'object') {
+            interp.setProperty(t, 'startSec', simTimeSec || 0);
+          }
+        }),
+      );
+      continue;
+    }
+    interp.setProperty(
+      obj,
+      key,
+      interp.createNativeFunction(function () {
+        const args = [];
+        for (let i = 0; i < arguments.length; i++) {
+          try {
+            args.push(interp.pseudoToNative(arguments[i]));
+          } catch (_) {
+            args.push(arguments[i]);
+          }
+        }
+        const result = fn.apply(native, args);
+        if (result === null || result === undefined) return result;
+        if (typeof result !== 'object') return result;
+        return interp.nativeToPseudo(result);
+      }),
+    );
+  }
+  return obj;
 }
 
 function wrapNativeAccess(interp, native) {

@@ -1,5 +1,14 @@
 /**
- * Keyboard + gamepad tank/arcade drive (port of ftc_sim/controls.py).
+ * Idle BIOBUZZ teleop: keyboard + gamepad tank/arcade (port of ftc_sim/controls.py).
+ * Only active when no Blocks OpMode owns the robot (see main.js opModeOwns).
+ *
+ * Idle keys: W/S left, I/K or ↑/↓ right (tank); A/D or ←/→ force arcade turn;
+ * T toggles arcade; E intake; C reverse; Space/F shoot; X place; R reset.
+ *
+ * OpMode keyboard → gamepad1 overrides live in main.js applyKeys
+ * (W/S → leftStickY, I/K·↑/↓ → rightStickY, ←/→ → leftStickX;
+ *  E=RB, C=LB, X=X, Space/F=RT, G=A, B=B, Y=Y, U/J/H/L=Dpad).
+ *
  * Intake latched (default ON) — E / R1(RB) toggles; C / L1(LB) = rear FIFO out while held.
  * Space/F / R2(RT) = shoot (R2 must not toggle intake).
  * X / gamepad X = FIFO rear → flower stack (or drop).
