@@ -130,9 +130,14 @@ function clusterTargetFromBody(mujoco, model, data, spec, fallbackPoints) {
           bodyPos[1] + localY[1] * openingOffset,
           bodyPos[2] + localY[2] * openingOffset,
         ],
-        // CELL local +Z flips by roughly 180 degrees when the HIVE tips, which
-        // gives the same useful roll discriminator as the SDK cluster pose.
-        upAxis: localZ,
+        // The two CELL openings face opposite local-Y directions. Flip the
+        // cluster's image-up axis with openSign so opposing CELL clusters differ
+        // by ~180 degrees in roll, matching the SDK's scoring-target discriminator.
+        upAxis: [
+          localZ[0] * spec.openSign,
+          localZ[1] * spec.openSign,
+          localZ[2] * spec.openSign,
+        ],
       };
     }
   }
