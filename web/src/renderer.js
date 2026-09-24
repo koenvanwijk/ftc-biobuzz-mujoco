@@ -71,6 +71,11 @@ export class MujocoThreeViewer {
 
     this._onResize = () => this.resize();
     window.addEventListener('resize', this._onResize);
+    if (typeof ResizeObserver !== 'undefined' && canvas.parentElement) {
+      // Observe the panel, not the canvas — setSize would otherwise re-enter.
+      this._ro = new ResizeObserver(() => this.resize());
+      this._ro.observe(canvas.parentElement);
+    }
     this.resize();
   }
 
@@ -347,14 +352,22 @@ export class MujocoThreeViewer {
     }
   }
 
-  /** CSS-pixel PiP box (bottom-right, inset so cyan border stays fully visible). */
+  /** CSS-pixel PiP box (bottom-right). Sized from laid-out canvas, never window. */
   _pipCssBox() {
-    const cw = this.canvas.clientWidth || window.innerWidth;
-    const ch = this.canvas.clientHeight || window.innerHeight;
-    // Extra right inset: panel overflow / splitters used to clip the PiP edge.
+    const canvas = this.canvas;
+    let cw = canvas.clientWidth;
+    let ch = canvas.clientHeight;
+    // Avoid window fallback: that oversized the buffer and clipped the PiP under the next panel.
+    if (cw < 2 || ch < 2) {
+      const parent = canvas.parentElement;
+      const rect = parent?.getBoundingClientRect?.();
+      cw = Math.max(2, Math.floor(rect?.width || 640));
+      ch = Math.max(2, Math.floor(rect?.height || 360));
+    }
     const margin = 16;
-    const rightInset = 48;
-    const pipW = Math.min(320, Math.max(160, Math.floor(cw * 0.28)));
+    // Keep whole cyan frame clear of the panel/splitter edge (48px was still clipped).
+    const rightInset = Math.max(100, Math.min(220, Math.round(cw * 0.2)));
+    const pipW = Math.min(280, Math.max(140, Math.floor(cw * 0.24)));
     const pipH = Math.floor(pipW * 0.75);
     return { cw, ch, margin, rightInset, pipW, pipH };
   }
@@ -375,6 +388,9 @@ export class MujocoThreeViewer {
   resize() {
     const { cw, ch } = this._pipCssBox();
     this.renderer.setSize(cw, ch, false);
+    // Keep CSS box = panel slot so the buffer never paints past overflow:hidden.
+    this.canvas.style.width = '100%';
+    this.canvas.style.height = '100%';
     this.camera.aspect = cw / Math.max(ch, 1);
     this.camera.updateProjectionMatrix();
     // PiP aspect ~ 4:3
@@ -387,9 +403,12 @@ export class MujocoThreeViewer {
     this.controls.update();
     const dpr = this.renderer.getPixelRatio();
     const { cw, ch, margin: marginCss, rightInset: rightInsetCss, pipW: pipWcss, pipH: pipHcss } = this._pipCssBox();
-    // Prefer drawing-buffer size (includes DPR); fall back to css*dpr.
-    const w = this.canvas.width || Math.max(1, Math.floor(cw * dpr));
-    const h = this.canvas.height || Math.max(1, Math.floor(ch * dpr));
+    // Always derive buffer size from current CSS box (ignore stale canvas.width).
+    const w = Math.max(1, Math.floor(cw * dpr));
+    const h = Math.max(1, Math.floor(ch * dpr));
+    if (this.canvas.width !== w || this.canvas.height !== h) {
+      this.renderer.setSize(cw, ch, false);
+    }
     const pipW = Math.max(1, Math.round(pipWcss * dpr));
     const pipH = Math.max(1, Math.round(pipHcss * dpr));
     const margin = Math.round(marginCss * dpr);
@@ -443,6 +462,7 @@ export class MujocoThreeViewer {
 
   dispose() {
     window.removeEventListener('resize', this._onResize);
+    this._ro?.disconnect?.();
     this.controls.dispose();
     this.renderer.dispose();
   }
