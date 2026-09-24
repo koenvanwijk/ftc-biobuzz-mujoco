@@ -142,6 +142,8 @@ Rapport: `cad/meshes/import_report.txt`.
 | Blue Audience | 38, 39, 40, 41 |
 | Blue Scoring | 42, 43, 44, 45 |
 
+De browser Blocks-simulator volgt voor deze IDs de SDK 12 cluster-semantiek: één zichtbare member is genoeg voor één `AprilTagClusterDetection`; members verschijnen niet als losse detections. De gerapporteerde pose wijst naar het midden van de bewegende CELL-opening en `percentClusterFound` is 25/50/75/100.
+
 Sites: `apriltag_<id>` · textures: `ftc_sim/assets/textures/apriltag_XX.png`
 (gegenereerd met OpenCV `DICT_APRILTAG_36h11`).
 
