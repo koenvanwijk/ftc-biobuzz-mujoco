@@ -40,13 +40,27 @@
         <button id="btnStart" class="primary" type="button" disabled>START</button>
         <button id="btnStop" class="danger" type="button" disabled>STOP</button>
         <button id="btnReset" type="button">Reset sim</button>
+        <span class="sep"></span>
+        <div class="layout-presets" role="group" aria-label="Paneelindeling">
+          <button type="button" data-layout-preset="blocks" title="Vergroot Blocks-editor">Blocks</button>
+          <button type="button" data-layout-preset="sim" title="Vergroot simulatie">Sim</button>
+          <button type="button" data-layout-preset="code" title="Vergroot code/telemetry">Code</button>
+          <button type="button" data-layout-preset="equal" title="Drie panelen gelijk">Gelijk</button>
+        </div>
       </div>
       <div id="runStatus" class="run-status">Idle</div>
     </header>
 
-    <main class="main">
-      <section class="panel editor-panel">
-        <div class="panel-title">Blocks-editor (vendor, offline)</div>
+    <main class="main split-horizontal" id="mainSplit">
+      <section class="panel editor-panel" data-panel="editor">
+        <div class="panel-title">
+          <span class="panel-title-text">Blocks-editor (vendor, offline)</span>
+          <span class="panel-title-abbr" aria-hidden="true">Blocks</span>
+          <span class="panel-controls">
+            <button type="button" class="panel-btn" data-panel-collapse title="Inklappen" aria-label="Inklappen">◀</button>
+            <button type="button" class="panel-btn" data-panel-focus title="Vergroot paneel" aria-label="Vergroot">⛶</button>
+          </span>
+        </div>
         <iframe
           id="blocksFrame"
           title="FTC Offline Blocks"
@@ -55,8 +69,17 @@
         ></iframe>
       </section>
 
-      <section class="panel sim-panel">
-        <div class="panel-title">MuJoCo-weergave</div>
+      <div class="splitter" id="splitter0" role="separator" aria-orientation="vertical" aria-label="Sleep om Blocks en sim te vergroten" tabindex="0"></div>
+
+      <section class="panel sim-panel" data-panel="sim">
+        <div class="panel-title">
+          <span class="panel-title-text">MuJoCo-weergave</span>
+          <span class="panel-title-abbr" aria-hidden="true">Sim</span>
+          <span class="panel-controls">
+            <button type="button" class="panel-btn" data-panel-collapse title="Inklappen" aria-label="Inklappen">◀</button>
+            <button type="button" class="panel-btn" data-panel-focus title="Vergroot paneel" aria-label="Vergroot">⛶</button>
+          </span>
+        </div>
         <div id="biobuzzHud" class="biobuzz-hud" hidden>
           <span>Hopper <strong id="hudHopper">0 / 8</strong></span>
           <span>AprilTags <strong id="hudApril">0</strong></span>
@@ -79,15 +102,27 @@
         </div>
       </section>
 
-      <aside class="panel side-panel">
-        <div class="panel-title">Telemetry</div>
-        <pre id="telemetryOut" class="telemetry"></pre>
-        <div class="panel-title">JS (gegenereerd)</div>
-        <pre id="jsOut" class="code-out"></pre>
-        <div class="panel-title">Java (preview)</div>
-        <pre id="javaOut" class="code-out"></pre>
-        <div class="panel-title">Runtime-log</div>
-        <pre id="logOut" class="log-out"></pre>
+      <div class="splitter" id="splitter1" role="separator" aria-orientation="vertical" aria-label="Sleep om sim en code te vergroten" tabindex="0"></div>
+
+      <aside class="panel side-panel" data-panel="code">
+        <div class="panel-title">
+          <span class="panel-title-text">Telemetry / code</span>
+          <span class="panel-title-abbr" aria-hidden="true">Code</span>
+          <span class="panel-controls">
+            <button type="button" class="panel-btn" data-panel-collapse title="Inklappen" aria-label="Inklappen">◀</button>
+            <button type="button" class="panel-btn" data-panel-focus title="Vergroot paneel" aria-label="Vergroot">⛶</button>
+          </span>
+        </div>
+        <div class="side-panel-body">
+          <div class="panel-subtitle">Telemetry</div>
+          <pre id="telemetryOut" class="telemetry"></pre>
+          <div class="panel-subtitle">JS (gegenereerd)</div>
+          <pre id="jsOut" class="code-out"></pre>
+          <div class="panel-subtitle">Java (preview)</div>
+          <pre id="javaOut" class="code-out"></pre>
+          <div class="panel-subtitle">Runtime-log</div>
+          <pre id="logOut" class="log-out"></pre>
+        </div>
       </aside>
     </main>
   </div>

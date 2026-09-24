@@ -17,6 +17,10 @@ Legenda: **W** = working · **P** = partial · **U** = unsupported (faalt luid)
 | Servo position / direction / scaleRange | W | Position actuator |
 | CRServo power / direction | W | Velocity actuator (geen positie) |
 | gamepad1/2 sticks & buttons | W | Gamepad API + toetsenbord/UI, deadzone 0.05 |
+| ElapsedTime (elapsedTimeAccess) | W | Sim-clock based (geen wall clock) |
+| Color (colorAccess) | W | ARGB pack/unpack + HSV |
+| Range (rangeAccess) | W | clip / scale |
+| System (systemAccess) | W | nanoTime / currentTimeMillis via sim time |
 | gamepad rumble / LED effects | U | |
 | telemetry addData / addLine / update / clear | W | |
 | telemetry.speak | U | throw |

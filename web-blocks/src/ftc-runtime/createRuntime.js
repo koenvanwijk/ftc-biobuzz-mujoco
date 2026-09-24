@@ -32,6 +32,10 @@ import {
   whiteBalanceControlAccess,
   ptzControlAccess,
 } from './visionPortal.js';
+import { createElapsedTimeAccess } from './elapsedTime.js';
+import { colorAccess } from './colorAccess.js';
+import { rangeAccess } from './rangeAccess.js';
+import { createSystemAccess } from './systemAccess.js';
 
 /**
  * Bouwt alle objecten met exacte generator-identifiers.
@@ -92,6 +96,9 @@ export function createRuntime(simConfig, hooks = {}) {
   const imuAsIMU = createImuAsIMU(() => bus.readSensor('imuAsIMU'));
   const aprilTagAccess = createAprilTagAccess(() => bus.readSensor('aprilTagDetections'));
   const visionPortalAccess = createVisionPortalAccess();
+  const getTimeSec = () => clock.timeSec;
+  const elapsedTimeAccess = createElapsedTimeAccess(getTimeSec);
+  const systemAccess = createSystemAccess(getTimeSec);
 
   function zeroActuators() {
     for (const m of Object.values(motors)) m.zero?.();
@@ -137,6 +144,10 @@ export function createRuntime(simConfig, hooks = {}) {
     imuParametersAccess,
     revHubOrientationOnRobotAccess,
     miscAccess,
+    elapsedTimeAccess,
+    colorAccess,
+    rangeAccess,
+    systemAccess,
     startBlockExecution,
     endBlockExecution,
     nullOrJson,

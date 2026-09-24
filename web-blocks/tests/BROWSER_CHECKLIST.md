@@ -16,7 +16,7 @@
 ## Handmatig (aanbevolen)
 
 1. `npm run dev` → http://localhost:5174
-2. Voorbeeld TankDrive openen → INIT → START → W/S/I/K → wielen bewegen
+2. Voorbeeld TankDrive openen → INIT → START → W/S/I/K of ↑/↓ → wielen bewegen (←/→ = leftStickX)
 3. STOP tijdens loop → motoren stil ≤250ms
 4. Mechanisms: trigger/A/B/stick → flywheel/intake/servo/CRServo
 5. EncoderAuto: INIT/START → encoders naar target, idle-loop hangt niet
