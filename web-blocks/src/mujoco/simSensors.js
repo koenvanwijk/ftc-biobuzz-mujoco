@@ -104,6 +104,44 @@ function matrixColumn(m, offset, column) {
   return [m[offset + column], m[offset + 3 + column], m[offset + 6 + column]];
 }
 
+function quaternionFromAxes(xAxis, yAxis, zAxis) {
+  // Rotation matrix with the supplied world-space basis vectors as columns.
+  const m00 = xAxis[0], m01 = yAxis[0], m02 = zAxis[0];
+  const m10 = xAxis[1], m11 = yAxis[1], m12 = zAxis[1];
+  const m20 = xAxis[2], m21 = yAxis[2], m22 = zAxis[2];
+  const trace = m00 + m11 + m22;
+  let w, x, y, z;
+
+  if (trace > 0) {
+    const s = Math.sqrt(trace + 1.0) * 2;
+    w = 0.25 * s;
+    x = (m21 - m12) / s;
+    y = (m02 - m20) / s;
+    z = (m10 - m01) / s;
+  } else if (m00 > m11 && m00 > m22) {
+    const s = Math.sqrt(1.0 + m00 - m11 - m22) * 2;
+    w = (m21 - m12) / s;
+    x = 0.25 * s;
+    y = (m01 + m10) / s;
+    z = (m02 + m20) / s;
+  } else if (m11 > m22) {
+    const s = Math.sqrt(1.0 + m11 - m00 - m22) * 2;
+    w = (m02 - m20) / s;
+    x = (m01 + m10) / s;
+    y = 0.25 * s;
+    z = (m12 + m21) / s;
+  } else {
+    const s = Math.sqrt(1.0 + m22 - m00 - m11) * 2;
+    w = (m10 - m01) / s;
+    x = (m02 + m20) / s;
+    y = (m12 + m21) / s;
+    z = 0.25 * s;
+  }
+
+  const norm = Math.hypot(w, x, y, z) || 1;
+  return { w: w / norm, x: x / norm, y: y / norm, z: z / norm };
+}
+
 function averagePoints(points) {
   if (!points.length) return [0, 0, 0];
   const sum = points.reduce(
@@ -121,30 +159,42 @@ function clusterTargetFromBody(mujoco, model, data, spec, fallbackPoints) {
       const bo = bodyId * 3;
       const bm = bodyId * 9;
       const bodyPos = [data.xpos[bo], data.xpos[bo + 1], data.xpos[bo + 2]];
+      const localX = matrixColumn(data.xmat, bm, 0);
       const localY = matrixColumn(data.xmat, bm, 1);
       const localZ = matrixColumn(data.xmat, bm, 2);
       const openingOffset = spec.openSign * (BIOBUZZ_CELL_OPEN_DEPTH_M / 2);
+      const clusterY = [
+        localY[0] * spec.openSign,
+        localY[1] * spec.openSign,
+        localY[2] * spec.openSign,
+      ];
+      const clusterZ = [
+        localZ[0] * spec.openSign,
+        localZ[1] * spec.openSign,
+        localZ[2] * spec.openSign,
+      ];
       return {
         position: [
           bodyPos[0] + localY[0] * openingOffset,
           bodyPos[1] + localY[1] * openingOffset,
           bodyPos[2] + localY[2] * openingOffset,
         ],
-        // The two CELL openings face opposite local-Y directions. Flip the
-        // cluster's image-up axis with openSign so opposing CELL clusters differ
-        // by ~180 degrees in roll, matching the SDK's scoring-target discriminator.
-        upAxis: [
-          localZ[0] * spec.openSign,
-          localZ[1] * spec.openSign,
-          localZ[2] * spec.openSign,
-        ],
+        // The two CELL openings face opposite local-Y directions. Flip both Y/Z
+        // to keep a proper right-handed cluster frame while preserving the SDK
+        // roll discriminator between scorable and non-scorable CELLs.
+        upAxis: clusterZ,
+        fieldOrientation: quaternionFromAxes(localX, clusterY, clusterZ),
       };
     }
   }
 
   // The real BIOBUZZ world has the *_shell bodies. Keep a graceful fallback for
   // synthetic/unit-test worlds that only define tag sites.
-  return { position: averagePoints(fallbackPoints), upAxis: null };
+  return {
+    position: averagePoints(fallbackPoints),
+    upAxis: null,
+    fieldOrientation: { w: 1, x: 0, y: 0, z: 0 },
+  };
 }
 
 function poseFromWorldPoint(point, camera) {
@@ -322,6 +372,8 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
         name: spec.name,
         shortName: spec.shortName,
         distanceUnit: 'METER',
+        fieldPosition: [...target.position],
+        fieldOrientation: target.fieldOrientation,
       },
       percentClusterFound: Math.round((members.length * 100) / spec.ids.length),
       isSingleDetection: false,
