@@ -34,6 +34,7 @@ export class BiobuzzHardwareAdapter {
     this._placeArmed = false;
     this._lastPlaceResult = '';
     this._lastShootOk = false;
+    this._lastHiveEvent = '';
     this._hud = { hopper: 0, nectar: 0, scoreRed: 0, scoreBlue: 0, intake: 'uit' };
 
     const thr = simConfig.thresholds || {};
@@ -253,11 +254,16 @@ export class BiobuzzHardwareAdapter {
     this.zeroAll();
     this.mech.resetAndPreload();
     this.hiveTip.reset();
+    this._lastHiveEvent = '';
     this.mujoco.mj_forward(this.model, this.data);
     this._refreshHud();
   }
 
   _refreshHud() {
+    if (this.hiveTip.lastEvent) {
+      this._lastHiveEvent = this.hiveTip.lastEvent;
+      this.hiveTip.lastEvent = '';
+    }
     this._hud = {
       hopper: this.mech.count,
       hopperCap: HOPPER_CAPACITY,
@@ -273,10 +279,9 @@ export class BiobuzzHardwareAdapter {
             : 'uit',
       lastPlace: this._lastPlaceResult,
       lastShoot: this._lastShootOk,
-      hiveEvent: this.hiveTip.lastEvent || '',
+      hiveEvent: this._lastHiveEvent,
       aprilCount: this._aprilCount || 0,
     };
-    if (this.hiveTip.lastEvent) this.hiveTip.lastEvent = '';
   }
 
   getHud() {
