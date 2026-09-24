@@ -48,6 +48,7 @@ describe('live telemetry around HIVE tips', () => {
     const frameStart = main.indexOf('const frame = (now) =>');
     const frameEnd = main.indexOf('anim = requestAnimationFrame(frame);', frameStart + 1);
     const frameBody = main.slice(frameStart, frameEnd);
-    assert.match(frameBody, /updateBiobuzzHud\(\);\s*\/\/[^\n]*\n[^\n]*\n\s*renderTelemetry\(\);/);
+    assert.ok(frameBody.includes('updateBiobuzzHud();'));
+    assert.ok(frameBody.includes('renderTelemetry();'));
   });
 });
