@@ -187,10 +187,23 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
 }
 .telemetry, .code-out, .log-out {
   margin: 0; padding: 0.5rem 0.65rem; font-size: 0.75rem;
+  line-height: 1.25;
   white-space: pre-wrap; word-break: break-word; max-height: 28vh; overflow: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   border-bottom: 1px solid var(--border);
 }
+
+/* Telemetry starts at 10 text rows and can be dragged taller/shorter.
+   flex-shrink: 0 makes the chosen height authoritative; the side panel itself
+   scrolls when telemetry + code no longer fit in the available viewport. */
+.telemetry {
+  height: 10lh;
+  min-height: 4lh;
+  max-height: none;
+  resize: vertical;
+  flex-shrink: 0;
+}
+
 .log-out { max-height: 18vh; color: #c9d4e6; }
 
 /* Splitters */
