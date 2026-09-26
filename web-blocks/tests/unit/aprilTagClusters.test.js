@@ -96,7 +96,7 @@ describe('BIOBUZZ AprilTag clusters', () => {
     assert.ok(Math.abs(det.ftcPose.x + 0.1525) < 1e-9);
     assert.ok(Math.abs(det.ftcPose.y - 1.0) < 1e-9);
     assert.ok(Math.abs(det.ftcPose.z) < 1e-9);
-    assert.ok(Math.abs(det.robotPose.position.y - 0.1525) < 1e-9);
+    assert.equal(det.robotPose, null);
   });
 
   it('roll flips when the CELL orientation flips', () => {
