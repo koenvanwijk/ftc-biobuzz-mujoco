@@ -20,6 +20,8 @@ They reuse official FTC Blocks definitions/generators from the vendor pin. They 
 `aprilTagAccess.getDetections()` returns the **JSON string** (generators call `JSON.parse`).
 `getFreshDetections()` returns a new JSON string when `generation` advances, else `null` (`nullOrJson`).
 
+Synthetic `ftcPose` follows the FTC SDK camera frame: **X right, Y forward, Z up**. `range`, `bearing`, and `elevation` use the SDK formulas; `yaw`, `pitch`, and `roll` come from target orientation rather than target position. In particular, BIOBUZZ cluster `ftcPose.roll` is the right-side-up discriminator and `bearing` is the left/right aiming angle.
+
 ## Worlds
 
 | World | IMU | AprilTags |
