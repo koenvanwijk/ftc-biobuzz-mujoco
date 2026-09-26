@@ -145,4 +145,9 @@ describe('FTC SDK AprilTag pose semantics', () => {
     near(det.rawPose.y, 0.2);
     near(det.rawPose.z, 1.5);
   });
+
+  it('leaves robotPose empty when absolute field localization is unavailable', () => {
+    const det = detect({ ftcPosition: [0.25, 1.5, -0.2] });
+    assert.equal(det.robotPose, null);
+  });
 });
