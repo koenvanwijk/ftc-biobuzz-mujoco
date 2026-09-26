@@ -318,7 +318,7 @@ function makeSingleDetection(id, tagPos, pose, facing) {
  * Pitch/roll/yaw are target orientation about X/Y/Z; bearing/elevation are
  * position-derived pointing angles, matching the FTC SDK formulas.
  * Visibility:
- *  - in front of camera (z > 0)
+ *  - in front of camera (FTC y > 0)
  *  - within maxRangeM
  *  - inside vertical FOV cone (fovyDeg, default 70 — matches robot_up_cam)
  *  - tag printed face roughly toward camera (stricter facing dot)
