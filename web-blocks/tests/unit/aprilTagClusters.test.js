@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { computeAprilTagDetections } from '../../src/mujoco/simSensors.js';
 
-const CAM_MAT = [0, 0, -1, 1, 0, 0, 0, 1, 0];
+const CAM_MAT = [0, 0, -1, -1, 0, 0, 0, 1, 0];
 const TAG_MAT = [0, 0, 1, 0, 1, 0, -1, 0, 0];
 const IDENTITY = [1, 0, 0, 0, 1, 0, 0, 0, 1];
 const FLIPPED_X = [1, 0, 0, 0, -1, 0, 0, 0, -1];
@@ -93,10 +93,10 @@ describe('BIOBUZZ AprilTag clusters', () => {
   it('uses the CELL opening center as cluster pose origin', () => {
     const det = detect([30, 31, 32, 33])[0];
     // red_scoring_shell at [1,0,0], local +Y opening, depth=0.305 m.
-    assert.ok(Math.abs(det.ftcPose.x - 0.1525) < 1e-9);
-    assert.ok(Math.abs(det.ftcPose.y) < 1e-9);
-    assert.ok(Math.abs(det.ftcPose.z - 1.0) < 1e-9);
-    assert.ok(Math.abs(det.robotPose.position.y - 0.1525) < 1e-9);
+    assert.ok(Math.abs(det.ftcPose.x + 0.1525) < 1e-9);
+    assert.ok(Math.abs(det.ftcPose.y - 1.0) < 1e-9);
+    assert.ok(Math.abs(det.ftcPose.z) < 1e-9);
+    assert.equal(det.robotPose, null);
   });
 
   it('roll flips when the CELL orientation flips', () => {

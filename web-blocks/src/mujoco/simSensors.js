@@ -100,6 +100,56 @@ function dot3(a, b) {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
+function scale3(v, s) {
+  return [v[0] * s, v[1] * s, v[2] * s];
+}
+
+function cameraCoords(v, camera) {
+  return [
+    dot3(v, camera.right),
+    dot3(v, camera.forward),
+    dot3(v, camera.up),
+  ];
+}
+
+function clampUnit(v) {
+  return Math.max(-1, Math.min(1, v));
+}
+
+/**
+ * FTC orientation uses intrinsic Z-X-Y rotations:
+ * yaw about camera +Z (up), then pitch about moved +X (right),
+ * then roll about moved +Y (forward).
+ *
+ * targetAxes is a right-handed target frame whose zero-orientation axes are:
+ *   right = camera +X, away = camera +Y, up = camera +Z.
+ */
+function ftcOrientationFromWorldAxes(targetAxes, camera) {
+  if (!targetAxes) return { yaw: 0, pitch: 0, roll: 0 };
+
+  const tx = cameraCoords(targetAxes.right, camera);
+  const ty = cameraCoords(targetAxes.away, camera);
+  const tz = cameraCoords(targetAxes.up, camera);
+
+  // R = Rz(yaw) * Rx(pitch) * Ry(roll), columns are target axes
+  // expressed in the FTC camera frame.
+  const r01 = ty[0];
+  const r11 = ty[1];
+  const r21 = ty[2];
+  const r20 = tx[2];
+  const r22 = tz[2];
+
+  const pitchRad = Math.asin(clampUnit(r21));
+  const yawRad = Math.atan2(-r01, r11);
+  const rollRad = Math.atan2(-r20, r22);
+
+  return {
+    yaw: yawRad * RAD2DEG,
+    pitch: pitchRad * RAD2DEG,
+    roll: rollRad * RAD2DEG,
+  };
+}
+
 function matrixColumn(m, offset, column) {
   return [m[offset + column], m[offset + 3 + column], m[offset + 6 + column]];
 }
@@ -182,7 +232,11 @@ function clusterTargetFromBody(mujoco, model, data, spec, fallbackPoints) {
         // The two CELL openings face opposite local-Y directions. Flip both Y/Z
         // to keep a proper right-handed cluster frame while preserving the SDK
         // roll discriminator between scorable and non-scorable CELLs.
-        upAxis: clusterZ,
+        targetAxes: {
+          right: localX,
+          away: clusterY,
+          up: clusterZ,
+        },
         fieldOrientation: quaternionFromAxes(localX, clusterY, clusterZ),
       };
     }
@@ -192,58 +246,55 @@ function clusterTargetFromBody(mujoco, model, data, spec, fallbackPoints) {
   // synthetic/unit-test worlds that only define tag sites.
   return {
     position: averagePoints(fallbackPoints),
-    upAxis: null,
+    targetAxes: null,
     fieldOrientation: { w: 1, x: 0, y: 0, z: 0 },
   };
 }
 
-function poseFromWorldPoint(point, camera) {
+function poseFromWorldTarget(point, camera, targetAxes = null) {
   const delta = [
     point[0] - camera.pos[0],
     point[1] - camera.pos[1],
     point[2] - camera.pos[2],
   ];
-  const x = dot3(delta, camera.right);
-  const y = dot3(delta, camera.down);
-  const z = dot3(delta, camera.look);
-  const range = Math.hypot(delta[0], delta[1], delta[2]);
-  const yaw = Math.atan2(x, z) * RAD2DEG;
-  const pitch = Math.atan2(-y, Math.hypot(x, z)) * RAD2DEG;
 
-  let roll = 0;
-  if (camera.upAxis) {
-    const rightComponent = dot3(camera.upAxis, camera.right);
-    const screenUpComponent = -dot3(camera.upAxis, camera.down);
-    if (Math.hypot(rightComponent, screenUpComponent) > 1e-6) {
-      roll = Math.atan2(rightComponent, screenUpComponent) * RAD2DEG;
-    }
-  }
+  // FTC camera frame: +X right, +Y out of the lens, +Z up.
+  const x = dot3(delta, camera.right);
+  const y = dot3(delta, camera.forward);
+  const z = dot3(delta, camera.up);
+  const orientation = ftcOrientationFromWorldAxes(targetAxes, camera);
+
+  // Match the FTC SDK formulas: range is planar X/Y range, bearing positive
+  // counter-clockwise (target left), elevation positive upward.
+  const range = Math.hypot(x, y);
+  const bearing = Math.atan2(-x, y) * RAD2DEG;
+  const elevation = Math.atan2(z, y) * RAD2DEG;
 
   return {
     x,
     y,
     z,
-    yaw,
-    pitch,
-    roll,
+    ...orientation,
     range,
-    bearing: yaw,
-    elevation: -pitch,
+    bearing,
+    elevation,
   };
+}
+
+function rawPoseFromFtcPose(pose) {
+  // SDK conversion: ftc.x=raw.x, ftc.y=raw.z, ftc.z=-raw.y.
+  return { x: pose.x, y: -pose.z, z: pose.y };
 }
 
 function makeSingleDetection(id, tagPos, pose, facing) {
   return {
     id,
-    metadata: { id, name: 'Tag' + id, tagsize: 0.08255 },
+    metadata: { id, name: 'Tag' + id, tagsize: 0.08255, distanceUnit: 'METER' },
     isSingleDetection: true,
     isClusterDetection: false,
     ftcPose: pose,
-    rawPose: { x: pose.x, y: pose.y, z: pose.z },
-    robotPose: {
-      position: { x: tagPos[0], y: tagPos[1], z: tagPos[2] },
-      orientation: { pitch: 0, roll: 0, yaw: 0 },
-    },
+    rawPose: rawPoseFromFtcPose(pose),
+    robotPose: null,
     hamming: 0,
     decisionMargin: Math.min(100, facing * 100),
     center: { x: 0, y: 0 },
@@ -260,9 +311,11 @@ function makeSingleDetection(id, tagPos, pose, facing) {
  *  - percentClusterFound is 25/50/75/100;
  *  - cluster pose origin is the center of the CELL opening and follows HIVE tip.
  *
- * Approx FTC ftcPose (meters / degrees): x=right, y=down, z=forward in camera frame.
+ * FTC ftcPose (meters / degrees): X=right, Y=forward, Z=up in the camera frame.
+ * Pitch/roll/yaw are target orientation about X/Y/Z; bearing/elevation are
+ * position-derived pointing angles, matching the FTC SDK formulas.
  * Visibility:
- *  - in front of camera (z > 0)
+ *  - in front of camera (FTC y > 0)
  *  - within maxRangeM
  *  - inside vertical FOV cone (fovyDeg, default 70 — matches robot_up_cam)
  *  - tag printed face roughly toward camera (stricter facing dot)
@@ -295,13 +348,13 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
   const axisX = matrixColumn(xmat, cm, 0);
   const axisY = matrixColumn(xmat, cm, 1);
   const axisZ = matrixColumn(xmat, cm, 2);
-  // MuJoCo camera looks along -Z; robot_up_cam is tilted upward.
+  // MuJoCo camera looks along local -Z. Convert to the FTC camera frame:
+  // +X right, +Y forward (out of lens), +Z up.
   const camera = {
     pos: camPos,
-    look: [-axisZ[0], -axisZ[1], -axisZ[2]],
     right: axisX,
-    down: [-axisY[0], -axisY[1], -axisY[2]],
-    upAxis: null,
+    forward: [-axisZ[0], -axisZ[1], -axisZ[2]],
+    up: axisY,
   };
 
   const halfFov = ((fovyDeg / 2) * Math.PI) / 180;
@@ -324,13 +377,12 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
     const range = Math.hypot(dx, dy, dz);
     if (range < 1e-4 || range > maxRangeM) continue;
 
-    const x = dx * camera.right[0] + dy * camera.right[1] + dz * camera.right[2];
-    const y = dx * camera.down[0] + dy * camera.down[1] + dz * camera.down[2];
-    const z = dx * camera.look[0] + dy * camera.look[1] + dz * camera.look[2];
-    if (z <= 1e-4) continue;
+    const forward =
+      dx * camera.forward[0] + dy * camera.forward[1] + dz * camera.forward[2];
+    if (forward <= 1e-4) continue;
 
-    // FOV cone: angle from look axis must be <= fovy/2
-    if (z / range < cosHalfFov) continue;
+    // FOV cone: angle from optical axis must be <= fovy/2.
+    if (forward / range < cosHalfFov) continue;
 
     // Tag local Z from site_xmat. Hive underside tags may expose either matrix
     // normal depending on mesh/site convention, so accept the stronger face.
@@ -348,7 +400,18 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
       continue;
     }
 
-    const pose = poseFromWorldPoint(tagPos, camera);
+    const tX = matrixColumn(xmat, sm, 0);
+    const tY = matrixColumn(xmat, sm, 1);
+    // The scene's visible printed face may be represented by either site ±Z.
+    // Pick the side facing the camera, and flip X with it so the resulting
+    // target frame remains right-handed while preserving printed "up".
+    const faceSign = facePlus >= 0 ? 1 : -1;
+    const targetAxes = {
+      right: scale3(tX, faceSign),
+      away: scale3(tZ, -faceSign),
+      up: tY,
+    };
+    const pose = poseFromWorldTarget(tagPos, camera, targetAxes);
     singleDetections.push(makeSingleDetection(id, tagPos, pose, facing));
   }
 
@@ -364,8 +427,7 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
       spec,
       members.map((m) => m.position),
     );
-    const clusterCamera = { ...camera, upAxis: target.upAxis };
-    const pose = poseFromWorldPoint(target.position, clusterCamera);
+    const pose = poseFromWorldTarget(target.position, camera, target.targetAxes);
 
     clusterDetections.push({
       metadata: {
@@ -379,15 +441,8 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
       isSingleDetection: false,
       isClusterDetection: true,
       ftcPose: pose,
-      rawPose: { x: pose.x, y: pose.y, z: pose.z },
-      robotPose: {
-        position: {
-          x: target.position[0],
-          y: target.position[1],
-          z: target.position[2],
-        },
-        orientation: { pitch: pose.pitch, roll: pose.roll, yaw: pose.yaw },
-      },
+      rawPose: rawPoseFromFtcPose(pose),
+      robotPose: null,
     });
   }
 
