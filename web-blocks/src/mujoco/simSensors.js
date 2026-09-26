@@ -294,10 +294,7 @@ function makeSingleDetection(id, tagPos, pose, facing) {
     isClusterDetection: false,
     ftcPose: pose,
     rawPose: rawPoseFromFtcPose(pose),
-    robotPose: {
-      position: { x: tagPos[0], y: tagPos[1], z: tagPos[2] },
-      orientation: { pitch: 0, roll: 0, yaw: 0 },
-    },
+    robotPose: null,
     hamming: 0,
     decisionMargin: Math.min(100, facing * 100),
     center: { x: 0, y: 0 },
@@ -445,14 +442,7 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
       isClusterDetection: true,
       ftcPose: pose,
       rawPose: rawPoseFromFtcPose(pose),
-      robotPose: {
-        position: {
-          x: target.position[0],
-          y: target.position[1],
-          z: target.position[2],
-        },
-        orientation: { pitch: pose.pitch, roll: pose.roll, yaw: pose.yaw },
-      },
+      robotPose: null,
     });
   }
 
