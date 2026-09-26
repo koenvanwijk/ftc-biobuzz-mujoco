@@ -27,7 +27,7 @@ Legenda: **W** = working · **P** = partial · **U** = unsupported (faalt luid)
 | ControlHub voltage | W | Vaste configureerbare spanning |
 | ServoController pwm enable/status | P | State only |
 | REVModule bulk caching | P | Stub methodes |
-| Webcam / Vision / AprilTag | P | **Simulated extension**: VisionPortal stubs + synthetic AprilTags. BIOBUZZ IDs 30–45 worden volgens SDK 12 als 4 CELL-clusters teruggegeven (`percentClusterFound`, volledige cluster metadata, opening-center pose). `ftcPose` gebruikt SDK-camera-assen X=right/Y=forward/Z=up; bearing is positie-afhankelijk en yaw/pitch/roll zijn target-oriëntatie; cluster-roll is de right-side-up discriminator. De Vision-toolbox bevat de praktische single/cluster + game-library blocks. Camera controls zijn no-op stubs; geen echte CV. |
+| Webcam / Vision / AprilTag | P | **Simulated extension**: VisionPortal stubs + synthetic AprilTags. BIOBUZZ IDs 30–45 worden volgens SDK 12 als 4 CELL-clusters teruggegeven (`percentClusterFound`, volledige cluster metadata, opening-center pose). `ftcPose` gebruikt SDK-camera-assen X=right/Y=forward/Z=up; bearing is positie-afhankelijk en yaw/pitch/roll zijn target-oriëntatie; cluster-roll is de right-side-up discriminator. `robotPose` is bewust `null` omdat BIOBUZZ-tags/clusters met de HIVE bewegen en dus geen vaste absolute field-localization basis vormen. De Vision-toolbox bevat de praktische single/cluster + game-library blocks. Camera controls zijn no-op stubs; geen echte CV. |
 | IMU (imuAsIMU) | P | **Simulated extension**: yaw/pitch/roll + ω from MuJoCo body quat; `resetYaw` offset. |
 | Infinite loop zonder UI-freeze | W | Interpreter budget in worker |
 | .blk export/import | W | Via bridge + Extra XML |
