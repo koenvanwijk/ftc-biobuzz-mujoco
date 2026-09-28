@@ -273,6 +273,7 @@ function createMotorPseudo(interp, _global, jsId) {
       type: 'motor',
       jsId,
       power: state.enabled ? state.power * dirSign() : 0,
+      directionSign: dirSign(),
       mode: state.mode,
       zeroPowerBehavior: state.zpb,
       targetPosition: state.target,
