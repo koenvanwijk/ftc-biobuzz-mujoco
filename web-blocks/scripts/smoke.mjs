@@ -74,6 +74,5 @@ console.log(`
 - [ ] Idle teleop beweegt robot; HUD hopper/score
 - [ ] TankDrive INIT/START beweegt op veld; STOP → teleop terug
 - [ ] Mechanisms: intake/flywheel/servo/crServo → hopper/shoot/place/eject of telemetry
-- [ ] world=simple fallback laadt
 - [ ] ftc-biobuzz-mujoco/web npm run dev (5173) nog intact
 `);

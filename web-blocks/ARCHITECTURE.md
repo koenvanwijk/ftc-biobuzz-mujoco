@@ -70,4 +70,3 @@ IMU (`imuAsIMU`) en Webcam/Vision (`aprilTagAccess`, `visionPortalAccess`, `yawP
 
 Default world loads BIOBUZZ MJCF + soft mechanisms via `BiobuzzHardwareAdapter`.
 See `INTEGRATION.md` for teleop-vs-OpMode ownership and STOP zeroing.
-Fallback `world=simple` keeps the original REVStarterBot2026 joint adapter.

@@ -12,17 +12,15 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5174/** (default wereld = BIOBUZZ).  
-Fallback: **http://localhost:5174/?world=simple** of kies *Vereenvoudigd* in de toolbar.
+Open **http://localhost:5174/** (BIOBUZZ-veld).
 
 ### Workflow
 
-1. Wereld: **BIOBUZZ** (default) of **Vereenvoudigd**.
-2. Voorbeeld (TankDrive / Mechanisms / EncoderAuto / **ImuAprilTag**) → *Open in editor*.
-3. *Code vernieuwen* voor JS/Java.
-4. **INIT** → OpMode tot `waitForStart` (sim reset; OpMode owns actuators).
-5. **START** / **STOP** — STOP zerot drive + mechanisms; daarna idle teleop weer actief.
-6. Export **.blk** / **Java**.
+1. Voorbeeld (TankDrive / Mechanisms / EncoderAuto / **ImuAprilTag**) → *Open in editor*.
+2. *Code vernieuwen* voor JS/Java.
+3. **INIT** → OpMode tot `waitForStart` (sim reset; OpMode owns actuators).
+4. **START** / **STOP** — STOP zerot drive + mechanisms; daarna idle teleop weer actief.
+5. Export **Java** (optioneel).
 
 ### UI — panelen
 
@@ -121,5 +119,4 @@ BIOBUZZ XML/meshes/textures zijn **gekopieerd** naar `public/assets/` (bron: `ft
 
 - Physics is niet gevalideerd tegen een echte robot.
 - BIOBUZZ intake/shoot/place zijn **soft bridges**, geen pure joint-actuators.
-- MJCF *simple* blijft een vereenvoudigd fallback-model.
 - IMU + Webcam/AprilTag zijn **expliciete simulator-extensies** (toolbox + runtime); geen stille placeholders — details in `src/config/extensions.md`.

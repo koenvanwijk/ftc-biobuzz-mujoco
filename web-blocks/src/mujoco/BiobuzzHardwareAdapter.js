@@ -15,6 +15,7 @@ import {
   resetDriveState,
   setTankPower,
   updateDriveSlew,
+  RIGHT_DRIVE_SIGN,
 } from '../worlds/biobuzz/mechanisms.js';
 import { HiveTipController } from '../worlds/biobuzz/hive_tip.js';
 import { FieldBoundsReturn } from '../worlds/biobuzz/field_bounds.js';
@@ -125,7 +126,8 @@ export class BiobuzzHardwareAdapter {
       rightMeta.target = rightCmd.targetPosition;
       rightMeta.tol = rightCmd.targetTolerance;
       rightMeta.encoderOffset = rightCmd.encoderOffsetTicks || 0;
-      rightStick = this._motorPower01(rightCmd, rightMeta);
+      // real robot: right drive inverted — map post-Direction electrical → logical wheel +forward
+      rightStick = RIGHT_DRIVE_SIGN * this._motorPower01(rightCmd, rightMeta);
     }
 
     setTankPower(this.data, leftStick, rightStick);

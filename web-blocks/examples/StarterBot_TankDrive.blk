@@ -1,7 +1,7 @@
 <xml xmlns="https://developers.google.com/blockly/xml"><variables><variable id="varL">leftPow</variable><variable id="varR">rightPow</variable></variables>
   <block type="procedures_defnoreturn" id="run1" deletable="false" x="20" y="20">
     <field name="NAME">runOpMode</field>
-    <comment pinned="false" h="80" w="400">Tank drive — BIOBUZZ left_drive/right_drive via setTankPower; werkt ook op world=simple.</comment>
+    <comment pinned="false" h="80" w="400">Tank drive — BIOBUZZ left_drive/right_drive via setTankPower (right drive REVERSE = real robot).</comment>
     <statement name="STACK">
       <block type="dcMotor_setProperty_Direction" id="dirL">
         <field name="IDENTIFIER">leftDriveAsDcMotor</field>

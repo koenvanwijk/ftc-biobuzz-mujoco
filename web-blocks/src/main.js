@@ -1,5 +1,4 @@
 import { publicUrl } from './publicUrl.js';
-import { loadSimpleSim, SimpleViewer, SimpleHardwareAdapter } from './worlds/simple/index.js';
 import { loadBiobuzzSim, BiobuzzViewer, InputHandler } from './worlds/biobuzz/index.js';
 import { BiobuzzHardwareAdapter } from './mujoco/BiobuzzHardwareAdapter.js';
 import { OpModeRunner } from './execution/OpModeRunner.js';
@@ -15,8 +14,6 @@ const log = (msg) => {
   el.textContent = `[${ts}] ${msg}\n` + el.textContent.slice(0, 4000);
 };
 
-/** @type {'biobuzz'|'simple'} */
-let worldId = 'biobuzz';
 let simConfig;
 let mujocoBundle;
 let adapter;
@@ -29,13 +26,6 @@ let anim = 0;
 let physicsAccumulator = 0;
 let teleopInput = null;
 let opModeOwns = false; // true from INIT through RUN until DONE/ERROR/Idle after STOP
-
-function parseWorldFromUrl() {
-  const q = new URLSearchParams(location.search).get('world');
-  if (q === 'simple' || q === 'biobuzz') return q;
-  return 'biobuzz';
-}
-
 
 /** @type {{ applyPreset: (name: string) => void, destroy: () => void } | null} */
 let splitLayoutApi = null;
@@ -65,15 +55,9 @@ function initAppSplitLayout() {
 }
 
 async function boot() {
-  worldId = parseWorldFromUrl();
   initAppSplitLayout();
-  const sel = $('worldSelect');
-  if (sel) sel.value = worldId;
 
-  const configUrl =
-    worldId === 'simple'
-      ? publicUrl('robots/REVStarterBot2026/simulation.json')
-      : publicUrl('robots/BIOBUZZ/simulation.json');
+  const configUrl = publicUrl('robots/BIOBUZZ/simulation.json');
 
   simConfig = await (await fetch(configUrl)).json();
   runtime = createRuntime(simConfig, {
@@ -83,53 +67,28 @@ async function boot() {
   });
 
   $('runStatus').textContent = 'MuJoCo laden…';
-  $('brandSub').textContent =
-    worldId === 'biobuzz'
-      ? 'BIOBUZZ field + soft mechanisms'
-      : 'REVStarterBot2026 (vereenvoudigd)';
+  $('brandSub').textContent = 'BIOBUZZ field + soft mechanisms';
 
-  if (worldId === 'biobuzz') {
-    mujocoBundle = await loadBiobuzzSim((s) => {
-      $('runStatus').textContent = s;
-    });
-    adapter = new BiobuzzHardwareAdapter(
-      mujocoBundle.mujoco,
-      mujocoBundle.model,
-      mujocoBundle.data,
-      simConfig,
-    );
-    viewer = new BiobuzzViewer(
-      $('simCanvas'),
-      mujocoBundle.mujoco,
-      mujocoBundle.model,
-      mujocoBundle.data,
-    );
-    await viewer.init();
-    teleopInput = new InputHandler();
-    $('biobuzzHud').hidden = false;
-    $('teleopHint').textContent =
-      'Idle teleop: W/S·I/K tank · pijltjes · E intake · Space/F shoot · X place · C reverse · T arcade. OpMode: sticks + E/C/X/Space/F/G/B/Y + UJHL dpad → gamepad1.';
-  } else {
-    mujocoBundle = await loadSimpleSim(publicUrl('robots/REVStarterBot2026/scene.xml'), (s) => {
-      $('runStatus').textContent = s;
-    });
-    adapter = new SimpleHardwareAdapter(
-      mujocoBundle.mujoco,
-      mujocoBundle.model,
-      mujocoBundle.data,
-      simConfig,
-    );
-    viewer = new SimpleViewer(
-      $('simCanvas'),
-      mujocoBundle.mujoco,
-      mujocoBundle.model,
-      mujocoBundle.data,
-    );
-    viewer.init();
-    $('biobuzzHud').hidden = true;
-    $('teleopHint').textContent =
-      'Toetsenbord OpMode: W/S·I/K·pijltjes sticks · E=RB C=LB X Space/F=RT G/B/Y · U/J/H/L=dpad · doodzone 0.05';
-  }
+  mujocoBundle = await loadBiobuzzSim((s) => {
+    $('runStatus').textContent = s;
+  });
+  adapter = new BiobuzzHardwareAdapter(
+    mujocoBundle.mujoco,
+    mujocoBundle.model,
+    mujocoBundle.data,
+    simConfig,
+  );
+  viewer = new BiobuzzViewer(
+    $('simCanvas'),
+    mujocoBundle.mujoco,
+    mujocoBundle.model,
+    mujocoBundle.data,
+  );
+  await viewer.init();
+  teleopInput = new InputHandler();
+  $('biobuzzHud').hidden = false;
+  $('teleopHint').textContent =
+    'Idle teleop: W/S·I/K tank · pijltjes · E intake · Space/F shoot · X place · C reverse · T arcade. OpMode: sticks + E/C/X/Space/F/G/B/Y + UJHL dpad → gamepad1.';
 
   runner = new OpModeRunner({
     onStatus: (phase, label) => {
@@ -150,7 +109,7 @@ async function boot() {
       $('telemetryOut').textContent = mergeTelemetry(text);
     },
     onTelemetryClear: () => {
-      $('telemetryOut').textContent = worldId === 'biobuzz' ? adapter.mechanismTelemetryText() : '';
+      $('telemetryOut').textContent = adapter.mechanismTelemetryText?.() || '';
     },
     onError: (message, label) => {
       log(`FOUT${label ? ` @ ${label}` : ''}: ${message}`);
@@ -177,23 +136,19 @@ async function boot() {
   wireGamepadFallback();
   startLoop();
   $('runStatus').textContent = 'Idle';
-  log(
-    worldId === 'biobuzz'
-      ? 'BIOBUZZ gereed — idle teleop actief; INIT/START voor Blocks OpMode.'
-      : 'Simulator gereed. Open een voorbeeld of bewerk Blocks, daarna INIT.',
-  );
+  log('BIOBUZZ gereed — idle teleop actief; INIT/START voor Blocks OpMode.');
   updateBiobuzzHud();
 }
 
 function mergeTelemetry(opModeText) {
-  if (worldId !== 'biobuzz' || !adapter?.mechanismTelemetryText) return opModeText || '';
+  if (!adapter?.mechanismTelemetryText) return opModeText || '';
   const mech = adapter.mechanismTelemetryText();
   if (!opModeText) return mech;
   return `${opModeText}\n---\n${mech}`;
 }
 
 function updateBiobuzzHud() {
-  if (worldId !== 'biobuzz' || !adapter?.getHud) return;
+  if (!adapter?.getHud) return;
   const h = adapter.getHud();
   $('hudHopper').textContent = `${h.hopper} / ${h.hopperCap}`;
   $('hudNectar').textContent = `${h.nectar} / ${h.nectarCap}`;
@@ -223,13 +178,6 @@ function updateButtons(phase) {
 }
 
 function wireUi() {
-  $('worldSelect').onchange = () => {
-    const w = $('worldSelect').value;
-    const url = new URL(location.href);
-    url.searchParams.set('world', w);
-    location.href = url.toString();
-  };
-
   $('btnLoadExample').onclick = async () => {
     const name = $('exampleSelect').value;
     if (!name) return;
@@ -268,15 +216,6 @@ function wireUi() {
       log('Code vernieuwd vanuit editor');
     } catch (e) {
       log(`Code vernieuwen: ${e.message}`);
-    }
-  };
-
-  $('btnExportBlk').onclick = async () => {
-    try {
-      const blk = await bridge.getBlk();
-      downloadText(`${currentName()}.blk`, blk);
-    } catch (e) {
-      log(e.message);
     }
   };
 
@@ -373,14 +312,14 @@ function wireGamepadFallback() {
   window.addEventListener('keydown', (e) => {
     keys[e.key.toLowerCase()] = true;
     // During OpMode: feed gamepad1 for Blocks. Idle BIOBUZZ uses InputHandler instead.
-    if (opModeOwns || worldId === 'simple') {
+    if (opModeOwns) {
       if (e.key.startsWith('Arrow') || e.key === ' ' || e.code === 'Space') e.preventDefault();
       applyKeys(keys);
     }
   });
   window.addEventListener('keyup', (e) => {
     keys[e.key.toLowerCase()] = false;
-    if (opModeOwns || worldId === 'simple') applyKeys(keys);
+    if (opModeOwns) applyKeys(keys);
   });
 
   const pad = $('gamepadPad');
@@ -407,7 +346,7 @@ function applyKeys(keys) {
   // During biobuzz idle: InputHandler owns drive (see startLoop).
   // Axes: W/S → leftStickY · I/K or ↑/↓ → rightStickY · ←/→ → leftStickX
   // Buttons: E=RB, C=LB, X=X, Space/F=RT, G=A, B=B, Y=Y, U/J/H/L=Dpad
-  if (worldId === 'biobuzz' && !opModeOwns) return;
+  if (!opModeOwns) return;
   let ly = 0;
   let ry = 0;
   let lx = 0;
@@ -475,7 +414,7 @@ function startLoop() {
     physicsAccumulator += dt;
 
     // Idle BIOBUZZ teleop when OpMode does not own actuators
-    if (worldId === 'biobuzz' && !opModeOwns && teleopInput) {
+    if (!opModeOwns && teleopInput) {
       const cmd = teleopInput.poll();
       if (cmd.reset) {
         adapter.resetPose();
@@ -488,7 +427,7 @@ function startLoop() {
 
     let steps = 0;
     while (physicsAccumulator >= timestep && steps < 50) {
-      if (worldId === 'biobuzz' && adapter.physicsTick) {
+      if (adapter.physicsTick) {
         adapter.physicsTick(timestep);
       } else if (opModeOwns) {
         adapter.applyCommands(latestCommands);
