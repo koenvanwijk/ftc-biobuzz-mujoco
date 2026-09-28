@@ -24,6 +24,20 @@ describe('DcMotorBridge', () => {
     assert.equal(last.power, -0.5);
   });
 
+  it('REVERSE keeps encoder values logical while publishing raw direction', () => {
+    const { motor, cmds, setSensor } = make();
+    motor.setDirection('REVERSE');
+    setSensor({ positionTicks: -250, velocityTicksPerSec: -40, busy: false });
+
+    assert.equal(motor.getCurrentPosition(), 250);
+    assert.equal(motor.getVelocity(), 40);
+
+    motor.setTargetPosition(1000);
+    const last = cmds.at(-1);
+    assert.equal(last.directionSign, -1);
+    assert.equal(last.targetPosition, 1000);
+  });
+
   it('STOP_AND_RESET_ENCODER offsets position', () => {
     const { motor, setSensor } = make();
     setSensor({ positionTicks: 200, velocityTicksPerSec: 0, busy: false });

@@ -49,6 +49,7 @@ export class HardwareAdapter {
         mode: 'RUN_WITHOUT_ENCODER',
         zpb: 'BRAKE',
         encoderOffset: 0,
+        directionSign: 1,
       };
     };
 
@@ -92,14 +93,17 @@ export class HardwareAdapter {
         meta.target = cmd.targetPosition;
         meta.tol = cmd.targetTolerance;
         meta.encoderOffset = cmd.encoderOffsetTicks || 0;
+        meta.directionSign = cmd.directionSign ?? 1;
 
         let radPerSec = 0;
         if (cmd.mode === 'RUN_TO_POSITION') {
           const s = this._motorSensor(cmd.jsId);
-          const err = cmd.targetPosition - s.positionTicks;
+          const dir = cmd.directionSign ?? meta.directionSign ?? 1;
+          const logicalPosition = (s.positionTicks - (cmd.encoderOffsetTicks || 0)) * dir;
+          const err = cmd.targetPosition - logicalPosition;
           if (Math.abs(err) > cmd.targetTolerance) {
-            const power = Math.max(-1, Math.min(1, err / 200));
-            radPerSec = power * meta.maxRadPerSec;
+            const logicalPower = Math.max(-1, Math.min(1, err / 200));
+            radPerSec = logicalPower * dir * meta.maxRadPerSec;
           } else {
             radPerSec = 0;
           }
@@ -168,9 +172,11 @@ export class HardwareAdapter {
     const qd = this.data.qvel[meta.qvelAdr] * sign;
     const positionTicks = q * meta.ticksPerRad;
     const velocityTicksPerSec = qd * meta.ticksPerRad;
+    const logicalPosition =
+      (positionTicks - meta.encoderOffset) * (meta.directionSign ?? 1);
     const busy =
       meta.mode === 'RUN_TO_POSITION' &&
-      Math.abs(meta.target - (positionTicks - meta.encoderOffset)) > meta.tol;
+      Math.abs(meta.target - logicalPosition) > meta.tol;
     return { positionTicks, velocityTicksPerSec, busy };
   }
 

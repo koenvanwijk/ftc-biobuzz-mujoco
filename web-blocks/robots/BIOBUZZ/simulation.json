@@ -35,7 +35,7 @@
       "gearRatio": 20,
       "maxMotorRpm": 6000,
       "wheelRadiusM": 0.045,
-      "invertEncoder": false,
+      "invertEncoder": true,
       "defaultDirection": "REVERSE",
       "bridge": "setTankPower/updateDriveSlew",
       "polarityNote": "real robot: right drive inverted; sim maps via RIGHT_DRIVE_SIGN"
