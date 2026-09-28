@@ -6,6 +6,7 @@ export {
   setTankPower,
   updateDriveSlew,
   resetDriveState,
+  RIGHT_DRIVE_SIGN,
 } from './mechanisms.js';
 export { HiveTipController } from './hive_tip.js';
 export { FieldBoundsReturn } from './field_bounds.js';

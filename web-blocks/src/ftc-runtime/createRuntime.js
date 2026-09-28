@@ -62,6 +62,8 @@ export function createRuntime(simConfig, hooks = {}) {
       readSensor: () => bus.readSensor(entry.jsId),
       limits,
     });
+    // Apply hardware-map defaultDirection (e.g. right drive REVERSE on real robot).
+    if (entry.defaultDirection) raw.setDirection(entry.defaultDirection);
     return wrapDcMotor(raw);
   };
 

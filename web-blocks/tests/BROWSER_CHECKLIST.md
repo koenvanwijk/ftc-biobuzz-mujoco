@@ -10,7 +10,7 @@
 | HTTP 200: app, vendor editor, interpreter, worker, scene, examples | OK (`npm run dev` :5174) |
 | Headless Chrome dump-dom na load | `runStatus` = **Idle** (boot + MuJoCo klaar) |
 | Volledige INIT/START/STOP met Blocks → physics | **Niet** end-to-end in headless geautomatiseerd |
-| .blk bewerken/opslaan/heropenen in UI | Handmatig te doen |
+| .blk in editor openen/bewerken (voorbeeld) | Handmatig te doen |
 | Gamepad/toetsenbord tijdens teleop | Handmatig te doen |
 
 ## Handmatig (aanbevolen)
@@ -20,4 +20,4 @@
 3. STOP tijdens loop → motoren stil ≤250ms
 4. Mechanisms: trigger/A/B/stick → flywheel/intake/servo/CRServo
 5. EncoderAuto: INIT/START → encoders naar target, idle-loop hangt niet
-6. Export .blk + Java; herlaad .blk
+6. Export Java; herlaad voorbeeld / editor project

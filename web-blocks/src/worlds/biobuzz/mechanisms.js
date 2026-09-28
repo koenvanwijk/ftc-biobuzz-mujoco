@@ -502,6 +502,9 @@ export class IntakeShooter {
   }
 }
 
+/** real robot: right drive inverted (motor mounted andersom). */
+export const RIGHT_DRIVE_SIGN = -1;
+
 /** Stateful tank-drive: stick → clamped linear targets; slew each physics dt. */
 let _driveTgtL = 0;
 let _driveTgtR = 0;

@@ -5,7 +5,6 @@
 - **Main rAF loop** owns `mj_step` and `SimClock` (same as before).
 - **BIOBUZZ world**: each substep runs `BiobuzzHardwareAdapter.physicsTick(dt)` →
   `IntakeShooter.update` → hive tip → field bounds → `updateDriveSlew` → `mj_step`.
-- **Simple world**: `HardwareAdapter.applyCommands` then `mj_step` (joint actuators only).
 
 ## Teleop vs OpMode
 
@@ -26,20 +25,17 @@ Documented in UI HUD (*Control: Teleop | OpMode*).
 
 Repeated zero within ~250 ms (existing contract).
 
-## World select
+## World
 
-- Query `?world=biobuzz` (default) or `?world=simple`
-- Toolbar select reloads with the param
-- Config: `/robots/BIOBUZZ/simulation.json` vs `/robots/REVStarterBot2026/simulation.json`
+- Always BIOBUZZ (`/robots/BIOBUZZ/simulation.json`). Simplified world switcher removed.
 
 ## Code layout
 
 ```
 src/worlds/biobuzz/   # loader, renderer, mechanisms, hive_tip, field_bounds, controls, constants
-src/worlds/simple/    # re-exports existing mujoco loader/renderer/adapter
 src/mujoco/BiobuzzHardwareAdapter.js
 src/mujoco/biobuzzMapping.js
-src/main.js           # world boot, teleop-when-idle, OpMode-when-running
+src/main.js           # BIOBUZZ boot, teleop-when-idle, OpMode-when-running
 public/assets/        # biobuzz_scene.xml + meshes + textures (copied)
 ```
 
