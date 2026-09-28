@@ -52,6 +52,7 @@ export class DcMotorBridge {
       type: 'motor',
       jsId: this.jsId,
       power: this._enabled ? this._power * this._dirSign() : 0,
+      directionSign: this._dirSign(),
       mode: this._mode,
       zeroPowerBehavior: this._zpb,
       targetPosition: this._targetPosition,
