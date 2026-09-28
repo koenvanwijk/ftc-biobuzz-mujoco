@@ -71,6 +71,7 @@ export class BiobuzzHardwareAdapter {
         tol: 10,
         mode: 'RUN_WITHOUT_ENCODER',
         encoderOffset: 0,
+        directionSign: 1,
         side: entry === simConfig.drive.left ? 'left' : 'right',
       };
     };
@@ -90,6 +91,7 @@ export class BiobuzzHardwareAdapter {
         tol: 10,
         mode: 'RUN_WITHOUT_ENCODER',
         encoderOffset: 0,
+        directionSign: 1,
         softRole: entry.configName,
       };
     }
@@ -119,6 +121,7 @@ export class BiobuzzHardwareAdapter {
       leftMeta.target = leftCmd.targetPosition;
       leftMeta.tol = leftCmd.targetTolerance;
       leftMeta.encoderOffset = leftCmd.encoderOffsetTicks || 0;
+      leftMeta.directionSign = leftCmd.directionSign ?? 1;
       leftStick = this._motorPower01(leftCmd, leftMeta);
     }
     if (rightCmd?.type === 'motor' && rightMeta) {
@@ -126,6 +129,7 @@ export class BiobuzzHardwareAdapter {
       rightMeta.target = rightCmd.targetPosition;
       rightMeta.tol = rightCmd.targetTolerance;
       rightMeta.encoderOffset = rightCmd.encoderOffsetTicks || 0;
+      rightMeta.directionSign = rightCmd.directionSign ?? 1;
       // real robot: right drive inverted — map post-Direction electrical → logical wheel +forward
       rightStick = RIGHT_DRIVE_SIGN * this._motorPower01(rightCmd, rightMeta);
     }
@@ -158,9 +162,13 @@ export class BiobuzzHardwareAdapter {
   _motorPower01(cmd, meta) {
     if (cmd.mode === 'RUN_TO_POSITION') {
       const s = this._motorSensor(cmd.jsId);
-      const err = cmd.targetPosition - s.positionTicks;
+      const dir = cmd.directionSign ?? meta.directionSign ?? 1;
+      const logicalPosition = (s.positionTicks - (cmd.encoderOffsetTicks || 0)) * dir;
+      const err = cmd.targetPosition - logicalPosition;
       if (Math.abs(err) > (cmd.targetTolerance || meta.tol)) {
-        return Math.max(-1, Math.min(1, err / 200));
+        const logicalPower = Math.max(-1, Math.min(1, err / 200));
+        // Convert logical RUN_TO_POSITION correction back to electrical/raw motor direction.
+        return logicalPower * dir;
       }
       return 0;
     }
@@ -243,9 +251,11 @@ export class BiobuzzHardwareAdapter {
     const qd = this.data.qvel[meta.qvelAdr] * sign;
     const positionTicks = q * meta.ticksPerRad;
     const velocityTicksPerSec = qd * meta.ticksPerRad;
+    const logicalPosition =
+      (positionTicks - meta.encoderOffset) * (meta.directionSign ?? 1);
     const busy =
       meta.mode === 'RUN_TO_POSITION' &&
-      Math.abs(meta.target - (positionTicks - meta.encoderOffset)) > meta.tol;
+      Math.abs(meta.target - logicalPosition) > meta.tol;
     return { positionTicks, velocityTicksPerSec, busy };
   }
 
