@@ -6,7 +6,9 @@ export {
   setTankPower,
   updateDriveSlew,
   resetDriveState,
+  LEFT_DRIVE_SIGN,
   RIGHT_DRIVE_SIGN,
+  electricalToWheelSticks,
 } from './mechanisms.js';
 export { HiveTipController } from './hive_tip.js';
 export { FieldBoundsReturn } from './field_bounds.js';

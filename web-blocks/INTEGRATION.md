@@ -41,6 +41,6 @@ public/assets/        # biobuzz_scene.xml + meshes + textures (copied)
 
 ## Examples on BIOBUZZ
 
-- **TankDrive** — stick powers → `setTankPower` (feel matches teleop slew).
+- **TankDrive** — stick powers → `setTankPower` (feel matches teleop slew). Uses real-robot polarity: `leftDrive` REVERSE, `rightDrive` FORWARD (LEFT_DRIVE_SIGN = −1 in the adapter).
 - **Mechanisms** — soft bridges (see mapping table in README); visible hopper/shoot/place or telemetry.
 - **EncoderAuto** — wheel joint encoders still drive RUN_TO_POSITION busy logic.

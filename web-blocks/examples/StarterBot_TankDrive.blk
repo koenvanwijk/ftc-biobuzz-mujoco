@@ -1,14 +1,14 @@
 <xml xmlns="https://developers.google.com/blockly/xml"><variables><variable id="varL">leftPow</variable><variable id="varR">rightPow</variable></variables>
   <block type="procedures_defnoreturn" id="run1" deletable="false" x="20" y="20">
     <field name="NAME">runOpMode</field>
-    <comment pinned="false" h="80" w="400">Tank drive — BIOBUZZ left_drive/right_drive via setTankPower (right drive REVERSE = real robot).</comment>
+    <comment pinned="false" h="80" w="400">Tank drive — BIOBUZZ left_drive/right_drive via setTankPower (real robot polarity: leftDrive REVERSE, rightDrive FORWARD; positive power = forward).</comment>
     <statement name="STACK">
       <block type="dcMotor_setProperty_Direction" id="dirL">
         <field name="IDENTIFIER">leftDriveAsDcMotor</field>
         <field name="PROP">Direction</field>
         <data>{"IDENTIFIER":"leftDrive"}</data>
         <value name="VALUE">
-          <shadow type="dcMotor_typedEnum_direction" id="dL"><field name="DIRECTION">FORWARD</field></shadow>
+          <shadow type="dcMotor_typedEnum_direction" id="dL"><field name="DIRECTION">REVERSE</field></shadow>
         </value>
         <next>
           <block type="dcMotor_setProperty_Direction" id="dirR">
@@ -16,7 +16,7 @@
             <field name="PROP">Direction</field>
             <data>{"IDENTIFIER":"rightDrive"}</data>
             <value name="VALUE">
-              <shadow type="dcMotor_typedEnum_direction" id="dR"><field name="DIRECTION">REVERSE</field></shadow>
+              <shadow type="dcMotor_typedEnum_direction" id="dR"><field name="DIRECTION">FORWARD</field></shadow>
             </value>
             <next>
               <block type="linearOpMode_waitForStart" id="wfs">

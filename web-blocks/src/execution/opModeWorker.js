@@ -18,6 +18,8 @@ let supplyVoltage = 12.5;
 const BUDGET = 5000;
 /** @type {Map<string, object>} native motor API by jsId for setDual* */
 const motorApiById = new Map();
+/** @type {Record<string,string>} jsId → defaultDirection from simulation.json (sent with 'init') */
+let motorDefaultDirections = Object.create(null);
 
 self.onmessage = (ev) => {
   const msg = ev.data || {};
@@ -38,6 +40,7 @@ self.onmessage = (ev) => {
       pendingAsync = null;
       commandBuffer = Object.create(null);
       motorApiById.clear();
+      motorDefaultDirections = msg.motorDefaultDirections || Object.create(null);
       sensorState = msg.sensors || Object.create(null);
       supplyVoltage = msg.supplyVoltage ?? 12.5;
       try {
@@ -256,7 +259,8 @@ function sensor(jsId) {
 function createMotorPseudo(interp, _global, jsId) {
   const state = {
     power: 0,
-    direction: 'FORWARD',
+    // hardware-map defaultDirection (from simulation.json) unless the OpMode calls setDirection
+    direction: motorDefaultDirections[jsId] === 'REVERSE' ? 'REVERSE' : 'FORWARD',
     mode: 'RUN_WITHOUT_ENCODER',
     zpb: 'BRAKE',
     target: 0,
@@ -273,6 +277,7 @@ function createMotorPseudo(interp, _global, jsId) {
       type: 'motor',
       jsId,
       power: state.enabled ? state.power * dirSign() : 0,
+      direction: state.direction,
       mode: state.mode,
       zeroPowerBehavior: state.zpb,
       targetPosition: state.target,

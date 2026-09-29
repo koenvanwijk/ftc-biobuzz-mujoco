@@ -15,7 +15,9 @@ import {
   resetDriveState,
   setTankPower,
   updateDriveSlew,
+  LEFT_DRIVE_SIGN,
   RIGHT_DRIVE_SIGN,
+  electricalToWheelSticks,
 } from '../worlds/biobuzz/mechanisms.js';
 import { HiveTipController } from '../worlds/biobuzz/hive_tip.js';
 import { FieldBoundsReturn } from '../worlds/biobuzz/field_bounds.js';
@@ -67,6 +69,10 @@ export class BiobuzzHardwareAdapter {
         qposAdr: model.jnt_qposadr[jntId],
         qvelAdr: model.jnt_dofadr[jntId],
         invert: !!entry.invertEncoder,
+        // Drive motors report encoders in the *electrical* motor frame (before FTC Direction):
+        // a mirrored (LEFT) motor reads negative ticks when the wheel rolls forward.
+        polaritySign: entry === simConfig.drive.left ? LEFT_DRIVE_SIGN : RIGHT_DRIVE_SIGN,
+        dirSign: 1, // FTC Direction of the last command (REVERSE = -1)
         target: 0,
         tol: 10,
         mode: 'RUN_WITHOUT_ENCODER',
@@ -108,8 +114,8 @@ export class BiobuzzHardwareAdapter {
     this._lastCmds = commands || {};
     const leftMeta = this._motorMeta.leftDriveAsDcMotor;
     const rightMeta = this._motorMeta.rightDriveAsDcMotor;
-    let leftStick = 0;
-    let rightStick = 0;
+    let leftElec = 0; // post-Direction electrical motor power [-1,1]
+    let rightElec = 0;
 
     const leftCmd = this._lastCmds.leftDriveAsDcMotor;
     const rightCmd = this._lastCmds.rightDriveAsDcMotor;
@@ -119,18 +125,22 @@ export class BiobuzzHardwareAdapter {
       leftMeta.target = leftCmd.targetPosition;
       leftMeta.tol = leftCmd.targetTolerance;
       leftMeta.encoderOffset = leftCmd.encoderOffsetTicks || 0;
-      leftStick = this._motorPower01(leftCmd, leftMeta);
+      leftMeta.dirSign = leftCmd.direction === 'REVERSE' ? -1 : 1;
+      leftElec = this._motorPower01(leftCmd, leftMeta);
     }
     if (rightCmd?.type === 'motor' && rightMeta) {
       rightMeta.mode = rightCmd.mode;
       rightMeta.target = rightCmd.targetPosition;
       rightMeta.tol = rightCmd.targetTolerance;
       rightMeta.encoderOffset = rightCmd.encoderOffsetTicks || 0;
-      // real robot: right drive inverted — map post-Direction electrical → logical wheel +forward
-      rightStick = RIGHT_DRIVE_SIGN * this._motorPower01(rightCmd, rightMeta);
+      rightMeta.dirSign = rightCmd.direction === 'REVERSE' ? -1 : 1;
+      rightElec = this._motorPower01(rightCmd, rightMeta);
     }
 
-    setTankPower(this.data, leftStick, rightStick);
+    // Real robot: left motor is mirrored (default leftDrive REVERSE, rightDrive FORWARD).
+    // Map post-Direction electrical power → logical wheel sticks (+ = forward).
+    const sticks = electricalToWheelSticks(leftElec, rightElec);
+    setTankPower(this.data, sticks.left, sticks.right);
 
     // Soft mechanisms
     const intakeCmd = this._lastCmds.intakeMotorAsDcMotor;
@@ -157,10 +167,12 @@ export class BiobuzzHardwareAdapter {
   /** Convert motor command to stick-like [-1,1] for setTankPower. */
   _motorPower01(cmd, meta) {
     if (cmd.mode === 'RUN_TO_POSITION') {
+      // Target/position are in the FTC-Direction frame; return electrical power (× dirSign).
       const s = this._motorSensor(cmd.jsId);
-      const err = cmd.targetPosition - s.positionTicks;
+      const logicalPos = (s.positionTicks - (cmd.encoderOffsetTicks || 0)) * meta.dirSign;
+      const err = cmd.targetPosition - logicalPos;
       if (Math.abs(err) > (cmd.targetTolerance || meta.tol)) {
-        return Math.max(-1, Math.min(1, err / 200));
+        return meta.dirSign * Math.max(-1, Math.min(1, err / 200));
       }
       return 0;
     }
@@ -238,14 +250,15 @@ export class BiobuzzHardwareAdapter {
     if (!meta || meta.kind === 'soft' || meta.qposAdr < 0) {
       return { positionTicks: 0, velocityTicksPerSec: 0, busy: false };
     }
-    const sign = meta.invert ? -1 : 1;
+    const sign = (meta.invert ? -1 : 1) * (meta.polaritySign ?? 1);
     const q = this.data.qpos[meta.qposAdr] * sign;
     const qd = this.data.qvel[meta.qvelAdr] * sign;
     const positionTicks = q * meta.ticksPerRad;
     const velocityTicksPerSec = qd * meta.ticksPerRad;
+    const dirSign = meta.dirSign ?? 1;
     const busy =
       meta.mode === 'RUN_TO_POSITION' &&
-      Math.abs(meta.target - (positionTicks - meta.encoderOffset)) > meta.tol;
+      Math.abs(meta.target - (positionTicks - meta.encoderOffset) * dirSign) > meta.tol;
     return { positionTicks, velocityTicksPerSec, busy };
   }
 

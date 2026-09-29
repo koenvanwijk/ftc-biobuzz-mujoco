@@ -59,6 +59,18 @@ De drie panelen (Blocks / Sim / Code) zijn **versleepbaar** via de verticale spl
 
 Tijdens INIT/WAIT/RUN heeft de **Blocks OpMode** exclusief actuator-controle. Axis/button overrides worden gewist bij STOP/DONE/ERROR/reset.
 
+## Drive polarity (echte robot)
+
+Op de echte robot rijdt de default Blocks-config `leftDrive.setDirection(REVERSE)` +
+`rightDrive.setDirection(FORWARD)` met **positieve power op beide motoren vooruit**.
+De sim volgt dat: `simulation.json` heeft `leftDrive.defaultDirection = REVERSE`,
+`rightDrive.defaultDirection = FORWARD` (zonder setDirection-blokken gelden deze defaults;
+een `setDirection`-blok overschrijft ze). `BiobuzzHardwareAdapter` past na FTC-Direction
+`LEFT_DRIVE_SIGN = -1` / `RIGHT_DRIVE_SIGN = +1` toe (`electricalToWheelSticks`) om van
+elektrisch motorvermogen naar logische wielrichting te gaan; encoders van de linker motor
+worden in hetzelfde (gespiegelde) frame gerapporteerd. Idle-teleop en `web/` gebruiken
+`setTankPower` met logische sticks en worden **niet** geïnverteerd.
+
 ## Hardware ↔ BIOBUZZ mapping
 
 | FTC config | JS-id | BIOBUZZ target |

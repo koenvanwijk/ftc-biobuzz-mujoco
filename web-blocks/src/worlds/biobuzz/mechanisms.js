@@ -502,8 +502,26 @@ export class IntakeShooter {
   }
 }
 
-/** real robot: right drive inverted (motor mounted andersom). */
-export const RIGHT_DRIVE_SIGN = -1;
+/**
+ * Real robot polarity: the LEFT drive motor is mounted mirrored, so the default
+ * Blocks config is `leftDrive.setDirection(REVERSE)` + `rightDrive.setDirection(FORWARD)`
+ * and positive power on both motors drives the robot forward.
+ *
+ * FTC Direction is applied first (power * dirSign); *_DRIVE_SIGN then maps that
+ * electrical motor power (and encoder sign) to the sim's logical wheel stick
+ * (+1 = wheel spins forward). Only the Blocks/OpMode path uses these — teleop
+ * (setTankPower with logical sticks) bypasses them and must NOT be inverted.
+ */
+export const LEFT_DRIVE_SIGN = -1;
+export const RIGHT_DRIVE_SIGN = 1;
+
+/** Map post-Direction electrical motor power [-1,1] → logical wheel sticks for setTankPower. */
+export function electricalToWheelSticks(leftElectrical = 0, rightElectrical = 0) {
+  return {
+    left: LEFT_DRIVE_SIGN * leftElectrical,
+    right: RIGHT_DRIVE_SIGN * rightElectrical,
+  };
+}
 
 /** Stateful tank-drive: stick → clamped linear targets; slew each physics dt. */
 let _driveTgtL = 0;
