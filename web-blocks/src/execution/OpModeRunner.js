@@ -63,7 +63,7 @@ export class OpModeRunner {
     return this._phase;
   }
 
-  async init(code, { sensors, supplyVoltage } = {}) {
+  async init(code, { sensors, supplyVoltage, motorDefaultDirections } = {}) {
     await this.ensureWorker();
     this._clearStopTimer();
     this._pendingTelemetry.clear();
@@ -75,6 +75,7 @@ export class OpModeRunner {
       code,
       sensors: sensors || {},
       supplyVoltage,
+      motorDefaultDirections: motorDefaultDirections || {},
     });
   }
 
