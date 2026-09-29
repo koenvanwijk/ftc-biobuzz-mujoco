@@ -21,3 +21,10 @@
 4. Mechanisms: trigger/A/B/stick → flywheel/intake/servo/CRServo
 5. EncoderAuto: INIT/START → encoders naar target, idle-loop hangt niet
 6. Export Java; herlaad voorbeeld / editor project
+
+## Debugger (handmatig aanbevolen)
+
+1. TankDrive openen → **Debug** aan → INIT → OpMode pauzeert bij het eerste blok (gele rand, status *Gepauzeerd bij blok…*).
+2. **Stap** herhaaldelijk; na START door de `opModeIsActive`-loop stappen. Sim-tijd/robot staan stil tijdens pauze.
+3. Blok selecteren → **● Breakpoint** → **Doorgaan** → stopt bij dat blok (ook in de loop).
+4. **Pauzeer** tijdens `Doorgaan`; **STOP** tijdens pauze. Debug uit → normale Run ongewijzigd, JS-paneel bevat geen `highlightBlock`.

@@ -18,3 +18,7 @@
   4. Top-level **Vision** category — expanded AprilTag SDK 12/BIOBUZZ set (processor create/config, all `ftcPose.*` presets, single/cluster type checks, cluster metadata including `metadata.shortName`, `fieldPosition`, `fieldOrientation`, and current/BIOBUZZ game libraries) + VisionPortal essentials + `navigation_webcamName`.
 - **Reden:** user-requested simulated Webcam + IMU; hergebruikt officiële block definitions/generators (geen parallel blockset). Geen stille placeholders — runtime is een **gesimuleerde** bridge (zie `src/config/extensions.md`).
 - **Impact:** toolbox toont IMU/Vision; gegenereerde JS roept `imuAsIMU` / `aprilTagAccess` / `visionPortalAccess` / `yawPitchRollAnglesAccess` aan zoals op een echte RC.
+
+## Opmerking: geen patch voor de step-debugger
+
+De blok-debugger (Debug / Stap / Doorgaan / breakpoints) vereist **geen** vendor-patch. `src/editor/blocksBridge.js` zet in de iframe tijdelijk `Blockly.JavaScript.STATEMENT_PREFIX = 'highlightBlock(%1);\n'`, roept de officiële `generateJavaScriptCode()` aan en herstelt de vorige waarde (`finally`). Markeringen zijn CSS-klassen (`ftc-debug-current`, `ftc-debug-bp`) op de block-SVG plus `workspace.highlightBlock(id)`.
