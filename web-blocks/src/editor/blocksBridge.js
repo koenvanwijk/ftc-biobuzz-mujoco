@@ -123,9 +123,13 @@ export class BlocksBridge {
     return this.request('getDebugJavaScript');
   }
 
-  /** Markeer het huidige blok (null = wis). → { found, type, text } */
-  debugHighlight(blockId) {
-    return this.request('debugHighlight', { blockId: blockId ?? null }, 5000);
+  /**
+   * Markeer het huidige blok (null = wis). → { found, type, text, touched }
+   * `touched` = { cur: { reads: string[], writes: string[] }, prev: { … } | null }: JS-namen van variabelen die het
+   * huidige blok leest/schrijft (variables_get/set, math_change, for-tellers) en die het vorige (al uitgevoerde) blok schreef.
+   */
+  debugHighlight(blockId, prevBlockId) {
+    return this.request('debugHighlight', { blockId: blockId ?? null, prevBlockId: prevBlockId ?? null }, 5000);
   }
 
   /** Toggle breakpoint op het geselecteerde blok. → { ok, id, on, text } of { ok:false, message } */
@@ -224,6 +228,38 @@ const IFRAME_BRIDGE_SOURCE = `
     currentMarked = b;
     addCls(b, 'ftc-debug-current', true);
     try { workspace.highlightBlock(b.id); } catch (e) {}
+  }
+  // Variabelen die een statement-blok leest/schrijft (voor het Variabelen-paneel). Value-blokken hebben geen eigen
+  // highlight (STATEMENT_PREFIX), dus lezen zoeken we in de value-inputs van het statement-blok zelf.
+  var WRITE_TYPES = { variables_set: 1, math_change: 1, controls_for: 1, controls_forEach: 1 };
+  function jsVarName(b) {
+    var f = b.getField && b.getField('VAR');
+    if (!f) return null;
+    var disp = String(f.getText());
+    var js = disp;
+    try {
+      var db = Blockly.JavaScript.variableDB_;
+      if (db && typeof db.getName === 'function') js = db.getName(disp, Blockly.Variables.NAME_TYPE) || disp;
+    } catch (e) {}
+    return { name: js, display: disp };
+  }
+  function collectReads(b, out, seen) {
+    if (!b || seen[b.id]) return;
+    seen[b.id] = 1;
+    if (b.type === 'variables_get') { var v = jsVarName(b); if (v) out.push(v); }
+    (b.inputList || []).forEach(function (inp) {
+      if (inp.type === 1 && inp.connection && inp.connection.targetBlock()) collectReads(inp.connection.targetBlock(), out, seen);
+    });
+  }
+  function varTouch(b) {
+    var reads = [], writes = [];
+    if (!b) return { reads: reads, writes: writes };
+    if (WRITE_TYPES[b.type]) { var w = jsVarName(b); if (w) writes.push(w); }
+    (b.inputList || []).forEach(function (inp) {
+      if (inp.type === 1 && inp.connection && inp.connection.targetBlock()) collectReads(inp.connection.targetBlock(), reads, {});
+    });
+    if (b.type === 'math_change') { var w2 = jsVarName(b); if (w2) reads.push(w2); }
+    return { reads: reads, writes: writes };
   }
   function describeBlock(b) {
     var t = '';
@@ -353,7 +389,8 @@ const IFRAME_BRIDGE_SOURCE = `
             if (!hb) { reply({ found: false }); break; }
             markCurrent(hb);
             revealBlock(hb);
-            reply({ found: true, type: hb.type, text: describeBlock(hb) });
+            var pb = data.payload && data.payload.prevBlockId ? workspace.getBlockById(data.payload.prevBlockId) : null;
+            reply({ found: true, type: hb.type, text: describeBlock(hb), touched: { cur: varTouch(hb), prev: pb ? varTouch(pb) : null } });
             break;
           }
           case 'toggleBreakpointOnSelection': {

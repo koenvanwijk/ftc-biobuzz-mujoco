@@ -18,6 +18,8 @@ let supplyVoltage = 12.5;
 const BUDGET = 5000;
 /** Blok-niveau debugger (public/execution/debugController.js). */
 let dbg = null;
+/** Namen van globale builtins/native API's (niet tonen als variabelen). */
+let varBaseline = null;
 /** @type {Map<string, object>} native motor API by jsId for setDual* */
 const motorApiById = new Map();
 
@@ -121,15 +123,26 @@ function releaseHostIfFrozen() {
 
 function postDebugState(state) {
   hostFrozen = state === 'paused';
-  self.postMessage({
+  const msg = {
     type: 'debugState',
     state,
     blockId: dbg.currentBlockId,
     reason: dbg.reason,
-  });
+  };
+  if (state === 'paused') {
+    // Aanroepdiepte + variabelen (veilig geserialiseerd) voor het Variabelen-paneel.
+    msg.depth = dbg.depth;
+    msg.prevBlockId = dbg.prevBlockId;
+    try {
+      msg.vars = self.FtcDebug.collectVariables(interpreter, varBaseline);
+    } catch (e) {
+      msg.vars = [];
+    }
+  }
+  self.postMessage(msg);
 }
 
-/** cmd: step | continue | pause | breakpoints */
+/** cmd: step | stepOver | stepOut | continue | pause | breakpoints */
 function handleDebugCommand(msg) {
   if (!dbg || stopFlag) return;
   switch (msg.cmd) {
@@ -137,8 +150,14 @@ function handleDebugCommand(msg) {
       dbg.setBreakpoints(msg.ids);
       break;
     case 'step':
+    case 'stepOver':
+    case 'stepOut':
     case 'continue': {
-      const wasPaused = msg.cmd === 'step' ? dbg.step() : dbg.resume();
+      const wasPaused =
+        msg.cmd === 'step' ? dbg.step()
+        : msg.cmd === 'stepOver' ? dbg.stepOver()
+        : msg.cmd === 'stepOut' ? dbg.stepOut()
+        : dbg.resume();
       if (wasPaused) {
         resolveDueSleep();
         // Host houdt de sim bevroren tot pump() 'paused' (volgend blok bereikt: Stap kost geen simtijd)
@@ -212,7 +231,7 @@ function startOpMode(code) {
       globalObject,
       'highlightBlock',
       interp.createNativeFunction((id) => {
-        dbg.onHighlight(id);
+        dbg.onHighlight(id, self.FtcDebug.callDepth(interpreter));
         return true;
       }),
     );
@@ -265,6 +284,10 @@ function startOpMode(code) {
 
     // Simulated IMU + Vision (explicit simulator extensions)
     bindSimulatedSensors(interp, globalObject);
+
+    // Alles wat nu globaal bestaat (builtins + native API's) is geen gebruikersvariabele. Dit gebeurt in initFunc:
+    // de interpreter hoist de var-declaraties van het programma pas ná initFunc, dus die zitten hier nog niet bij.
+    varBaseline = self.FtcDebug.globalNames(interp, globalObject);
 
     // Auto-call runOpMode after definitions
   };

@@ -22,6 +22,7 @@
             <option value="StarterBot_Mechanisms.blk">Mechanisms</option>
             <option value="StarterBot_EncoderAuto.blk">EncoderAuto</option>
             <option value="StarterBot_ImuAprilTag.blk">ImuAprilTag</option>
+            <option value="StarterBot_DebugDemo.blk">DebugDemo (variabelen + procedure)</option>
           </select>
         </label>
         <button id="btnLoadExample" type="button">Open in editor</button>
@@ -35,7 +36,9 @@
         <span class="sep"></span>
         <button id="btnDebug" type="button" aria-pressed="false" title="Debug-modus: INIT pauzeert bij het eerste blok en je kunt blok voor blok stappen. Aan/uit te zetten vóór INIT.">Debug</button>
         <span id="debugGroup" class="debug-group" role="group" aria-label="Debugger" hidden>
-          <button id="btnDbgStep" type="button" disabled title="Voer het volgende blok uit en pauzeer weer">Stap</button>
+          <button id="btnDbgStep" type="button" disabled title="Voer het volgende blok uit en pauzeer weer (stapt in aangeroepen functies)">Stap</button>
+          <button id="btnDbgStepOver" type="button" disabled title="Stap over: voer het blok uit; een functie-aanroep draait in één keer (breakpoints erin pauzeren nog wel) en pauzeert bij het volgende blok">Stap over</button>
+          <button id="btnDbgStepOut" type="button" disabled title="Stap uit: draai door tot de huidige functie terugkeert en pauzeer bij het volgende blok in de aanroeper">Stap uit</button>
           <button id="btnDbgContinue" type="button" disabled title="Ga door tot een breakpoint, Pauzeer of het einde">Doorgaan</button>
           <button id="btnDbgPause" type="button" disabled title="Pauzeer bij het eerstvolgende blok">Pauzeer</button>
           <button id="btnDbgBreakpoint" type="button" title="Zet/verwijder een breakpoint op het geselecteerde blok in de editor">● Breakpoint</button>
@@ -54,6 +57,11 @@
       <div id="debugHint" class="debug-hint" hidden>
         <strong>Debug:</strong> klik in de editor op een blok en zet een breakpoint (● Breakpoint), druk INIT en gebruik Stap / Doorgaan.
         Tijdens een pauze staat de OpMode <em>én</em> de simulatie stil (fysica + simtijd); motoren houden hun laatste commando en telemetry blijft zichtbaar.
+        <em>Stap</em> stapt in functies, <em>Stap over</em> voert een functie-aanroep in één keer uit, <em>Stap uit</em> loopt de huidige functie uit.
+      </div>
+      <div id="debugVars" class="debug-vars" hidden aria-live="polite">
+        <div class="debug-vars-head"><strong>Variabelen</strong> <span id="debugVarsInfo" class="muted small"></span></div>
+        <div id="debugVarsList" class="debug-vars-list"></div>
       </div>
     </header>
 

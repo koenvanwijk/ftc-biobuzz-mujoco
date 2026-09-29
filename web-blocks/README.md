@@ -28,7 +28,9 @@ Zet **Debug** aan in de toolbar (vóór **INIT**). Daarna pauzeert de OpMode bij
 
 | Knop | Werking |
 |------|---------|
-| **Stap** | voert het volgende blok uit en pauzeert weer (werkt in INIT én na START; ook in `opModeIsActive`-loops) |
+| **Stap** | voert het volgende blok uit en pauzeert weer (werkt in INIT én na START; ook in `opModeIsActive`-loops). **Stapt in** aangeroepen procedures/functies (`procedures_callnoreturn` / `procedures_callreturn`): de blokken van de functie worden één voor één gemarkeerd (eerst het `to …`-definitieblok, dan de inhoud) |
+| **Stap over** | voert het huidige blok uit; is dat een functie-aanroep dan draait de **hele functie in één keer** en pauzeert de debugger bij het volgende blok in hetzelfde functieniveau. **Breakpoints binnen die functie pauzeren wél** (en ook **Pauzeer**). Op een gewoon blok (geen aanroep) doet Stap over hetzelfde als Stap |
+| **Stap uit** | draait door tot de huidige functie terugkeert en pauzeert bij het volgende blok in de aanroeper (breakpoints blijven pauzeren). Alleen actief binnen een functie (niet in `runOpMode` zelf) |
 | **Doorgaan** | draait door tot een breakpoint, **Pauzeer** of het einde |
 | **Pauzeer** | pauzeert bij het eerstvolgende blok (ook tijdens `sleep`/`idle`/`waitForStart`) |
 | **● Breakpoint** | selecteer een statement-blok in de editor en klik: breakpoint aan/uit (rode stippelrand); **Wis BP** verwijdert alles |
@@ -36,9 +38,17 @@ Zet **Debug** aan in de toolbar (vóór **INIT**). Daarna pauzeert de OpMode bij
 
 **Tijdens een pauze staat de simulatie stil**: de OpMode is bevroren én de fysica + simtijd lopen niet door. Motoren houden hun laatste commando (het zit in de bevroren sim), telemetry blijft zichtbaar. Bij *Stap* verstrijkt geen simtijd tenzij het blok een wacht bevat (`sleep`, `idle`, `waitForStart`): dan loopt de sim tot de wacht klaar is en pauzeert daarna bij het volgende blok.
 
+#### Variabelen
+
+Bij elke pauze toont het paneel **Variabelen** (onder de debug-hint) alle huidige variabelen met hun waarde (`lok` = lokaal in de functie, `glob` = globaal; functies, ingebouwde objecten en de simulator-API's worden niet getoond). Kleuren: **geel** = variabele die het *vorige* blok net zette (`variables_set`, `math_change`, for-teller) — de waarde is dus die **ná** uitvoeren; **blauw** = variabele die het *huidige* (nog niet uitgevoerde) blok leest (`variables_get` in zijn invoer). De statusregel toont dezelfde `naam = waarde` (eerst wat het vorige blok zette, anders wat het huidige leest). Na **Stap**/**Doorgaan** worden de waarden grijs (verouderd) tot de volgende pauze. Waarden worden veilig geserialiseerd: getallen, tekst (afgekapt op 60 tekens), booleans, arrays/objecten (max. 8 items, 2 niveaus diep, cycli → `[cyclisch]`), functies worden overgeslagen. Er is bewust géén waarde-bubbel op het blok zelf (Blockly-warning/bubbel-API is fragiel in de vendor-iframe); het paneel + statusregel volstaan.
+
+**Diepte / Stap over — hoe het werkt:** de aanroepdiepte (`callDepth` in `debugController.js`) is het aantal *lopende* aanroepen van gebruikersfuncties op de `stateStack` van de JS-Interpreter (CallExpression-states met `doneExec_` en een functie met AST-body; native functies zoals `highlightBlock` tellen niet). Dat komt direct uit de echte call-stack en blijft dus juist bij recursie, `return` en fouten. `runOpMode` = diepte 1, een procedure daarin = 2, enz. *Stap over* pauzeert bij het eerstvolgende blok met diepte ≤ de huidige, *Stap uit* bij diepte < de huidige. De worker geeft `highlightBlock` die diepte mee en stuurt bij elke pauze `depth`, `prevBlockId` en `vars` naar de hoofdthread.
+
 Implementatie: Debug gebruikt aparte JS (`getDebugJavaScript()` in `blocksBridge.js`) met `highlightBlock('<id>');` vóór elk statement-blok (Blockly `STATEMENT_PREFIX`, tijdelijk gezet en direct hersteld). De normale Run, het JS-paneel en de Java-export blijven ongewijzigd. Geen vendor-patch nodig. Logica: `public/execution/debugController.js` (getest in `tests/unit/debugController.test.js`).
 
-Niet inbegrepen (nog): variabelen-watches, conditionele breakpoints, breakpoints die een herlaad van het project overleven. Breakpoints gelden voor de volgende INIT en worden ook live doorgegeven tijdens een sessie.
+Voorbeeld **DebugDemo** (variabelen + procedure) in de voorbeeldlijst is bedoeld om Stap / Stap over / Stap uit en het Variabelen-paneel te proberen.
+
+Niet inbegrepen (nog): eigen watch-expressies, variabelen aanpassen tijdens een pauze, conditionele breakpoints, breakpoints die een herlaad van het project overleven. Breakpoints gelden voor de volgende INIT en worden ook live doorgegeven tijdens een sessie.
 
 > **Na worker-wijzigingen** (`public/execution/*.js`, ook `debugController.js`): hard refresh met **Ctrl+Shift+R** — de browser cachet Web Worker-scripts agressief. `src/execution/opModeWorker.js` moet identiek blijven aan `public/execution/opModeWorker.js` (de test controleert dit).
 

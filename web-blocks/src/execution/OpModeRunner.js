@@ -86,7 +86,7 @@ export class OpModeRunner {
     });
   }
 
-  /** Debugger-commando naar de worker: 'step' | 'continue' | 'pause'. */
+  /** Debugger-commando naar de worker: 'step' | 'stepOver' | 'stepOut' | 'continue' | 'pause'. */
   debugCommand(cmd) {
     this._worker?.postMessage({ type: 'debug', cmd });
   }

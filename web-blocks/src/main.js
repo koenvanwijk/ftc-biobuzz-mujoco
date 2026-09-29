@@ -38,6 +38,10 @@ let lastPhase = 'Idle';
 let lastLabel = '';
 let pausedText = '';
 let pauseSeq = 0;
+/** Laatste variabelen-lijst van de worker (bij pauze) + wat de blokken aanraken. */
+let lastVars = [];
+let lastTouched = null;
+let lastDepth = null;
 
 /** @type {{ applyPreset: (name: string) => void, destroy: () => void } | null} */
 let splitLayoutApi = null;
@@ -155,6 +159,8 @@ async function boot() {
     get clockSec() { return runtime.clock.timeSec; },
     get simPaused() { return simPaused; },
     get debugState() { return debugState; },
+    get debugVars() { return lastVars; },
+    get debugDepth() { return lastDepth; },
   };
 
   wireUi();
@@ -222,6 +228,8 @@ function renderRunStatus() {
 function updateDebugButtons() {
   const active = debugSession && debugState !== 'off';
   $('btnDbgStep').disabled = !(active && debugState === 'paused');
+  $('btnDbgStepOver').disabled = !(active && debugState === 'paused');
+  $('btnDbgStepOut').disabled = !(active && debugState === 'paused' && (lastDepth ?? 0) > 1);
   $('btnDbgContinue').disabled = !(active && debugState === 'paused');
   $('btnDbgPause').disabled = !(active && debugState === 'running');
   $('btnDebug').classList.toggle('is-active', debugMode);
@@ -236,9 +244,79 @@ function setSimPaused(paused) {
   physicsAccumulator = 0; // geen inhaalslag na hervatten
 }
 
-async function highlightBlock(blockId) {
+// ——— Variabelen-paneel ———
+
+function findVar(vars, ref) {
+  return vars.find((v) => v.name === ref.name) || vars.find((v) => v.name === ref.display);
+}
+
+/** Bepaal welke variabelen het vorige blok schreef (waarde ná uitvoeren) en welke het huidige blok leest. */
+function touchedRefs(touched) {
+  const written = touched?.prev?.writes || [];
+  const read = touched?.cur?.reads || [];
+  const willWrite = touched?.cur?.writes || [];
+  return { written, read, willWrite };
+}
+
+function renderVars(vars, touched) {
+  const box = $('debugVars');
+  const list = $('debugVarsList');
+  const { written, read } = touchedRefs(touched);
+  const isW = (v) => written.some((r) => r.name === v.name || r.display === v.name);
+  const isR = (v) => read.some((r) => r.name === v.name || r.display === v.name);
+  list.textContent = '';
+  if (!vars.length) {
+    const e = document.createElement('span');
+    e.className = 'muted';
+    e.textContent = '(nog geen variabelen)';
+    list.appendChild(e);
+  }
+  // Aangeraakte variabelen eerst, dan lokaal, dan globaal (volgorde binnen groep blijft behouden).
+  const rank = (v) => (isW(v) ? 0 : isR(v) ? 1 : 2);
+  [...vars].sort((a, b) => rank(a) - rank(b)).forEach((v) => {
+    const el = document.createElement('span');
+    el.className = 'dv' + (isW(v) ? ' is-touched' : isR(v) ? ' is-read' : '');
+    el.dataset.name = v.name;
+    el.title = `${v.scope}${isW(v) ? ' · net gezet door het vorige blok' : isR(v) ? ' · gelezen door dit blok' : ''}`;
+    const sc = document.createElement('span');
+    sc.className = 'dv-scope';
+    sc.textContent = v.scope === 'lokaal' ? 'lok' : 'glob';
+    el.append(sc, `${v.name} = ${v.text}`);
+    list.appendChild(el);
+  });
+  box.classList.remove('is-stale');
+  box.hidden = false;
+}
+
+/** 'naam = waarde' voor de statusregel: eerst wat het vorige blok zette, anders wat het huidige blok leest. */
+function varsStatusText(vars, touched) {
+  const { written, read } = touchedRefs(touched);
+  const parts = [];
+  for (const r of written) {
+    const v = findVar(vars, r);
+    if (v) parts.push(`${v.name} = ${v.text}`);
+  }
+  if (!parts.length) {
+    for (const r of read) {
+      const v = findVar(vars, r);
+      if (v && !parts.includes(`${v.name} = ${v.text}`)) parts.push(`${v.name} = ${v.text}`);
+    }
+  }
+  return parts.slice(0, 3).join(', ');
+}
+
+function hideVars() {
+  lastVars = [];
+  lastTouched = null;
+  lastDepth = null;
+  $('debugVars').hidden = true;
+  $('debugVarsList').textContent = '';
+  $('debugVarsInfo').textContent = '';
+}
+
+async function highlightBlock(blockId, prevBlockId) {
   try {
-    return await bridge.debugHighlight(blockId);
+    return await bridge.debugHighlight(blockId, prevBlockId);
   } catch (e) {
     log(`Debug-highlight mislukt: ${e.message}`);
     return { found: false };
@@ -257,20 +335,33 @@ function onDebugState(msg) {
     setSimPaused(true);
     const seq = ++pauseSeq;
     pausedText = `Gepauzeerd bij blok…`;
-    renderRunStatus();
+    lastVars = Array.isArray(msg.vars) ? msg.vars : [];
+    lastDepth = typeof msg.depth === 'number' ? msg.depth : null;
+    lastTouched = null;
+    renderVars(lastVars, null);
     updateDebugButtons();
+    renderRunStatus();
     (async () => {
-      const info = msg.blockId ? await highlightBlock(msg.blockId) : { found: false };
+      const info = msg.blockId ? await highlightBlock(msg.blockId, msg.prevBlockId) : { found: false };
       if (seq !== pauseSeq || debugState !== 'paused') return; // inmiddels hervat/gestopt
       if (!msg.blockId) pausedText = 'Gepauzeerd (wacht op sleep/START)';
       else if (info.found) pausedText = `Gepauzeerd bij blok: ${info.text}`;
       else pausedText = `Gepauzeerd (blok ${msg.blockId} niet gevonden in editor)`;
       if (msg.reason === 'breakpoint' && info.found) pausedText = `Breakpoint bij blok: ${info.text}`;
+      lastTouched = info.touched || null;
+      renderVars(lastVars, lastTouched);
+      const vt = varsStatusText(lastVars, lastTouched);
+      if (vt) pausedText += ` · ${vt}`;
+      $('debugVarsInfo').textContent =
+        (lastDepth != null ? `(functie-diepte ${lastDepth})` : '') +
+        (lastTouched?.prev?.writes?.length ? ' · geel = net gezet' : '') +
+        (lastTouched?.cur?.reads?.length ? ' · blauw = gelezen door dit blok' : '');
       renderRunStatus();
     })();
   } else {
     pauseSeq++;
     setSimPaused(false);
+    $('debugVars').classList.add('is-stale'); // waarden zijn verouderd zodra de OpMode weer draait
     renderRunStatus();
     updateDebugButtons();
   }
@@ -285,6 +376,8 @@ function endDebugSession({ keepHighlight = false } = {}) {
   if (wasActive && !keepHighlight) {
     bridge?.clearDebugMarks().catch(() => {});
   }
+  if (!keepHighlight) hideVars();
+  else $('debugVars').classList.add('is-stale');
   renderRunStatus();
   updateDebugButtons();
 }
@@ -293,6 +386,7 @@ function wireDebugUi() {
   const applyToggle = () => {
     $('debugGroup').hidden = !debugMode;
     $('debugHint').hidden = !debugMode;
+    if (!debugMode) hideVars();
     updateDebugButtons();
   };
   $('btnDebug').onclick = () => {
@@ -301,21 +395,28 @@ function wireDebugUi() {
     applyToggle();
     log(debugMode ? 'Debug-modus aan — INIT pauzeert bij het eerste blok' : 'Debug-modus uit');
   };
-  $('btnDbgStep').onclick = () => {
+  const stepCommand = (cmd) => {
     if (debugState !== 'paused') return;
     pauseSeq++;
     // 'stepping': sim blijft bevroren tot de worker het volgende blok meldt (of 'running' bij sleep/wacht).
     debugState = 'stepping';
-    runner.debugCommand('step');
+    runner.debugCommand(cmd);
     bridge.clearDebugMarks().catch(() => {});
+    $('debugVars').classList.add('is-stale');
     renderRunStatus();
     updateDebugButtons();
+  };
+  $('btnDbgStep').onclick = () => stepCommand('step');
+  $('btnDbgStepOver').onclick = () => stepCommand('stepOver');
+  $('btnDbgStepOut').onclick = () => {
+    if ((lastDepth ?? 0) > 1) stepCommand('stepOut');
   };
   $('btnDbgContinue').onclick = () => {
     if (debugState !== 'paused') return;
     pauseSeq++;
     runner.debugCommand('continue');
     bridge.clearDebugMarks().catch(() => {});
+    $('debugVars').classList.add('is-stale');
     debugState = 'running';
     setSimPaused(false);
     renderRunStatus();
