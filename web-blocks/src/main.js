@@ -70,6 +70,15 @@ function initAppSplitLayout() {
   });
 }
 
+/** jsId → defaultDirection for every motor in simulation.json (drive + soft motors). */
+function collectDefaultDirections(cfg) {
+  const out = {};
+  for (const e of [cfg.drive?.left, cfg.drive?.right, ...Object.values(cfg.motors || {})]) {
+    if (e?.jsId && e.defaultDirection) out[e.jsId] = e.defaultDirection;
+  }
+  return out;
+}
+
 async function boot() {
   initAppSplitLayout();
 
@@ -553,6 +562,7 @@ function wireUi() {
       await runner.init(code, {
         sensors,
         supplyVoltage: simConfig.supplyVoltage,
+        motorDefaultDirections: collectDefaultDirections(simConfig),
         debug: useDebug
           ? { enabled: true, startPaused: true, breakpoints: [...breakpointIds] }
           : { enabled: false },

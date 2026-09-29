@@ -67,10 +67,10 @@ export class OpModeRunner {
 
   /**
    * @param {string} code
-   * @param {{ sensors?: object, supplyVoltage?: number, debug?: { enabled: boolean, startPaused?: boolean, breakpoints?: string[] } }} [opts]
+   * @param {{ sensors?: object, supplyVoltage?: number, motorDefaultDirections?: object, debug?: { enabled: boolean, startPaused?: boolean, breakpoints?: string[] } }} [opts]
    *   `debug.enabled` verwacht debug-JS (met highlightBlock-aanroepen, zie BlocksBridge.getDebugJavaScript).
    */
-  async init(code, { sensors, supplyVoltage, debug } = {}) {
+  async init(code, { sensors, supplyVoltage, motorDefaultDirections, debug } = {}) {
     await this.ensureWorker();
     this._clearStopTimer();
     this._pendingTelemetry.clear();
@@ -82,6 +82,7 @@ export class OpModeRunner {
       code,
       sensors: sensors || {},
       supplyVoltage,
+      motorDefaultDirections: motorDefaultDirections || {},
       debug: debug || { enabled: false },
     });
   }

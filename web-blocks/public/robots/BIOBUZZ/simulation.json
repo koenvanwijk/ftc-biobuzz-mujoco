@@ -23,8 +23,9 @@
       "maxMotorRpm": 6000,
       "wheelRadiusM": 0.045,
       "invertEncoder": false,
-      "defaultDirection": "FORWARD",
-      "bridge": "setTankPower/updateDriveSlew"
+      "defaultDirection": "REVERSE",
+      "bridge": "setTankPower/updateDriveSlew",
+      "polarityNote": "real robot: left drive inverted (leftDrive.setDirection(REVERSE)); sim maps via LEFT_DRIVE_SIGN"
     },
     "right": {
       "configName": "rightDrive",
@@ -36,9 +37,8 @@
       "maxMotorRpm": 6000,
       "wheelRadiusM": 0.045,
       "invertEncoder": false,
-      "defaultDirection": "REVERSE",
-      "bridge": "setTankPower/updateDriveSlew",
-      "polarityNote": "real robot: right drive inverted; sim maps via RIGHT_DRIVE_SIGN"
+      "defaultDirection": "FORWARD",
+      "bridge": "setTankPower/updateDriveSlew"
     }
   },
   "motors": {
