@@ -353,7 +353,7 @@ export class MujocoThreeViewer {
     }
   }
 
-  /** CSS-pixel PiP box (bottom-right). Sized from laid-out canvas, never window. */
+  /** CSS-pixel PiP box (top-right). Sized from laid-out canvas, never window. */
   _pipCssBox() {
     const canvas = this.canvas;
     let cw = canvas.clientWidth;
@@ -366,8 +366,8 @@ export class MujocoThreeViewer {
       ch = Math.max(2, Math.floor(rect?.height || 360));
     }
     const margin = 16;
-    // Keep whole cyan frame clear of the panel/splitter edge (48px was still clipped).
-    const rightInset = Math.max(100, Math.min(220, Math.round(cw * 0.2)));
+    // Top-right corner; canvas is sized from its panel, so a small inset keeps the frame visible.
+    const rightInset = 24;
     const pipW = Math.min(280, Math.max(140, Math.floor(cw * 0.24)));
     const pipH = Math.floor(pipW * 0.75);
     return { cw, ch, margin, rightInset, pipW, pipH };
@@ -379,7 +379,8 @@ export class MujocoThreeViewer {
     this._pipLabel = label;
     const { margin, rightInset, pipW, pipH } = this._pipCssBox();
     label.style.right = `${rightInset}px`;
-    label.style.bottom = `${margin + pipH}px`;
+    label.style.top = `${margin + pipH}px`;
+    label.style.bottom = 'auto';
     label.style.width = `${pipW}px`;
     label.style.textAlign = 'center';
     label.style.boxSizing = 'border-box';
@@ -417,7 +418,8 @@ export class MujocoThreeViewer {
     const border = Math.max(2, Math.round(2 * dpr));
     // Keep full cyan border inside the visible canvas (rightInset + border).
     const x = Math.max(margin, w - pipW - rightInset - border);
-    const y = margin;
+    // WebGL y is measured from the bottom: put the PiP in the top-right corner.
+    const y = Math.max(margin, h - pipH - margin - border);
 
     // Main orbit view
     this.renderer.setScissorTest(false);
