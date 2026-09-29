@@ -27,6 +27,18 @@ let physicsAccumulator = 0;
 let teleopInput = null;
 let opModeOwns = false; // true from INIT through RUN until DONE/ERROR/Idle after STOP
 
+// ——— Blok-debugger ———
+let debugMode = false; // toolbar-toggle (alleen te wisselen buiten een OpMode-sessie)
+let debugSession = false; // huidige OpMode draait met debug-JS
+/** 'off' | 'running' | 'pauseRequested' | 'paused' */
+let debugState = 'off';
+let simPaused = false; // fysica + simtijd bevroren zolang de debugger pauzeert
+const breakpointIds = new Set();
+let lastPhase = 'Idle';
+let lastLabel = '';
+let pausedText = '';
+let pauseSeq = 0;
+
 /** @type {{ applyPreset: (name: string) => void, destroy: () => void } | null} */
 let splitLayoutApi = null;
 
@@ -91,8 +103,11 @@ async function boot() {
     'Idle teleop: W/S·I/K tank · pijltjes · E intake · Space/F shoot · X place · C reverse · T arcade. OpMode: sticks + E/C/X/Space/F/G/B/Y + UJHL dpad → gamepad1.';
 
   runner = new OpModeRunner({
+    onDebugState: (msg) => onDebugState(msg),
     onStatus: (phase, label) => {
-      $('runStatus').textContent = label ? `${phase} · ${label}` : phase;
+      lastPhase = phase;
+      lastLabel = label || '';
+      renderRunStatus();
       updateButtons(phase);
       // OpMode owns actuators only while INIT / WAIT_FOR_START / RUN.
       // STOP / DONE / ERROR / Idle → idle BIOBUZZ teleop may drive.
@@ -113,6 +128,8 @@ async function boot() {
     },
     onError: (message, label) => {
       log(`FOUT${label ? ` @ ${label}` : ''}: ${message}`);
+      // Bij een fout in debug-modus blijft de laatste blok-highlight staan (toont waar het misging).
+      endDebugSession({ keepHighlight: true });
       $('runStatus').textContent = 'ERROR';
       adapter.zeroAll();
       opModeOwns = false;
@@ -121,6 +138,7 @@ async function boot() {
     },
     onDone: (reason) => {
       log(`OpMode klaar (${reason})`);
+      endDebugSession();
       opModeOwns = false;
       clearGamepadOverrides();
       adapter.zeroAll();
@@ -131,6 +149,13 @@ async function boot() {
   bridge = new BlocksBridge($('blocksFrame'));
   // Install alleen na bewuste navigatie (openProjects / openEditorWithProject).
   // Een losse load-handler race't met navigatie en injecteert soms in het oude document.
+
+  // Read-only hook voor smoke tests / handmatig debuggen in de console.
+  window.__ftcSim = {
+    get clockSec() { return runtime.clock.timeSec; },
+    get simPaused() { return simPaused; },
+    get debugState() { return debugState; },
+  };
 
   wireUi();
   wireGamepadFallback();
@@ -175,9 +200,163 @@ function updateButtons(phase) {
     stop.disabled = true;
     init.disabled = false;
   }
+  $('btnDebug').disabled = init.disabled;
+  updateDebugButtons();
+}
+
+// ——— Debugger (UI) ———
+
+function renderRunStatus() {
+  const el = $('runStatus');
+  if (debugState === 'paused') {
+    el.textContent = `${pausedText} · ${lastPhase}`;
+    el.classList.add('is-paused');
+    el.title = 'Simulatie (fysica + simtijd) staat stil zolang de debugger gepauzeerd is';
+  } else {
+    el.textContent = lastLabel ? `${lastPhase} · ${lastLabel}` : lastPhase;
+    el.classList.remove('is-paused');
+    el.title = '';
+  }
+}
+
+function updateDebugButtons() {
+  const active = debugSession && debugState !== 'off';
+  $('btnDbgStep').disabled = !(active && debugState === 'paused');
+  $('btnDbgContinue').disabled = !(active && debugState === 'paused');
+  $('btnDbgPause').disabled = !(active && debugState === 'running');
+  $('btnDebug').classList.toggle('is-active', debugMode);
+  $('btnDebug').setAttribute('aria-pressed', String(debugMode));
+  $('dbgBpCount').textContent = `${breakpointIds.size} BP`;
+}
+
+function setSimPaused(paused) {
+  simPaused = paused;
+  if (paused) runtime?.clock?.pause();
+  else runtime?.clock?.resume();
+  physicsAccumulator = 0; // geen inhaalslag na hervatten
+}
+
+async function highlightBlock(blockId) {
+  try {
+    return await bridge.debugHighlight(blockId);
+  } catch (e) {
+    log(`Debug-highlight mislukt: ${e.message}`);
+    return { found: false };
+  }
+}
+
+function onDebugState(msg) {
+  const state = msg.state;
+  if (!debugSession && state !== 'off') return;
+  if (state === 'off') {
+    endDebugSession();
+    return;
+  }
+  debugState = state;
+  if (state === 'paused') {
+    setSimPaused(true);
+    const seq = ++pauseSeq;
+    pausedText = `Gepauzeerd bij blok…`;
+    renderRunStatus();
+    updateDebugButtons();
+    (async () => {
+      const info = msg.blockId ? await highlightBlock(msg.blockId) : { found: false };
+      if (seq !== pauseSeq || debugState !== 'paused') return; // inmiddels hervat/gestopt
+      if (!msg.blockId) pausedText = 'Gepauzeerd (wacht op sleep/START)';
+      else if (info.found) pausedText = `Gepauzeerd bij blok: ${info.text}`;
+      else pausedText = `Gepauzeerd (blok ${msg.blockId} niet gevonden in editor)`;
+      if (msg.reason === 'breakpoint' && info.found) pausedText = `Breakpoint bij blok: ${info.text}`;
+      renderRunStatus();
+    })();
+  } else {
+    pauseSeq++;
+    setSimPaused(false);
+    renderRunStatus();
+    updateDebugButtons();
+  }
+}
+
+function endDebugSession({ keepHighlight = false } = {}) {
+  const wasActive = debugSession;
+  debugSession = false;
+  debugState = 'off';
+  pauseSeq++;
+  setSimPaused(false);
+  if (wasActive && !keepHighlight) {
+    bridge?.clearDebugMarks().catch(() => {});
+  }
+  renderRunStatus();
+  updateDebugButtons();
+}
+
+function wireDebugUi() {
+  const applyToggle = () => {
+    $('debugGroup').hidden = !debugMode;
+    $('debugHint').hidden = !debugMode;
+    updateDebugButtons();
+  };
+  $('btnDebug').onclick = () => {
+    if ($('btnDebug').disabled) return;
+    debugMode = !debugMode;
+    applyToggle();
+    log(debugMode ? 'Debug-modus aan — INIT pauzeert bij het eerste blok' : 'Debug-modus uit');
+  };
+  $('btnDbgStep').onclick = () => {
+    if (debugState !== 'paused') return;
+    pauseSeq++;
+    // 'stepping': sim blijft bevroren tot de worker het volgende blok meldt (of 'running' bij sleep/wacht).
+    debugState = 'stepping';
+    runner.debugCommand('step');
+    bridge.clearDebugMarks().catch(() => {});
+    renderRunStatus();
+    updateDebugButtons();
+  };
+  $('btnDbgContinue').onclick = () => {
+    if (debugState !== 'paused') return;
+    pauseSeq++;
+    runner.debugCommand('continue');
+    bridge.clearDebugMarks().catch(() => {});
+    debugState = 'running';
+    setSimPaused(false);
+    renderRunStatus();
+    updateDebugButtons();
+  };
+  $('btnDbgPause').onclick = () => {
+    if (debugState !== 'running') return;
+    runner.debugCommand('pause');
+  };
+  $('btnDbgBreakpoint').onclick = async () => {
+    try {
+      const r = await bridge.toggleBreakpointOnSelection();
+      if (!r.ok) {
+        log(r.message);
+        return;
+      }
+      if (r.on) breakpointIds.add(r.id);
+      else breakpointIds.delete(r.id);
+      runner.setBreakpoints([...breakpointIds]);
+      log(`Breakpoint ${r.on ? 'gezet' : 'verwijderd'}: ${r.text}`);
+      updateDebugButtons();
+    } catch (e) {
+      log(`Breakpoint: ${e.message}`);
+    }
+  };
+  $('btnDbgClearBp').onclick = async () => {
+    breakpointIds.clear();
+    runner.setBreakpoints([]);
+    try {
+      await bridge.clearDebugMarks({ breakpoints: true });
+    } catch (_) {
+      /* editor niet beschikbaar */
+    }
+    updateDebugButtons();
+    log('Alle breakpoints gewist');
+  };
+  applyToggle();
 }
 
 function wireUi() {
+  wireDebugUi();
   $('btnLoadExample').onclick = async () => {
     const name = $('exampleSelect').value;
     if (!name) return;
@@ -186,6 +365,8 @@ function wireUi() {
       const text = await (await fetch(publicUrl(`examples/${name}`))).text();
       const projectName = name.replace(/\.blk$/, '');
       // Seed IndexedDB (vendor fetch) + open editor; blokken altijd via setBlk
+      breakpointIds.clear(); // block-ids horen bij het vorige project
+      updateDebugButtons();
       await bridge.openProjects();
       await seedBlkProject(projectName, text);
       await bridge.openEditorWithProject(projectName);
@@ -230,6 +411,7 @@ function wireUi() {
 
   $('btnReset').onclick = () => {
     runner.stop(() => adapter.zeroAll());
+    endDebugSession();
     adapter.resetPose();
     runtime.resetAll();
     latestCommands = {};
@@ -245,7 +427,13 @@ function wireUi() {
   $('btnInit').onclick = async () => {
     try {
       let code = $('jsOut').textContent;
-      if (!code || code.length < 20) {
+      const useDebug = debugMode;
+      if (useDebug) {
+        // Instrumented JS (highlightBlock per statement-blok); weergave/export blijven ongewijzigd.
+        await bridge.install();
+        await bridge.waitUntilReady({ requireBlocks: true });
+        code = await bridge.getDebugJavaScript();
+      } else if (!code || code.length < 20) {
         await bridge.install();
         await bridge.waitUntilReady({ requireBlocks: true });
         code = await bridge.getJavaScript();
@@ -257,11 +445,23 @@ function wireUi() {
       adapter.zeroAll();
       opModeOwns = true;
       const sensors = adapter.readSensors();
+      endDebugSession();
+      debugSession = useDebug;
+      debugState = useDebug ? 'running' : 'off';
+      await bridge.clearDebugMarks().catch(() => {});
       await runner.init(code, {
         sensors,
         supplyVoltage: simConfig.supplyVoltage,
+        debug: useDebug
+          ? { enabled: true, startPaused: true, breakpoints: [...breakpointIds] }
+          : { enabled: false },
       });
-      log('INIT — runOpMode tot waitForStart (OpMode owns actuators)');
+      updateDebugButtons();
+      log(
+        useDebug
+          ? 'INIT (debug) — pauzeert bij eerste blok; gebruik Stap / Doorgaan'
+          : 'INIT — runOpMode tot waitForStart (OpMode owns actuators)',
+      );
     } catch (e) {
       log(`INIT mislukt: ${e.message}`);
       opModeOwns = false;
@@ -275,6 +475,7 @@ function wireUi() {
   };
 
   $('btnStop').onclick = () => {
+    endDebugSession();
     runner.stop(() => {
       adapter.zeroAll();
       latestCommands = {};
@@ -426,7 +627,9 @@ function startLoop() {
     }
 
     let steps = 0;
-    while (physicsAccumulator >= timestep && steps < 50) {
+    // Debugger gepauzeerd: fysica + simtijd staan stil (motoren houden hun laatste commando).
+    if (simPaused) physicsAccumulator = 0;
+    while (!simPaused && physicsAccumulator >= timestep && steps < 50) {
       if (adapter.physicsTick) {
         adapter.physicsTick(timestep);
       } else if (opModeOwns) {

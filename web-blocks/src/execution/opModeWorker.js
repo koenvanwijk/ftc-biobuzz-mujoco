@@ -16,6 +16,8 @@ let sensorState = Object.create(null);
 let gamepadState = { g1: {}, g2: {} };
 let supplyVoltage = 12.5;
 const BUDGET = 5000;
+/** Blok-niveau debugger (public/execution/debugController.js). */
+let dbg = null;
 /** @type {Map<string, object>} native motor API by jsId for setDual* */
 const motorApiById = new Map();
 
@@ -25,6 +27,8 @@ self.onmessage = (ev) => {
     case 'loadInterpreter':
       try {
         importScripts(msg.acornUrl, msg.interpreterUrl);
+        importScripts(new URL('debugController.js', self.location.href).href);
+        dbg = self.FtcDebug.createDebugController();
         self.postMessage({ type: 'ready' });
       } catch (e) {
         self.postMessage({ type: 'error', message: String(e) });
@@ -37,6 +41,8 @@ self.onmessage = (ev) => {
       simTimeSec = 0;
       pendingAsync = null;
       commandBuffer = Object.create(null);
+      dbg.configure(msg.debug);
+      hostFrozen = false;
       motorApiById.clear();
       sensorState = msg.sensors || Object.create(null);
       supplyVoltage = msg.supplyVoltage ?? 12.5;
@@ -70,8 +76,11 @@ self.onmessage = (ev) => {
         pendingAsync = null;
         try { r(); } catch (_) { /* ignore */ }
       }
+      dbg.reset();
+      hostFrozen = false;
       zeroCommands();
       flushCommands();
+      self.postMessage({ type: 'debugState', state: 'off' });
       self.postMessage({ type: 'status', phase: 'STOP' });
       self.postMessage({ type: 'done', reason: 'stop' });
       break;
@@ -79,12 +88,12 @@ self.onmessage = (ev) => {
       simTimeSec = msg.timeSec;
       sensorState = msg.sensors || sensorState;
       gamepadState = msg.gamepads || gamepadState;
-      if (pendingAsync?.kind === 'sleep' && simTimeSec >= pendingAsync.until) {
-        const r = pendingAsync.resume;
-        pendingAsync = null;
-        r();
-      }
+      // Gepauzeerd: sleep niet hervatten (host bevriest ook de sim-tijd).
+      if (!dbg.paused) resolveDueSleep();
       if (!stopFlag) pump();
+      break;
+    case 'debug':
+      handleDebugCommand(msg);
       break;
     case 'gamepads':
       gamepadState = msg.gamepads || gamepadState;
@@ -93,6 +102,68 @@ self.onmessage = (ev) => {
       break;
   }
 };
+
+function resolveDueSleep() {
+  if (pendingAsync?.kind === 'sleep' && simTimeSec >= pendingAsync.until) {
+    const r = pendingAsync.resume;
+    pendingAsync = null;
+    r();
+  }
+}
+
+/** true zolang de host de sim bevroren heeft (na 'paused' tot we 'running' melden). */
+let hostFrozen = false;
+
+/** Geef de host de sim-tijd terug als we niet (meer) op een debug-pauze staan (async wait, budget, ...). */
+function releaseHostIfFrozen() {
+  if (hostFrozen && !dbg.paused && !stopFlag) postDebugState('running');
+}
+
+function postDebugState(state) {
+  hostFrozen = state === 'paused';
+  self.postMessage({
+    type: 'debugState',
+    state,
+    blockId: dbg.currentBlockId,
+    reason: dbg.reason,
+  });
+}
+
+/** cmd: step | continue | pause | breakpoints */
+function handleDebugCommand(msg) {
+  if (!dbg || stopFlag) return;
+  switch (msg.cmd) {
+    case 'breakpoints':
+      dbg.setBreakpoints(msg.ids);
+      break;
+    case 'step':
+    case 'continue': {
+      const wasPaused = msg.cmd === 'step' ? dbg.step() : dbg.resume();
+      if (wasPaused) {
+        resolveDueSleep();
+        // Host houdt de sim bevroren tot pump() 'paused' (volgend blok bereikt: Stap kost geen simtijd)
+        // of 'running' (async wait/budget/Doorgaan: sim mag doorlopen) meldt.
+        pump();
+        releaseHostIfFrozen();
+      }
+      break;
+    }
+    case 'pause':
+      if (dbg.paused) break;
+      if (pendingAsync) {
+        // Wacht in sleep/idle/waitForStart: pauzeer meteen (sim-tijd staat stil zodra host 'paused' ziet).
+        dbg.pauseNow();
+        flushCommands();
+        postDebugState('paused');
+      } else {
+        dbg.requestPause();
+        postDebugState('pauseRequested');
+      }
+      break;
+    default:
+      break;
+  }
+}
 
 function startOpMode(code) {
   const initFunc = (interp, globalObject) => {
@@ -133,6 +204,15 @@ function startOpMode(code) {
       'startBlockExecution',
       interp.createNativeFunction((label) => {
         lastLabel = String(label);
+        return true;
+      }),
+    );
+    // Debugger: `highlightBlock('<id>');` uit STATEMENT_PREFIX (alleen in debug-JS aanwezig).
+    interp.setProperty(
+      globalObject,
+      'highlightBlock',
+      interp.createNativeFunction((id) => {
+        dbg.onHighlight(id);
         return true;
       }),
     );
@@ -197,27 +277,40 @@ function startOpMode(code) {
 
 function pump() {
   if (!interpreter || stopFlag) return;
+  if (dbg.paused) return; // gepauzeerd: OpMode bevroren, commands blijven zoals ze waren
   if (pendingAsync) {
     flushCommands();
     return;
   }
   try {
-    for (let i = 0; i < BUDGET; i++) {
-      if (stopFlag || pendingAsync) break;
-      const ok = interpreter.step();
-      if (!ok) {
-        flushCommands();
-        self.postMessage({ type: 'done', reason: 'finished', label: lastLabel });
-        stopFlag = true;
-        return;
-      }
+    const result = self.FtcDebug.runInterpreterSteps({
+      interpreter,
+      budget: BUDGET,
+      controller: dbg,
+      isStopped: () => stopFlag,
+      isAsyncPending: () => !!pendingAsync,
+    });
+    if (result === 'finished') {
+      flushCommands();
+      dbg.reset();
+      self.postMessage({ type: 'debugState', state: 'off' });
+      self.postMessage({ type: 'done', reason: 'finished', label: lastLabel });
+      stopFlag = true;
+      return;
     }
     flushCommands();
+    if (result === 'paused') {
+      postDebugState('paused');
+      return;
+    }
+    releaseHostIfFrozen();
     if (lastLabel) {
       self.postMessage({ type: 'status', phase: started ? 'RUN' : 'INIT', label: lastLabel });
     }
   } catch (e) {
     flushCommands();
+    dbg.reset();
+    self.postMessage({ type: 'debugState', state: 'off' });
     self.postMessage({
       type: 'error',
       message: e.message || String(e),

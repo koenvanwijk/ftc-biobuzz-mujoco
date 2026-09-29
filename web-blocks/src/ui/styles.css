@@ -36,6 +36,14 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
 }
 .sep { width: 1px; height: 1.5rem; background: var(--border); margin: 0 0.25rem; }
 .run-status { font-variant-numeric: tabular-nums; min-width: 8rem; text-align: right; }
+#runStatus.is-paused { color: #ffd400; }
+.debug-group { display: inline-flex; gap: 0.3rem; align-items: center; }
+.debug-group[hidden], .debug-hint[hidden] { display: none; }
+.debug-hint {
+  flex-basis: 100%; font-size: 0.78rem; color: var(--muted);
+  border-left: 3px solid #ffd400; padding: 0.15rem 0.5rem;
+}
+.toolbar button#btnDebug.is-active { background: #5c4a00; border-color: #ffd400; box-shadow: inset 0 0 0 1px #ffd400; }
 .layout-presets {
   display: inline-flex; gap: 0.25rem; align-items: center;
 }

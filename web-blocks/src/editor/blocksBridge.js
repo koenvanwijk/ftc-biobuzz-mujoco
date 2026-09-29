@@ -115,6 +115,34 @@ export class BlocksBridge {
     return this.request('getJava');
   }
 
+  /**
+   * Debug-JS: zelfde generator, maar tijdelijk met STATEMENT_PREFIX `highlightBlock(id);`.
+   * Gebruikt NIET voor weergave/export (zie getJavaScript / getJava).
+   */
+  getDebugJavaScript() {
+    return this.request('getDebugJavaScript');
+  }
+
+  /** Markeer het huidige blok (null = wis). → { found, type, text } */
+  debugHighlight(blockId) {
+    return this.request('debugHighlight', { blockId: blockId ?? null }, 5000);
+  }
+
+  /** Toggle breakpoint op het geselecteerde blok. → { ok, id, on, text } of { ok:false, message } */
+  toggleBreakpointOnSelection() {
+    return this.request('toggleBreakpointOnSelection', {}, 5000);
+  }
+
+  /** Vervang alle breakpoint-markeringen. → { ids } (alleen bestaande statement-blokken). */
+  setBreakpointMarks(ids) {
+    return this.request('setBreakpointMarks', { ids: ids || [] }, 5000);
+  }
+
+  /** Wis highlight + (optioneel) breakpoint-markeringen. */
+  clearDebugMarks({ breakpoints = false } = {}) {
+    return this.request('clearDebugMarks', { breakpoints }, 5000);
+  }
+
   getBlk() {
     return this.request('getBlk');
   }
@@ -162,6 +190,59 @@ const IFRAME_BRIDGE_SOURCE = `
     } catch (e) {
       return false;
     }
+  }
+
+
+  // ——— Debugger-markeringen (alleen CSS-klassen op de block-SVG; geen vendor-patch) ———
+  var bpIds = new Set();
+  var currentMarked = null;
+  function ensureDebugStyle() {
+    if (document.getElementById('ftc-debug-style')) return;
+    var st = document.createElement('style');
+    st.id = 'ftc-debug-style';
+    st.textContent =
+      '.ftc-debug-current > .blocklyPath { stroke: #ffd400 !important; stroke-width: 4px !important; } ' +
+      '.ftc-debug-current > .blocklyPathLight { display: none; } ' +
+      '.ftc-debug-bp > .blocklyPath { stroke: #e5484d !important; stroke-width: 3px !important; stroke-dasharray: 6 3; } ' +
+      '.ftc-debug-current.ftc-debug-bp > .blocklyPath { stroke: #ffd400 !important; stroke-dasharray: none; }';
+    document.head.appendChild(st);
+  }
+  function addCls(b, cls, on) {
+    try {
+      var g = b.getSvgRoot && b.getSvgRoot();
+      if (!g) return;
+      if (on) g.classList.add(cls); else g.classList.remove(cls);
+    } catch (e) {}
+  }
+  function applyBpClass(b, on) { addCls(b, 'ftc-debug-bp', on); }
+  function clearCurrentMark() {
+    try { workspace.highlightBlock(null); } catch (e) {}
+    if (currentMarked) addCls(currentMarked, 'ftc-debug-current', false);
+    currentMarked = null;
+  }
+  function markCurrent(b) {
+    currentMarked = b;
+    addCls(b, 'ftc-debug-current', true);
+    try { workspace.highlightBlock(b.id); } catch (e) {}
+  }
+  function describeBlock(b) {
+    var t = '';
+    try { t = String(b.toString(48) || ''); } catch (e) {}
+    return t || b.type;
+  }
+  /** Scroll alleen als het blok buiten beeld valt. */
+  function revealBlock(b) {
+    try {
+      var m = workspace.getMetrics();
+      var scale = workspace.scale || 1;
+      var xy = b.getRelativeToSurfaceXY();
+      var left = -workspace.scrollX / scale;
+      var top = -workspace.scrollY / scale;
+      var w = m.viewWidth / scale;
+      var h = m.viewHeight / scale;
+      var inView = xy.x >= left && xy.y >= top && xy.x <= left + w * 0.9 && xy.y <= top + h * 0.9;
+      if (!inView && typeof workspace.centerOnBlock === 'function') workspace.centerOnBlock(b.id);
+    } catch (e) {}
   }
 
   function workspaceReadyError() {
@@ -243,6 +324,79 @@ const IFRAME_BRIDGE_SOURCE = `
             if (!java) throw new Error('generateJavaCode gaf lege output (project/classnaam?)');
             reply(java);
             break;
+          case 'getDebugJavaScript': {
+            await waitForWorkspace(false, 5000);
+            if (!hasWorkspace()) throw new Error(workspaceReadyError());
+            if (typeof generateJavaScriptCode !== 'function') throw new Error('generateJavaScriptCode ontbreekt');
+            var gen = Blockly.JavaScript;
+            var oldPrefix = gen.STATEMENT_PREFIX;
+            var oldReserved = gen.RESERVED_WORDS_;
+            var debugJs;
+            try {
+              gen.STATEMENT_PREFIX = 'highlightBlock(%1);\\n';
+              if (typeof gen.addReservedWords === 'function') gen.addReservedWords('highlightBlock');
+              debugJs = generateJavaScriptCode();
+            } finally {
+              gen.STATEMENT_PREFIX = oldPrefix;
+              gen.RESERVED_WORDS_ = oldReserved;
+            }
+            reply(debugJs);
+            break;
+          }
+          case 'debugHighlight': {
+            if (!hasWorkspace()) throw new Error(workspaceReadyError());
+            ensureDebugStyle();
+            clearCurrentMark();
+            var hid = data.payload && data.payload.blockId;
+            if (!hid) { reply({ found: false }); break; }
+            var hb = workspace.getBlockById(hid);
+            if (!hb) { reply({ found: false }); break; }
+            markCurrent(hb);
+            revealBlock(hb);
+            reply({ found: true, type: hb.type, text: describeBlock(hb) });
+            break;
+          }
+          case 'toggleBreakpointOnSelection': {
+            if (!hasWorkspace()) throw new Error(workspaceReadyError());
+            ensureDebugStyle();
+            var sel = Blockly.selected;
+            if (!sel || !sel.workspace || sel.workspace !== workspace) {
+              reply({ ok: false, message: 'Selecteer eerst een blok in de editor.' });
+              break;
+            }
+            if (!(sel.previousConnection || sel.nextConnection) || sel.outputConnection) {
+              reply({ ok: false, message: 'Breakpoints kunnen alleen op statement-blokken (niet op waarde-blokken).' });
+              break;
+            }
+            var on = !bpIds.has(sel.id);
+            if (on) bpIds.add(sel.id); else bpIds.delete(sel.id);
+            applyBpClass(sel, on);
+            reply({ ok: true, id: sel.id, on: on, text: describeBlock(sel) });
+            break;
+          }
+          case 'setBreakpointMarks': {
+            if (!hasWorkspace()) throw new Error(workspaceReadyError());
+            ensureDebugStyle();
+            var want = (data.payload && data.payload.ids) || [];
+            bpIds.forEach(function (id) { var b0 = workspace.getBlockById(id); if (b0) applyBpClass(b0, false); });
+            bpIds = new Set();
+            want.forEach(function (id) {
+              var b1 = workspace.getBlockById(id);
+              if (b1) { bpIds.add(id); applyBpClass(b1, true); }
+            });
+            reply({ ids: Array.from(bpIds) });
+            break;
+          }
+          case 'clearDebugMarks': {
+            if (!hasWorkspace()) { reply(true); break; }
+            clearCurrentMark();
+            if (data.payload && data.payload.breakpoints) {
+              bpIds.forEach(function (id) { var b2 = workspace.getBlockById(id); if (b2) applyBpClass(b2, false); });
+              bpIds = new Set();
+            }
+            reply(true);
+            break;
+          }
           case 'getBlk':
             await waitForWorkspace(false, 5000);
             if (!hasWorkspace()) throw new Error(workspaceReadyError());
