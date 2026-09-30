@@ -26,7 +26,7 @@ export default {
 <h3>Aanzetten</h3>
 <ol>
   <li>Open een voorbeeld (probeer <em>DebugDemo</em>) of bouw je eigen blokken en klik op <strong>Code vernieuwen</strong>.</li>
-  <li>Klik op <strong>Debug</strong> (werkbalk). De knop kleurt geel en de debugknoppen verschijnen. Dit kan alleen <em>vóór INIT</em> (en niet terwijl een OpMode loopt).</li>
+  <li>Klik op <strong>Debug</strong> (werkbalk). De knop kleurt geel en de debugknoppen (Stap, Doorgaan, …) worden actief. Dit kan alleen <em>vóór INIT</em> (en niet terwijl een OpMode loopt).</li>
   <li>Klik op <strong>INIT</strong>. De OpMode pauzeert bij het eerste blok: dat blok krijgt een gele rand in de editor en de run-status toont <em>Gepauzeerd bij blok: …</em>.</li>
 </ol>
 
@@ -56,6 +56,10 @@ export default {
   <li><strong>Grijs</strong>: verouderd, tussen twee pauzes (na Stap of Doorgaan).</li>
 </ul>
 <p>Lange tekst wordt afgekapt en grote lijsten/objecten worden ingekort; functies en simulator-objecten zie je niet.</p>
+
+<h3>Waarden bij hover</h3>
+<p>Tijdens een pauze kun je ook met de muis boven een blok in de editor gaan: er verschijnt een klein kader bij de cursor met de waarde van de variabelen in dat blok, bijvoorbeeld <code>totaal = 36</code>. Dit werkt bij blokken als <em>set</em>, <em>change</em>, <em>for</em> en bij een variabele-blok. Het kader verdwijnt zodra je Stap, Doorgaan of STOP gebruikt. Ga je met de muis over een variabele in het paneel, dan krijgen alle blokken met die variabele een blauwe rand.</p>
+<p>De statusregel (<em>Gepauzeerd bij blok: …</em>) heeft een vaste breedte: is de tekst te lang, dan eindigt hij op <code>…</code>. Houd de muis erboven voor de volledige tekst.</p>
 
 <h3>Nog niet mogelijk</h3>
 <p>Eigen watch-expressies, variabelen aanpassen tijdens een pauze, voorwaardelijke breakpoints, en breakpoints die een herlaad van het project overleven.</p>

@@ -35,26 +35,32 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
   background: #1f4f9c; border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent);
 }
 .sep { width: 1px; height: 1.5rem; background: var(--border); margin: 0 0.25rem; }
-.run-status { font-variant-numeric: tabular-nums; min-width: 8rem; text-align: right; }
+.toolbar-actions { min-width: 0; }
+/* Tweede rij: [debug-knoppen (gereserveerd, onzichtbaar als Debug uit)] [statusregel]. Vaste rijhoogte. */
+.status-row { flex: 1 1 100%; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.75rem; min-height: 2rem; }
+.status-row .debug-group { flex: 0 0 auto; flex-wrap: wrap; }
+/* Statusregel: eigen rij met vaste hoogte, beïnvloedt de knoppen nooit; lange tekst wordt afgekapt (volledig in title). */
+.run-status {
+  font-variant-numeric: tabular-nums; flex: 1 1 14rem; min-width: 0; height: 1.35rem; line-height: 1.35rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;
+}
 #runStatus.is-paused { color: #ffd400; }
 .debug-group { display: inline-flex; gap: 0.3rem; align-items: center; }
-.debug-group[hidden], .debug-hint[hidden] { display: none; }
-.debug-hint {
-  flex-basis: 100%; font-size: 0.78rem; color: var(--muted);
-  border-left: 3px solid #ffd400; padding: 0.15rem 0.5rem;
-}
-.debug-vars[hidden] { display: none; }
+.status-row.is-off .debug-group { visibility: hidden; } /* ruimte blijft gereserveerd (ook bij wrappen op smalle vensters) → geen hoogte-/positiesprong */
+/* Eén compacte rij, altijd gereserveerd (onzichtbaar als Debug uit staat) → toolbar-hoogte springt nooit. */
 .debug-vars {
-  flex-basis: 100%; font-size: 0.78rem; border-left: 3px solid var(--accent); padding: 0.15rem 0.5rem;
-  max-height: 7.5rem; overflow: auto;
+  flex: 1 1 100%; min-width: 0; height: 1.75rem; display: flex; align-items: center; gap: 0.6rem;
+  font-size: 0.78rem; border-left: 3px solid var(--accent); padding: 0 0.5rem; overflow: hidden; white-space: nowrap;
 }
-.debug-vars-head { color: var(--muted); }
-.debug-vars-list { display: flex; flex-wrap: wrap; gap: 0.2rem 0.5rem; font-family: ui-monospace, monospace; }
-.debug-vars-list .dv { padding: 0 0.35rem; border-radius: 3px; background: #1d2636; white-space: nowrap; max-width: 28rem; overflow: hidden; text-overflow: ellipsis; }
+.debug-vars.is-off { visibility: hidden; }
+.debug-vars-head { color: var(--muted); flex: 0 0 auto; }
+.debug-vars-list { display: flex; flex-wrap: nowrap; gap: 0.5rem; font-family: ui-monospace, monospace; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.debug-vars-list .dv { flex: 0 0 auto; padding: 0 0.35rem; border-radius: 3px; background: #1d2636; white-space: nowrap; max-width: 28rem; overflow: hidden; text-overflow: ellipsis; }
 .debug-vars-list .dv .dv-scope { color: var(--muted); font-size: 0.7rem; margin-right: 0.25rem; }
 .debug-vars-list .dv.is-touched { background: #5c4a00; outline: 1px solid #ffd400; }
 .debug-vars-list .dv.is-read { background: #16405c; outline: 1px solid var(--accent); }
 .debug-vars.is-stale .debug-vars-list { opacity: 0.45; }
+#debugVarsInfo { flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
 .toolbar button#btnDebug.is-active { background: #5c4a00; border-color: #ffd400; box-shadow: inset 0 0 0 1px #ffd400; }
 .layout-presets {
   display: inline-flex; gap: 0.25rem; align-items: center;
