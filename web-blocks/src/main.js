@@ -6,6 +6,7 @@ import { BlocksBridge } from './editor/blocksBridge.js';
 import { seedBlkProject } from './editor/seedProject.js';
 import { createRuntime } from './ftc-runtime/createRuntime.js';
 import { initSplitLayout } from './ui/splitLayout.js';
+import { initHelpPanel } from './help/helpPanel.js';
 
 const $ = (id) => document.getElementById(id);
 const log = (msg) => {
@@ -81,6 +82,7 @@ function collectDefaultDirections(cfg) {
 
 async function boot() {
   initAppSplitLayout();
+  initHelpPanel(); // werkt onafhankelijk van MuJoCo-laden
 
   const configUrl = publicUrl('robots/BIOBUZZ/simulation.json');
 

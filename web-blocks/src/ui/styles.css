@@ -288,3 +288,67 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
   }
   .layout-presets button { padding: 0.25rem 0.4rem; }
 }
+
+/* ——— Help-overlay (fixed: beïnvloedt werkbalk en sim-layout niet) ——— */
+.help-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(5, 8, 13, 0.6);
+  padding: 1.5rem;
+}
+.help-overlay[hidden] { display: none; }
+.help-dialog {
+  display: flex; flex-direction: column;
+  width: min(62rem, 100%); max-height: 100%;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  outline: none;
+}
+.help-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); background: #121821;
+  border-radius: 10px 10px 0 0; flex-shrink: 0;
+}
+.help-header h1 { margin: 0; font-size: 1.1rem; }
+.help-close {
+  background: #243044; color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.25rem 0.6rem; cursor: pointer; font-size: 0.95rem;
+}
+.help-close:hover { border-color: var(--accent); }
+.help-body {
+  overflow: auto; padding: 0.75rem 1.25rem 1.25rem; line-height: 1.5; font-size: 0.92rem;
+  user-select: text;
+}
+.help-body h2 {
+  margin: 1.4rem 0 0.5rem; padding-bottom: 0.25rem; font-size: 1.15rem;
+  border-bottom: 1px solid var(--border);
+}
+.help-body h3 { margin: 1rem 0 0.35rem; font-size: 0.98rem; color: #c9d8f2; }
+.help-body p, .help-body ul, .help-body ol { margin: 0.4rem 0; }
+.help-body li { margin: 0.2rem 0; }
+.help-body a { color: var(--accent); }
+.help-body code, .help-body kbd {
+  font-family: ui-monospace, monospace; font-size: 0.85em;
+  background: #1d2636; border: 1px solid var(--border); border-radius: 4px; padding: 0 0.3rem;
+}
+.help-body kbd { border-bottom-width: 2px; }
+.help-body .muted { font-size: 0.85em; }
+.help-note {
+  border-left: 3px solid var(--accent); padding: 0.2rem 0.6rem;
+  color: var(--muted); background: rgba(61, 139, 253, 0.06);
+}
+.help-table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; }
+.help-table th, .help-table td {
+  text-align: left; vertical-align: top; padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+}
+.help-table th { background: #121821; color: var(--muted); font-weight: 600; }
+.help-table td:first-child { white-space: nowrap; }
+.help-toc { margin: 0.25rem 0 0.5rem; padding: 0.5rem 0.75rem; background: #121821; border: 1px solid var(--border); border-radius: 8px; }
+.help-toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
+.help-steps li::marker { color: var(--accent); font-weight: 700; }
+@media (max-width: 700px) {
+  .help-overlay { padding: 0.5rem; }
+  .help-table td:first-child { white-space: normal; }
+}
