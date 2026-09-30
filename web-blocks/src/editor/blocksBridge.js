@@ -1,4 +1,5 @@
 import { publicUrl } from '../publicUrl.js';
+import { blockVarRefs, formatVarTooltip } from './varHover.js';
 /**
  * postMessage-brug naar de vendor FTC Offline Blocks iframe.
  * Isolatie: vendor globals blijven in iframe; setOnline(false) blijft de offline-route.
@@ -132,6 +133,19 @@ export class BlocksBridge {
     return this.request('debugHighlight', { blockId: blockId ?? null, prevBlockId: prevBlockId ?? null }, 5000);
   }
 
+  /**
+   * Variabelen-snapshot voor de hover-tooltip in de editor ([{ name, scope, text }]); null = tooltip uitzetten
+   * (niet gepauzeerd). Alleen tijdens een debug-pauze meegeven.
+   */
+  setDebugVars(vars) {
+    return this.request('setDebugVars', { vars: vars || null }, 5000);
+  }
+
+  /** Markeer alle blokken die variabele `name` (JS- of weergavenaam) gebruiken; null wist. → { count } */
+  highlightVarBlocks(name) {
+    return this.request('highlightVarBlocks', { name: name ?? null }, 5000);
+  }
+
   /** Toggle breakpoint op het geselecteerde blok. → { ok, id, on, text } of { ok:false, message } */
   toggleBreakpointOnSelection() {
     return this.request('toggleBreakpointOnSelection', {}, 5000);
@@ -183,6 +197,8 @@ export class BlocksBridge {
 
 /** Runs inside the vendor iframe. */
 const IFRAME_BRIDGE_SOURCE = `
+var __ftcBlockVarRefs = ${blockVarRefs.toString()};
+var __ftcFormatVarTooltip = ${formatVarTooltip.toString()};
 (function(){
   if (window.__ftcBlocksMujocoBridgeInstalled) return;
   window.__ftcBlocksMujocoBridgeInstalled = true;
@@ -208,7 +224,11 @@ const IFRAME_BRIDGE_SOURCE = `
       '.ftc-debug-current > .blocklyPath { stroke: #ffd400 !important; stroke-width: 4px !important; } ' +
       '.ftc-debug-current > .blocklyPathLight { display: none; } ' +
       '.ftc-debug-bp > .blocklyPath { stroke: #e5484d !important; stroke-width: 3px !important; stroke-dasharray: 6 3; } ' +
-      '.ftc-debug-current.ftc-debug-bp > .blocklyPath { stroke: #ffd400 !important; stroke-dasharray: none; }';
+      '.ftc-debug-current.ftc-debug-bp > .blocklyPath { stroke: #ffd400 !important; stroke-dasharray: none; } ' +
+      '.ftc-debug-var > .blocklyPath { stroke: #3d8bfd !important; stroke-width: 3px !important; } ' +
+      '#ftc-debug-tip { position: fixed; z-index: 2147483647; display: none; pointer-events: none; max-width: 360px; ' +
+      'white-space: pre-wrap; word-break: break-word; padding: 4px 8px; border-radius: 4px; background: #1b2231; ' +
+      'color: #ffe58a; border: 1px solid #ffd400; font: 12px/1.35 ui-monospace, Consolas, monospace; box-shadow: 0 2px 8px rgba(0,0,0,.45); }';
     document.head.appendChild(st);
   }
   function addCls(b, cls, on) {
@@ -260,6 +280,57 @@ const IFRAME_BRIDGE_SOURCE = `
     });
     if (b.type === 'math_change') { var w2 = jsVarName(b); if (w2) reads.push(w2); }
     return { reads: reads, writes: writes };
+  }
+  // ——— Variabele-hover (alleen tijdens een debug-pauze; snapshot komt van de hoofdthread) ———
+  var hoverVars = null;
+  var tipEl = null;
+  var varMarked = [];
+  function toJsVarName(display) {
+    try {
+      var db = Blockly.JavaScript.variableDB_;
+      if (db && typeof db.getName === 'function') return db.getName(display, Blockly.Variables.NAME_TYPE) || display;
+    } catch (e) {}
+    return display;
+  }
+  function hideTip() { if (tipEl) tipEl.style.display = 'none'; }
+  function blockFromEvent(ev) {
+    var el = ev.target;
+    var g = el && el.closest ? el.closest('g[data-id]') : null;
+    if (!g) return null;
+    return workspace.getBlockById(g.getAttribute('data-id'));
+  }
+  function onHoverMove(ev) {
+    if (!hoverVars || !hasWorkspace()) { hideTip(); return; }
+    var b = null;
+    try { b = blockFromEvent(ev); } catch (e) {}
+    var text = b ? __ftcFormatVarTooltip(__ftcBlockVarRefs(b, toJsVarName), hoverVars) : '';
+    if (!text) { hideTip(); return; }
+    if (!tipEl) {
+      tipEl = document.createElement('div');
+      tipEl.id = 'ftc-debug-tip';
+      document.body.appendChild(tipEl);
+    }
+    if (tipEl.textContent !== text) tipEl.textContent = text;
+    tipEl.style.display = 'block';
+    var w = tipEl.offsetWidth, h = tipEl.offsetHeight;
+    var x = ev.clientX + 14, y = ev.clientY + 16;
+    if (x + w > window.innerWidth - 4) x = Math.max(4, ev.clientX - w - 10);
+    if (y + h > window.innerHeight - 4) y = Math.max(4, ev.clientY - h - 10);
+    tipEl.style.left = x + 'px';
+    tipEl.style.top = y + 'px';
+  }
+  var hoverInstalled = false;
+  function ensureHover() {
+    if (hoverInstalled) return;
+    hoverInstalled = true;
+    document.addEventListener('mousemove', onHoverMove, true);
+    document.addEventListener('mousedown', hideTip, true);
+    document.addEventListener('mouseleave', hideTip, true);
+    document.addEventListener('wheel', hideTip, true);
+  }
+  function clearVarMarks() {
+    varMarked.forEach(function (b) { addCls(b, 'ftc-debug-var', false); });
+    varMarked = [];
   }
   function describeBlock(b) {
     var t = '';
@@ -393,6 +464,29 @@ const IFRAME_BRIDGE_SOURCE = `
             reply({ found: true, type: hb.type, text: describeBlock(hb), touched: { cur: varTouch(hb), prev: pb ? varTouch(pb) : null } });
             break;
           }
+          case 'setDebugVars': {
+            ensureDebugStyle();
+            ensureHover();
+            var pv = data.payload && data.payload.vars;
+            hoverVars = Array.isArray(pv) ? pv : null;
+            if (!hoverVars) hideTip();
+            reply({ active: !!hoverVars });
+            break;
+          }
+          case 'highlightVarBlocks': {
+            if (!hasWorkspace()) { reply({ count: 0 }); break; }
+            ensureDebugStyle();
+            clearVarMarks();
+            var vn = data.payload && data.payload.name;
+            if (vn) {
+              workspace.getAllBlocks(false).forEach(function (vb) {
+                var refs = __ftcBlockVarRefs(vb, toJsVarName);
+                if (refs.some(function (r) { return r.name === vn || r.display === vn; })) { varMarked.push(vb); addCls(vb, 'ftc-debug-var', true); }
+              });
+            }
+            reply({ count: varMarked.length });
+            break;
+          }
           case 'toggleBreakpointOnSelection': {
             if (!hasWorkspace()) throw new Error(workspaceReadyError());
             ensureDebugStyle();
@@ -427,6 +521,7 @@ const IFRAME_BRIDGE_SOURCE = `
           case 'clearDebugMarks': {
             if (!hasWorkspace()) { reply(true); break; }
             clearCurrentMark();
+            clearVarMarks();
             if (data.payload && data.payload.breakpoints) {
               bpIds.forEach(function (id) { var b2 = workspace.getBlockById(id); if (b2) applyBpClass(b2, false); });
               bpIds = new Set();

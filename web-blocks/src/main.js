@@ -223,17 +223,26 @@ function updateButtons(phase) {
 
 // ——— Debugger (UI) ———
 
+/** Kort houden: de statusregel mag de toolbar nooit verschuiven (CSS knipt af met …; volledige tekst in `title`). */
+function clipText(t, n) {
+  t = String(t || '');
+  return t.length > n ? `${t.slice(0, n - 1)}…` : t;
+}
+
 function renderRunStatus() {
   const el = $('runStatus');
+  let full;
   if (debugState === 'paused') {
-    el.textContent = `${pausedText} · ${lastPhase}`;
+    full = `${pausedText} · ${lastPhase}`;
     el.classList.add('is-paused');
-    el.title = 'Simulatie (fysica + simtijd) staat stil zolang de debugger gepauzeerd is';
+    const vt = varsStatusText(lastVars, lastTouched);
+    el.title = `${full}${vt ? `\n${vt}` : ''}\nSimulatie (fysica + simtijd) staat stil zolang de debugger gepauzeerd is`;
   } else {
-    el.textContent = lastLabel ? `${lastPhase} · ${lastLabel}` : lastPhase;
+    full = lastLabel ? `${lastPhase} · ${lastLabel}` : lastPhase;
     el.classList.remove('is-paused');
-    el.title = '';
+    el.title = full;
   }
+  el.textContent = full;
 }
 
 function updateDebugButtons() {
@@ -296,7 +305,6 @@ function renderVars(vars, touched) {
     list.appendChild(el);
   });
   box.classList.remove('is-stale');
-  box.hidden = false;
 }
 
 /** 'naam = waarde' voor de statusregel: eerst wat het vorige blok zette, anders wat het huidige blok leest. */
@@ -316,12 +324,27 @@ function varsStatusText(vars, touched) {
   return parts.slice(0, 3).join(', ');
 }
 
+/** Snapshot voor de hover-tooltip in de editor (null = uit). Fouten negeren: editor kan net navigeren. */
+function setHoverVars(vars) {
+  try {
+    bridge?.setDebugVars(vars).catch(() => {});
+  } catch (_) {
+    /* bridge niet beschikbaar */
+  }
+}
+
 function hideVars() {
+  setHoverVars(null);
   lastVars = [];
   lastTouched = null;
   lastDepth = null;
-  $('debugVars').hidden = true;
+  // Paneel blijft staan zolang Debug aan is (gereserveerde ruimte → geen layout-sprong); alleen de inhoud verdwijnt.
   $('debugVarsList').textContent = '';
+  const e = document.createElement('span');
+  e.className = 'muted';
+  e.textContent = '(waarden verschijnen bij een pauze)';
+  $('debugVarsList').appendChild(e);
+  $('debugVars').classList.remove('is-stale');
   $('debugVarsInfo').textContent = '';
 }
 
@@ -350,19 +373,18 @@ function onDebugState(msg) {
     lastDepth = typeof msg.depth === 'number' ? msg.depth : null;
     lastTouched = null;
     renderVars(lastVars, null);
+    setHoverVars(lastVars);
     updateDebugButtons();
     renderRunStatus();
     (async () => {
       const info = msg.blockId ? await highlightBlock(msg.blockId, msg.prevBlockId) : { found: false };
       if (seq !== pauseSeq || debugState !== 'paused') return; // inmiddels hervat/gestopt
       if (!msg.blockId) pausedText = 'Gepauzeerd (wacht op sleep/START)';
-      else if (info.found) pausedText = `Gepauzeerd bij blok: ${info.text}`;
+      else if (info.found) pausedText = `Gepauzeerd bij blok: ${clipText(info.text, 48)}`;
       else pausedText = `Gepauzeerd (blok ${msg.blockId} niet gevonden in editor)`;
-      if (msg.reason === 'breakpoint' && info.found) pausedText = `Breakpoint bij blok: ${info.text}`;
+      if (msg.reason === 'breakpoint' && info.found) pausedText = `Breakpoint bij blok: ${clipText(info.text, 48)}`;
       lastTouched = info.touched || null;
       renderVars(lastVars, lastTouched);
-      const vt = varsStatusText(lastVars, lastTouched);
-      if (vt) pausedText += ` · ${vt}`;
       $('debugVarsInfo').textContent =
         (lastDepth != null ? `(functie-diepte ${lastDepth})` : '') +
         (lastTouched?.prev?.writes?.length ? ' · geel = net gezet' : '') +
@@ -373,6 +395,7 @@ function onDebugState(msg) {
     pauseSeq++;
     setSimPaused(false);
     $('debugVars').classList.add('is-stale'); // waarden zijn verouderd zodra de OpMode weer draait
+    setHoverVars(null);
     renderRunStatus();
     updateDebugButtons();
   }
@@ -389,15 +412,17 @@ function endDebugSession({ keepHighlight = false } = {}) {
   }
   if (!keepHighlight) hideVars();
   else $('debugVars').classList.add('is-stale');
+  setHoverVars(null);
   renderRunStatus();
   updateDebugButtons();
 }
 
 function wireDebugUi() {
   const applyToggle = () => {
-    $('debugGroup').hidden = !debugMode;
-    $('debugHint').hidden = !debugMode;
-    if (!debugMode) hideVars();
+    // Geen hidden/display-wissel: rij + knoppen houden hun plek (alleen visibility) → geen layout-sprong.
+    $('debugRow').classList.toggle('is-off', !debugMode);
+    $('debugVars').classList.toggle('is-off', !debugMode);
+    hideVars();
     updateDebugButtons();
   };
   $('btnDebug').onclick = () => {
@@ -413,10 +438,21 @@ function wireDebugUi() {
     debugState = 'stepping';
     runner.debugCommand(cmd);
     bridge.clearDebugMarks().catch(() => {});
+    setHoverVars(null);
     $('debugVars').classList.add('is-stale');
     renderRunStatus();
     updateDebugButtons();
   };
+  // Variabelenrij hoveren → blokken die deze variabele gebruiken blauw omranden in de editor.
+  const varList = $('debugVarsList');
+  varList.addEventListener('mouseover', (ev) => {
+    const row = ev.target.closest?.('.dv');
+    if (!row || debugState !== 'paused') return;
+    bridge.highlightVarBlocks(row.dataset.name).catch(() => {});
+  });
+  varList.addEventListener('mouseout', (ev) => {
+    if (ev.target.closest?.('.dv')) bridge.highlightVarBlocks(null).catch(() => {});
+  });
   $('btnDbgStep').onclick = () => stepCommand('step');
   $('btnDbgStepOver').onclick = () => stepCommand('stepOver');
   $('btnDbgStepOut').onclick = () => {
@@ -427,6 +463,7 @@ function wireDebugUi() {
     pauseSeq++;
     runner.debugCommand('continue');
     bridge.clearDebugMarks().catch(() => {});
+    setHoverVars(null);
     $('debugVars').classList.add('is-stale');
     debugState = 'running';
     setSimPaused(false);
