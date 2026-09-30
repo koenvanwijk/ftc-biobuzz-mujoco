@@ -52,6 +52,10 @@ Niet inbegrepen (nog): eigen watch-expressies, variabelen aanpassen tijdens een 
 
 > **Na worker-wijzigingen** (`public/execution/*.js`, ook `debugController.js`): hard refresh met **Ctrl+Shift+R** — de browser cachet Web Worker-scripts agressief. `src/execution/opModeWorker.js` moet identiek blijven aan `public/execution/opModeWorker.js` (de test controleert dit).
 
+### Help
+
+De **Help**-knop (rechts in de werkbalk) opent een in-app naslagvenster in het Nederlands: panelen, knoppen, sneltoetsen, ondersteunde blokken, debugger en een stapsgewijs TankDrive-voorbeeld. Sluiten met **Esc**, ✕ of een klik naast het venster; werkbalk en sim blijven onaangetast. De inhoud staat per sectie in `src/help/sections/*.js` (de debugger-sectie verschijnt alleen als `#btnDebug` bestaat); de sneltoetstabel wordt door `tests/unit/helpContent.test.js` tegen `src/main.js` en `controls.js` gecontroleerd. Wijzig je toetsen of knoppen, pas dan ook de Help-sectie aan.
+
 ### UI — panelen
 
 De drie panelen (Blocks / Sim / Code) zijn **versleepbaar** via de verticale splits (horizontaal op smalle schermen). Toolbar: **Blocks · Sim · Code · Gelijk** vergroot één paneel of herstelt de standaardverdeling (~40/35/25). Per paneel: **◀** inklappen, **⛶** vergroten. Breedtes en inklapstatus blijven bewaard in `localStorage` (`ftc-blocks-layout-v1`). Na layout-wijziging krijgt de MuJoCo-canvas een resize (window-event + `viewer.resize()`).
