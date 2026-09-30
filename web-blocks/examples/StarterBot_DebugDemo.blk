@@ -1,0 +1,98 @@
+<xml xmlns="https://developers.google.com/blockly/xml"><variables><variable id="vTeller">teller</variable><variable id="vTotaal">totaal</variable><variable id="vI">i</variable></variables>
+  <block type="procedures_defnoreturn" id="run1" deletable="false" x="20" y="20">
+    <field name="NAME">runOpMode</field>
+    <comment pinned="false" h="80" w="400">Debug-demo: variabelen + procedure. Zet Debug aan, INIT, en probeer Stap (stapt in verhoog) en Stap over (voert verhoog in één keer uit).</comment>
+    <statement name="STACK">
+      <block type="variables_set" id="setT">
+        <field name="VAR" id="vTeller">teller</field>
+        <value name="VALUE"><block type="math_number" id="n0"><field name="NUM">0</field></block></value>
+        <next>
+          <block type="variables_set" id="setTot">
+            <field name="VAR" id="vTotaal">totaal</field>
+            <value name="VALUE"><block type="math_number" id="n10"><field name="NUM">10</field></block></value>
+            <next>
+              <block type="procedures_callnoreturn" id="call1">
+                <mutation name="verhoog"></mutation>
+                <next>
+                  <block type="math_change" id="chg">
+                    <field name="VAR" id="vTeller">teller</field>
+                    <value name="DELTA"><shadow type="math_number" id="n100"><field name="NUM">100</field></shadow></value>
+                    <next>
+                      <block type="controls_for" id="for1">
+                        <field name="VAR" id="vI">i</field>
+                        <value name="FROM"><shadow type="math_number" id="f1"><field name="NUM">1</field></shadow></value>
+                        <value name="TO"><shadow type="math_number" id="f3"><field name="NUM">3</field></shadow></value>
+                        <value name="BY"><shadow type="math_number" id="f1b"><field name="NUM">1</field></shadow></value>
+                        <statement name="DO">
+                          <block type="variables_set" id="setTot2">
+                            <field name="VAR" id="vTotaal">totaal</field>
+                            <value name="VALUE">
+                              <block type="math_arithmetic" id="add2">
+                                <field name="OP">ADD</field>
+                                <value name="A"><shadow type="math_number"><field name="NUM">1</field></shadow>
+                                  <block type="variables_get" id="getTot"><field name="VAR" id="vTotaal">totaal</field></block>
+                                </value>
+                                <value name="B"><shadow type="math_number"><field name="NUM">1</field></shadow>
+                                  <block type="variables_get" id="getI"><field name="VAR" id="vI">i</field></block>
+                                </value>
+                              </block>
+                            </value>
+                          </block>
+                        </statement>
+                        <next>
+                          <block type="telemetry_addNumericData_Number" id="tele">
+                            <value name="KEY"><block type="text" id="k1"><field name="TEXT">teller</field></block></value>
+                            <value name="NUMBER">
+                              <block type="variables_get" id="getT2"><field name="VAR" id="vTeller">teller</field></block>
+                            </value>
+                            <next><block type="telemetry_update" id="tu"/></next>
+                          </block>
+                        </next>
+                      </block>
+                    </next>
+                  </block>
+                </next>
+              </block>
+            </next>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+  <block type="procedures_defnoreturn" id="proc1" x="20" y="520">
+    <field name="NAME">verhoog</field>
+    <comment pinned="false" h="60" w="300">Procedure: teller = totaal + 5, daarna totaal = teller * 2.</comment>
+    <statement name="STACK">
+      <block type="variables_set" id="pSet1">
+        <field name="VAR" id="vTeller">teller</field>
+        <value name="VALUE">
+          <block type="math_arithmetic" id="pAdd">
+            <field name="OP">ADD</field>
+            <value name="A"><shadow type="math_number"><field name="NUM">1</field></shadow>
+              <block type="variables_get" id="pGet"><field name="VAR" id="vTotaal">totaal</field></block>
+            </value>
+            <value name="B"><shadow type="math_number"><field name="NUM">1</field></shadow>
+              <block type="math_number" id="p5"><field name="NUM">5</field></block>
+            </value>
+          </block>
+        </value>
+        <next>
+          <block type="variables_set" id="pSet2">
+            <field name="VAR" id="vTotaal">totaal</field>
+            <value name="VALUE">
+              <block type="math_arithmetic" id="pMul">
+                <field name="OP">MULTIPLY</field>
+                <value name="A"><shadow type="math_number"><field name="NUM">1</field></shadow>
+                  <block type="variables_get" id="pGet2"><field name="VAR" id="vTeller">teller</field></block>
+                </value>
+                <value name="B"><shadow type="math_number"><field name="NUM">1</field></shadow>
+                  <block type="math_number" id="p2"><field name="NUM">2</field></block>
+                </value>
+              </block>
+            </value>
+          </block>
+        </next>
+      </block>
+    </statement>
+  </block>
+</xml><?xml version='1.0' encoding='UTF-8' standalone='yes' ?><Extra><OpModeMeta flavor="TELEOP" group="Sim" /><Enabled value="true" /></Extra>

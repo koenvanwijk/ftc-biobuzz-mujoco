@@ -13,6 +13,7 @@ export class OpModeRunner {
     onCommands,
     onError,
     onDone,
+    onDebugState,
   }) {
     this._hooks = {
       onStatus,
@@ -22,6 +23,7 @@ export class OpModeRunner {
       onCommands,
       onError,
       onDone,
+      onDebugState,
     };
     this._worker = null;
     this._ready = false;
@@ -63,7 +65,12 @@ export class OpModeRunner {
     return this._phase;
   }
 
-  async init(code, { sensors, supplyVoltage, motorDefaultDirections } = {}) {
+  /**
+   * @param {string} code
+   * @param {{ sensors?: object, supplyVoltage?: number, motorDefaultDirections?: object, debug?: { enabled: boolean, startPaused?: boolean, breakpoints?: string[] } }} [opts]
+   *   `debug.enabled` verwacht debug-JS (met highlightBlock-aanroepen, zie BlocksBridge.getDebugJavaScript).
+   */
+  async init(code, { sensors, supplyVoltage, motorDefaultDirections, debug } = {}) {
     await this.ensureWorker();
     this._clearStopTimer();
     this._pendingTelemetry.clear();
@@ -76,7 +83,17 @@ export class OpModeRunner {
       sensors: sensors || {},
       supplyVoltage,
       motorDefaultDirections: motorDefaultDirections || {},
+      debug: debug || { enabled: false },
     });
+  }
+
+  /** Debugger-commando naar de worker: 'step' | 'stepOver' | 'stepOut' | 'continue' | 'pause'. */
+  debugCommand(cmd) {
+    this._worker?.postMessage({ type: 'debug', cmd });
+  }
+
+  setBreakpoints(ids) {
+    this._worker?.postMessage({ type: 'debug', cmd: 'breakpoints', ids: ids || [] });
   }
 
   start() {
@@ -143,6 +160,9 @@ export class OpModeRunner {
         this._pendingTelemetry.clear();
         this._pendingLines = [];
         this._hooks.onTelemetryClear?.();
+        break;
+      case 'debugState':
+        this._hooks.onDebugState?.(msg);
         break;
       case 'error':
         this._phase = 'ERROR';

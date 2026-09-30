@@ -31,6 +31,7 @@ const mustExist = [
   'examples/StarterBot_Mechanisms.blk',
   'examples/StarterBot_EncoderAuto.blk',
   'examples/StarterBot_ImuAprilTag.blk',
+  'examples/StarterBot_DebugDemo.blk',
   'README.md',
   'ARCHITECTURE.md',
   'INTEGRATION.md',
