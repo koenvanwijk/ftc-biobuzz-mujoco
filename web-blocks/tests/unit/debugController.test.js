@@ -423,7 +423,7 @@ describe('Variabelen (waarden bij pauze)', () => {
     );
     s.run(); s.go('step');
     const v = s.vars();
-    assert.equal(v.big.text, '[0, 1, 2, 3, 4, 5, 6, 7, … (+42)]');
+    assert.equal(v.big.text, '[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, … (+38)]');
     assert.ok(v.long.text.length < 70 && v.long.text.endsWith('…"'));
     assert.equal(v.nested.text, '{a: {b: {c: {d: 1}}}, l: [[1, [2, […]]]]}');
     assert.equal(v.cyc.text, '{self: [cyclisch]}');

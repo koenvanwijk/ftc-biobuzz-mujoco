@@ -188,7 +188,9 @@
   // one level below metadata/ftcPose. Keep enough text and nesting available
   // for the hover inspector; the compact variables row is still clipped by CSS.
   const MAX_TEXT = 900;
-  const MAX_ITEMS = 8;
+  // ftcPose contains nine useful fields (XYZ, PRY and RBE); keep all of them
+  // visible instead of ending an AprilTag hover with "… (+1)".
+  const MAX_ITEMS = 12;
   const MAX_NEST = 4;
 
   function clip(str, n) {
