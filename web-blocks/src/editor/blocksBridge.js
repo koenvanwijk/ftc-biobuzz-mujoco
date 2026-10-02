@@ -226,7 +226,7 @@ var __ftcFormatVarTooltip = ${formatVarTooltip.toString()};
       '.ftc-debug-bp > .blocklyPath { stroke: #e5484d !important; stroke-width: 3px !important; stroke-dasharray: 6 3; } ' +
       '.ftc-debug-current.ftc-debug-bp > .blocklyPath { stroke: #ffd400 !important; stroke-dasharray: none; } ' +
       '.ftc-debug-var > .blocklyPath { stroke: #3d8bfd !important; stroke-width: 3px !important; } ' +
-      '#ftc-debug-tip { position: fixed; z-index: 2147483647; display: none; pointer-events: none; max-width: 360px; ' +
+      '#ftc-debug-tip { position: fixed; z-index: 2147483647; display: none; pointer-events: none; max-width: 560px; max-height: 70vh; overflow: hidden; ' +
       'white-space: pre-wrap; word-break: break-word; padding: 4px 8px; border-radius: 4px; background: #1b2231; ' +
       'color: #ffe58a; border: 1px solid #ffd400; font: 12px/1.35 ui-monospace, Consolas, monospace; box-shadow: 0 2px 8px rgba(0,0,0,.45); }';
     document.head.appendChild(st);

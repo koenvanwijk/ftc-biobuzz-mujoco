@@ -425,7 +425,7 @@ describe('Variabelen (waarden bij pauze)', () => {
     const v = s.vars();
     assert.equal(v.big.text, '[0, 1, 2, 3, 4, 5, 6, 7, … (+42)]');
     assert.ok(v.long.text.length < 70 && v.long.text.endsWith('…"'));
-    assert.equal(v.nested.text, '{a: {b: {…}}, l: [[…]]}');
+    assert.equal(v.nested.text, '{a: {b: {c: {d: 1}}}, l: [[1, [2, […]]]]}');
     assert.equal(v.cyc.text, '{self: [cyclisch]}');
     assert.equal(v.nan.text, 'NaN');
     assert.equal(v.frac.text, '0.333333');

@@ -58,8 +58,8 @@ describe('formatVarTooltip (refs + snapshot → text)', () => {
     assert.equal(formatVarTooltip(null, vars), '');
   });
   it('truncates long values and limits the number of lines', () => {
-    const long = formatVarTooltip([{ name: 'x' }], [{ name: 'x', text: 'y'.repeat(500) }]);
-    assert.ok(long.length < 140 && long.endsWith('…'));
+    const long = formatVarTooltip([{ name: 'x' }], [{ name: 'x', text: 'y'.repeat(1500) }]);
+    assert.ok(long.length < 920 && long.endsWith('…'));
     const many = Array.from({ length: 10 }, (_, i) => ({ name: `v${i}` }));
     const t = formatVarTooltip(many, many.map((m) => ({ name: m.name, text: '1' })), 3).split('\n');
     assert.equal(t.length, 4);

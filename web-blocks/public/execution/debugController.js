@@ -184,9 +184,12 @@
     return depth;
   }
 
-  const MAX_TEXT = 120;
+  // Debug objects such as AprilTagClusterDetection contain their useful pose
+  // one level below metadata/ftcPose. Keep enough text and nesting available
+  // for the hover inspector; the compact variables row is still clipped by CSS.
+  const MAX_TEXT = 900;
   const MAX_ITEMS = 8;
-  const MAX_NEST = 2;
+  const MAX_NEST = 4;
 
   function clip(str, n) {
     str = String(str);

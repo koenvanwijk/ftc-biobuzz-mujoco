@@ -64,7 +64,9 @@ export function formatVarTooltip(refs, vars, maxLines) {
       }
     }
     var text = hit ? String(hit.text) : '(niet beschikbaar)';
-    if (text.length > 120) text = text.slice(0, 119) + '…';
+    // The worker already bounds serialized values. Allow complete structured
+    // values (notably AprilTag ftcPose) in the hover inspector.
+    if (text.length > 900) text = text.slice(0, 899) + '…';
     lines.push((hit ? hit.name : r.display || r.name) + ' = ' + text);
   }
   if (refs.length > lines.length) lines.push('… (+' + (refs.length - lines.length) + ')');
