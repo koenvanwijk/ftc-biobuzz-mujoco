@@ -1,9 +1,80 @@
 /**
- * Shared IMU + synthetic AprilTag computation from MuJoCo state.
+ * Shared IMU + synthetic AprilTag / color-blob computation from MuJoCo state.
  * Simulated extensions — not real CV / calibrated IMU.
  */
 
 const RAD2DEG = 180 / Math.PI;
+
+/**
+ * Project the yellow BIOBUZZ pollen bodies into a synthetic 640x480 camera frame.
+ * The result mirrors the JSON fields exposed by FTC ColorBlobLocatorProcessor.Blob.
+ */
+export function computePollenColorBlobs(mujoco, model, data, opts = {}) {
+  const {
+    cameraSiteName = 'robot_up_cam',
+    width = 640,
+    height = 480,
+    fovyDeg = 70,
+    maxRangeM = 3.5,
+    pollenRadiusM = 0.03556,
+  } = opts;
+  const SITE = mujoco.mjtObj.mjOBJ_SITE.value;
+  const BODY = mujoco.mjtObj.mjOBJ_BODY.value;
+  const camId = mujoco.mj_name2id(model, SITE, cameraSiteName);
+  if (camId < 0) return { blobs: [], json: '[]' };
+
+  const co = camId * 3;
+  const cm = camId * 9;
+  const camPos = [data.site_xpos[co], data.site_xpos[co + 1], data.site_xpos[co + 2]];
+  const right = matrixColumn(data.site_xmat, cm, 0);
+  const up = matrixColumn(data.site_xmat, cm, 1);
+  const z = matrixColumn(data.site_xmat, cm, 2);
+  const forwardAxis = [-z[0], -z[1], -z[2]];
+  const fy = height / (2 * Math.tan((fovyDeg * Math.PI) / 360));
+  const fx = fy;
+  const blobs = [];
+
+  for (let bid = 0; bid < model.nbody; bid++) {
+    const name = mujoco.mj_id2name(model, BODY, bid);
+    if (!name || !/^pollen_\d+$/.test(name)) continue;
+    const bo = bid * 3;
+    const d = [
+      data.xpos[bo] - camPos[0],
+      data.xpos[bo + 1] - camPos[1],
+      data.xpos[bo + 2] - camPos[2],
+    ];
+    const forward = dot3(d, forwardAxis);
+    if (forward <= pollenRadiusM || forward > maxRangeM) continue;
+    const cx = width / 2 + (fx * dot3(d, right)) / forward;
+    const cy = height / 2 - (fy * dot3(d, up)) / forward;
+    const radius = Math.max(1, (fy * pollenRadiusM) / forward);
+    if (cx + radius < 0 || cx - radius > width || cy + radius < 0 || cy - radius > height) continue;
+
+    const left = Math.max(0, cx - radius);
+    const rightPx = Math.min(width, cx + radius);
+    const top = Math.max(0, cy - radius);
+    const bottom = Math.min(height, cy + radius);
+    const clippedRadius = Math.min(radius, (rightPx - left) / 2, (bottom - top) / 2);
+    const area = Math.max(1, Math.round(Math.PI * clippedRadius * clippedRadius));
+    const circumference = 2 * Math.PI * clippedRadius;
+    const points = Array.from({ length: 16 }, (_, i) => {
+      const a = (i * Math.PI * 2) / 16;
+      return { x: cx + clippedRadius * Math.cos(a), y: cy + clippedRadius * Math.sin(a) };
+    });
+    blobs.push({
+      ContourArea: area,
+      Density: 1,
+      AspectRatio: 1,
+      ArcLength: circumference,
+      Circularity: 1,
+      ContourPoints: points,
+      BoxFit: { center: { x: cx, y: cy }, size: { width: 2 * clippedRadius, height: 2 * clippedRadius }, angle: 0 },
+      Circle: { center: { x: cx, y: cy }, radius: clippedRadius },
+    });
+  }
+  blobs.sort((a, b) => b.ContourArea - a.ContourArea);
+  return { blobs, json: JSON.stringify(blobs) };
+}
 
 /** MuJoCo quat (w,x,y,z) → yaw/pitch/roll (ZYX / aerospace), radians. */
 export function quatToYawPitchRoll(qw, qx, qy, qz) {
@@ -450,4 +521,3 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
   detections.sort((a, b) => a.ftcPose.range - b.ftcPose.range);
   return { detections, json: JSON.stringify(detections) };
 }
-

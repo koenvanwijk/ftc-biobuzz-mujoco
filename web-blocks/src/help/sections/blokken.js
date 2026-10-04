@@ -25,7 +25,8 @@ export default {
 <ul>
   <li><strong>RUN_TO_POSITION / <code>isBusy</code></strong>: eenvoudige benadering, geen echte PID. <strong><code>setVelocity</code></strong> rekent om via ticks/s.</li>
   <li><strong>Sensors → IMU</strong>: gesimuleerd uit de romporiëntatie (yaw/pitch/roll, hoeksnelheid, <code>resetYaw</code>).</li>
-  <li><strong>Vision → AprilTag</strong>: gesimuleerde detecties van de BIOBUZZ-tags (ID 30–45, als vier CELL-clusters); <code>robotPose</code> is bewust leeg. Geen beeldverwerking.</li>
+  <li><strong>Vision → AprilTag</strong>: gesimuleerde detecties van de BIOBUZZ-tags (ID 30–45, als vier CELL-clusters); <code>robotPose</code> is bewust leeg.</li>
+  <li><strong>Vision → ColorBlobLocator</strong>: herkent de gele POLLEN-ballen vanuit de robotcamera. <code>getBlobs</code>, blob-eigenschappen, filters en sortering worden gesimuleerd.</li>
   <li><strong>Vision → VisionPortal</strong> en camerabesturing (exposure, focus, gain, white balance, PTZ): stubs zonder effect op beeld.</li>
   <li><strong>ServoController, REVModule / bulk caching</strong>: alleen status/stubs.</li>
   <li><strong>Hardware-XML import</strong>: de hardwareconfiguratie blijft de vaste BIOBUZZ/REVStarterBot2026-configuratie.</li>

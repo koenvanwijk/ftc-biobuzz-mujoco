@@ -120,7 +120,7 @@ worden in hetzelfde (gespiegelde) frame gerapporteerd. Idle-teleop en `web/` geb
 | crServo | crServoAsCRServo | `|power|>0.3` forceert rear eject (zoals hold C) |
 | Voltage / hub | … | stubs ongewijzigd |
 | imu | imuAsIMU | **Simulated** body yaw/pitch/roll (zie `extensions.md`) |
-| Webcam 1 | aprilTagAccess / visionPortalAccess | **Simulated** AprilTags op BIOBUZZ; geen CV |
+| Webcam 1 | aprilTagAccess / colorBlobLocatorAccess / visionPortalAccess | **Simulated** AprilTags en gele POLLEN-color-blobs op BIOBUZZ |
 
 Details: `robots/BIOBUZZ/simulation.json`. Soft devices hebben geen MJCF-joint; encoders voor flywheel/intake blijven 0 (commando’s in telemetry/HUD).
 
@@ -168,4 +168,4 @@ BIOBUZZ XML/meshes/textures zijn **gekopieerd** naar `public/assets/` (bron: `ft
 
 - Physics is niet gevalideerd tegen een echte robot.
 - BIOBUZZ intake/shoot/place zijn **soft bridges**, geen pure joint-actuators.
-- IMU + Webcam/AprilTag zijn **expliciete simulator-extensies** (toolbox + runtime); geen stille placeholders — details in `src/config/extensions.md`.
+- IMU + Webcam/AprilTag/ColorBlobLocator zijn **expliciete simulator-extensies** (toolbox + runtime); geen stille placeholders — details in `src/config/extensions.md`.

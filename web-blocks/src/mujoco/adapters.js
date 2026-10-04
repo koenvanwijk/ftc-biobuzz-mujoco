@@ -10,7 +10,7 @@
  * zijn dus "laatste physics-stap", niet intra-step.
  */
 
-import { readImuFromBody, computeAprilTagDetections } from './simSensors.js';
+import { readImuFromBody, computeAprilTagDetections, computePollenColorBlobs } from './simSensors.js';
 
 export class HardwareAdapter {
   constructor(mujoco, model, data, simConfig) {
@@ -158,6 +158,8 @@ export class HardwareAdapter {
       generation: this._aprilGen || 0,
       count: april.detections.length,
     };
+    const pollen = computePollenColorBlobs(this.mujoco, this.model, this.data);
+    out.colorBlobDetections = { json: pollen.json, count: pollen.blobs.length };
     return out;
   }
 
