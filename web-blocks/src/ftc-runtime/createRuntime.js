@@ -20,6 +20,8 @@ import { HARDWARE, DEFAULT_SUPPLY_VOLTAGE } from '../config/hardware.js';
 import { createImuAsIMU } from './imu.js';
 import { yawPitchRollAnglesAccess } from './yawPitchRollAngles.js';
 import { createAprilTagAccess } from './aprilTag.js';
+import { createColorBlobLocatorAccess } from './colorBlobLocator.js';
+import { opencvAccess } from './opencv.js';
 import {
   createVisionPortalAccess,
   navigationAccess,
@@ -97,6 +99,7 @@ export function createRuntime(simConfig, hooks = {}) {
 
   const imuAsIMU = createImuAsIMU(() => bus.readSensor('imuAsIMU'));
   const aprilTagAccess = createAprilTagAccess(() => bus.readSensor('aprilTagDetections'));
+  const colorBlobLocatorAccess = createColorBlobLocatorAccess(() => bus.readSensor('colorBlobDetections'));
   const visionPortalAccess = createVisionPortalAccess();
   const getTimeSec = () => clock.timeSec;
   const elapsedTimeAccess = createElapsedTimeAccess(getTimeSec);
@@ -134,6 +137,8 @@ export function createRuntime(simConfig, hooks = {}) {
     ControlHubAsREVModule,
     imuAsIMU,
     aprilTagAccess,
+    colorBlobLocatorAccess,
+    opencvAccess,
     visionPortalAccess,
     exposureControlAccess,
     gainControlAccess,
@@ -171,6 +176,7 @@ export function createRuntime(simConfig, hooks = {}) {
     crServoAsCRServo,
     imuAsIMU,
     aprilTagAccess,
+    colorBlobLocatorAccess,
     visionPortalAccess,
     bindings,
     zeroActuators,

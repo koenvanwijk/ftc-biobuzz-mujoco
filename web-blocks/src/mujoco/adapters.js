@@ -10,7 +10,7 @@
  * zijn dus "laatste physics-stap", niet intra-step.
  */
 
-import { readImuFromBody, computeAprilTagDetections } from './simSensors.js';
+import { readImuFromBody, computeAprilTagDetections, computePollenColorBlobs } from './simSensors.js';
 import { DEFAULT_ROBOT_CAMERA_FOV } from './robotCamera.js';
 
 export class HardwareAdapter {
@@ -168,6 +168,20 @@ export class HardwareAdapter {
       json: april.json,
       generation: this._aprilGen || 0,
       count: april.detections.length,
+    };
+    // Zelfde camera als AprilTag: zelfde site/montage, preset (H×V) en streamresolutie.
+    const pollen = computePollenColorBlobs(this.mujoco, this.model, this.data, {
+      cameraSiteName: 'robot_up_cam',
+      hfovDeg: this.cameraFov.hfovDeg,
+      vfovDeg: this.cameraFov.vfovDeg,
+      width: this.cameraFov.width,
+      height: this.cameraFov.height,
+    });
+    out.colorBlobDetections = {
+      json: pollen.json,
+      count: pollen.blobs.length,
+      width: pollen.width,
+      height: pollen.height,
     };
     return out;
   }

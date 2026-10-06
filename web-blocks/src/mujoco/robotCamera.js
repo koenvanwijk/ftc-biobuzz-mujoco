@@ -21,6 +21,17 @@ export const BRIO_4K_CAMERA = Object.freeze({
   resolution: Object.freeze({ width: 640, height: 480 }),
 });
 
+/**
+ * Huidige montage van de robotcamera (site/camera `robot_up_cam` in biobuzz_scene.xml), in het
+ * robotframe: x vooruit, y links, z omhoog vanaf de oorsprong van de robot-body (die ligt ≈4,4 cm
+ * boven de mat, dus lenshoogte boven de mat ≈ z + 0,044 m). pitchDeg = kanteling van de optische
+ * as boven horizontaal (xyaxes "0 -1 0  -0.64 0 0.77" → atan2(0.64, 0.77) ≈ 39,73°).
+ */
+export const DEFAULT_CAMERA_MOUNT = Object.freeze({ x: 0.16, y: 0, z: 0.28, pitchDeg: 39.73 });
+
+/** Hoogte van de oorsprong van de robot-body boven de bovenkant van de mat (m). */
+export const ROBOT_ORIGIN_ABOVE_FLOOR_M = 0.044;
+
 /** localStorage-sleutel voor het gekozen preset (diagonaal in graden). */
 export const CAMERA_DFOV_STORAGE_KEY = 'ftc-sim-camera-dfov-v1';
 
@@ -70,6 +81,79 @@ export function normalizeResolution(width, height) {
   return { width: w, height: h };
 }
 
+/**
+ * Normaliseer `webcam.camera.mount` → { x, y, z, pitchDeg } of null (geen mount = MJCF ongewijzigd).
+ * Ontbrekende velden vallen terug op DEFAULT_CAMERA_MOUNT; onzinnige waarden worden begrensd.
+ */
+export function resolveCameraMount(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const num = (v, def, lo, hi) => {
+    const n = Number(v);
+    return Number.isFinite(n) && v !== null && v !== '' ? Math.min(hi, Math.max(lo, n)) : def;
+  };
+  const d = DEFAULT_CAMERA_MOUNT;
+  return {
+    x: num(raw.x, d.x, -0.5, 0.5),
+    y: num(raw.y, d.y, -0.5, 0.5),
+    z: num(raw.z, d.z, -0.1, 1.0),
+    pitchDeg: num(raw.pitchDeg, d.pitchDeg, -89, 89),
+  };
+}
+
+/**
+ * MuJoCo-quaternion (w, x, y, z) voor een camera/site in het robotframe die vooruit kijkt met
+ * kanteling `pitchDeg` (positief = omhoog). MuJoCo-camera: lokaal X = rechts, Y = boven, kijkt
+ * langs −Z. Rechts = robot −y, boven = (−sin p, 0, cos p), −Z = vooruit = (cos p, 0, sin p).
+ * Rotatie = Ry(−p) · R0 met R0 (p = 0) als quaternion (0.5, 0.5, −0.5, −0.5).
+ */
+export function mountQuat(pitchDeg) {
+  const h = (-(Number(pitchDeg) || 0) * DEG) / 2;
+  const a = [Math.cos(h), 0, Math.sin(h), 0]; // Ry(−p)
+  const b = [0.5, 0.5, -0.5, -0.5]; // R0
+  const q = [
+    a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+    a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+    a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+    a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+  ];
+  const n = Math.hypot(...q) || 1;
+  return q.map((v) => v / n);
+}
+
+/**
+ * Zet de montage van `robot_up_cam` (site én MuJoCo-camera) in het geladen model. Alle verbruikers
+ * (PiP, frustum-gizmo, AprilTag- en POLLEN-detectie) lezen site_xpos/site_xmat en volgen dus vanzelf.
+ * @returns {boolean} true als de site gevonden en aangepast is
+ */
+export function applyCameraMount(mujoco, model, data, mount, name = 'robot_up_cam') {
+  const m = resolveCameraMount(mount);
+  if (!m || !mujoco || !model) return false;
+  const SITE = mujoco.mjtObj?.mjOBJ_SITE?.value;
+  const CAM = mujoco.mjtObj?.mjOBJ_CAMERA?.value;
+  const q = mountQuat(m.pitchDeg);
+  const pos = [m.x, m.y, m.z];
+  let ok = false;
+  const write = (posArr, quatArr, id) => {
+    for (let i = 0; i < 3; i++) posArr[id * 3 + i] = pos[i];
+    for (let i = 0; i < 4; i++) quatArr[id * 4 + i] = q[i];
+  };
+  const sid = SITE == null ? -1 : mujoco.mj_name2id(model, SITE, name);
+  if (sid >= 0 && model.site_pos && model.site_quat) {
+    write(model.site_pos, model.site_quat, sid);
+    ok = true;
+  }
+  const cid = CAM == null ? -1 : mujoco.mj_name2id(model, CAM, name);
+  if (cid >= 0 && model.cam_pos && model.cam_quat) write(model.cam_pos, model.cam_quat, cid);
+  if (ok && data && typeof mujoco.mj_forward === 'function') mujoco.mj_forward(model, data);
+  return ok;
+}
+
+/** Lenshoogte boven de mat (m) voor een mount (robotframe-z + oorsprong-hoogte). */
+export function mountHeightAboveFloor(mount) {
+  const m = resolveCameraMount(mount) || DEFAULT_CAMERA_MOUNT;
+  return m.z + ROBOT_ORIGIN_ABOVE_FLOOR_M;
+}
+
 /** Normaliseer `simulation.json` → `webcam.camera` (ontbrekende velden = Brio 4K). */
 export function resolveCameraConfig(raw) {
   const r = raw && typeof raw === 'object' ? raw : {};
@@ -98,6 +182,7 @@ export function resolveCameraConfig(raw) {
     dfovPresetsDeg,
     defaultDfovDeg,
     resolution: res,
+    mount: resolveCameraMount(r.mount),
   };
 }
 

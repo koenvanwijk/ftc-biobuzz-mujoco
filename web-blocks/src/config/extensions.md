@@ -37,6 +37,7 @@ Synthetic `ftcPose` follows the FTC SDK camera frame: **X right, Y forward, Z up
 - No real image CV / lens intrinsics / distortion.
 - FOV is a **rectangular frustum** from the Logitech Brio 4K presets (diagonal 65°/78°/90°, 16:9 sensor; default 90° at 640×480 → H 66.3° × V 52.2°, 4:3 crop keeps vertical), plus max range 2.5 m. Config: `simulation.json` → `webcam.camera`; math in `src/mujoco/robotCamera.js`. UI selector *Camera-zichtveld*; `setCameraResolution` (e.g. 1280×720) switches to 16:9. No lens distortion / calibrated intrinsics.
 - Tag “facing camera” uses site ±Z · direction-to-camera threshold (approx.).
+- POLLEN color blobs (`computePollenColorBlobs`) use the same camera: same site/mount, H × V and stream resolution (image size). Camera pose: `webcam.camera.mount` `{ x, y, z, pitchDeg }` (robot frame), applied to site + camera `robot_up_cam` at load; default = MJCF pose.
 - `robot_up_cam` is upward-tilted; horizontal wall tags may rarely appear — many BIOBUZZ tags lie on horizontal faces.
 - AxesReference / AxesOrder on `getRobotOrientation` are not fully modeled.
 - Exposure / focus / gain / PTZ / white-balance: **no-op stubs** (get/set succeed and store state; no image effect). `saveNextFrameRaw` still unsupported (throw).

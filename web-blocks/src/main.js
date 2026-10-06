@@ -7,7 +7,7 @@ import { seedBlkProject } from './editor/seedProject.js';
 import { createRuntime } from './ftc-runtime/createRuntime.js';
 import { initSplitLayout } from './ui/splitLayout.js';
 import { initHelpPanel } from './help/helpPanel.js';
-import { resolveCameraConfig, cameraFov, normalizeResolution } from './mujoco/robotCamera.js';
+import { resolveCameraConfig, cameraFov, normalizeResolution, applyCameraMount } from './mujoco/robotCamera.js';
 import { initCameraFovSelect, loadStoredDfov, describeFov } from './ui/cameraFovSelect.js';
 
 const $ = (id) => document.getElementById(id);
@@ -142,6 +142,11 @@ async function boot() {
   mujocoBundle = await loadBiobuzzSim((s) => {
     $('runStatus').textContent = s;
   });
+  cameraCfg = resolveCameraConfig(simConfig.webcam?.camera);
+  // Camerapositie/-kanteling uit simulation.json (webcam.camera.mount); zonder mount blijft de MJCF-pose.
+  if (cameraCfg.mount) {
+    applyCameraMount(mujocoBundle.mujoco, mujocoBundle.model, mujocoBundle.data, cameraCfg.mount);
+  }
   adapter = new BiobuzzHardwareAdapter(
     mujocoBundle.mujoco,
     mujocoBundle.model,
@@ -155,7 +160,6 @@ async function boot() {
     mujocoBundle.data,
   );
   await viewer.init();
-  cameraCfg = resolveCameraConfig(simConfig.webcam?.camera);
   cameraDfov = loadStoredDfov(cameraCfg);
   initCameraFovSelect($('camFovSelect'), cameraCfg, {
     value: cameraDfov,
@@ -230,6 +234,14 @@ async function boot() {
     get debugState() { return debugState; },
     get debugVars() { return lastVars; },
     get debugDepth() { return lastDepth; },
+    /** Huidig camerazichtveld (preset + resolutie) zoals AprilTag- en POLLEN-detectie het gebruiken. */
+    get cameraFov() { return adapter?.cameraFov ? { ...adapter.cameraFov } : null; },
+    /** Aantal AprilTag-detecties en POLLEN-blobs in de laatste sensor-uitlezing. */
+    visionCounts() {
+      const s = adapter?.readSensors?.();
+      return s ? { april: s.aprilTagDetections?.count ?? null, pollen: s.colorBlobDetections?.count ?? null,
+        blobs: s.colorBlobDetections?.json ?? '[]', width: s.colorBlobDetections?.width, height: s.colorBlobDetections?.height } : null;
+    },
   };
 
   wireUi();

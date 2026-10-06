@@ -36,6 +36,15 @@ export default {
   <li>FTC streamt standaard <strong>640×480</strong> (4:3). Dat is een uitsnede uit het 16:9-beeld van de Brio: de hoogte blijft gelijk, de zijkanten vallen weg. Zet je OpMode met <code>setCameraResolution</code> bijvoorbeeld 1280×720, dan wordt het beeld breder (16:9) tot de volgende INIT of Reset sim.</li>
   <li>Een tag telt als <em>gezien</em> als hij binnen de rechthoek van het beeld valt (horizontaal én verticaal binnen het zichtveld), binnen 2,5&nbsp;m, en ongeveer naar de camera gericht is.</li>
   <li>De keuze blijft bewaard in je browser (<code>localStorage</code>, sleutel <code>ftc-sim-camera-dfov-v1</code>).</li>
+  <li>De <strong>POLLEN-detectie</strong> (ColorBlobLocator) gebruikt precies dezelfde camera: zelfde stand, resolutie en positie. Een bal telt als hij (deels) in het beeld valt.</li>
+</ul>
+<h3>Camerapositie en kanteling</h3>
+<p>Waar de camera op de robot zit, stel je in <code>robots/BIOBUZZ/simulation.json</code> → <code>webcam.camera.mount</code> in: <code>x</code> (vooruit), <code>y</code> (links), <code>z</code> (omhoog, vanaf de robot-oorsprong; lenshoogte boven de mat ≈ <code>z</code> + 4,4&nbsp;cm) en <code>pitchDeg</code> (graden omhoog). Standaard: lens 32&nbsp;cm boven de mat, 39,7° omhoog. Daarmee zie je de tags goed, maar de vloer nooit.</p>
+<p><strong>POLLEN op de vloer én de tags van de omhoog-CELL in één beeld?</strong> Dat kan met één camera als je hem laag zet en schuin omhoog laat kijken, zodat de onderrand van het beeld ongeveer horizontaal ligt:</p>
+<ul>
+  <li>lens ±6,5&nbsp;cm boven de mat, vóór de intake (<code>x: 0.24, z: 0.021</code>), <code>pitchDeg: 22.5</code>, stand <strong>90°</strong>;</li>
+  <li>dan zie je de vloer vanaf ±0,5&nbsp;m en de hoge tags (1,25&nbsp;m) vanaf ±1&nbsp;m: beide tegelijk als de robot <strong>±1,05–1,8&nbsp;m</strong> van de tags staat en naar de HIVE kijkt (±55&nbsp;% van de veldposities);</li>
+  <li>78° en 65° hebben te weinig verticaal zichtveld hiervoor. Met de standaardpositie lukt het nergens.</li>
 </ul>
 
 <h3>Weergaveknoppen: Blocks / Sim / Code / Gelijk</h3>

@@ -1,10 +1,115 @@
 /**
- * Shared IMU + synthetic AprilTag computation from MuJoCo state.
+ * Shared IMU + synthetic AprilTag / color-blob computation from MuJoCo state.
  * Simulated extensions — not real CV / calibrated IMU.
  */
-import { isInRectFrustum, resolveFovOpts } from './robotCamera.js';
+import {
+  DEFAULT_ROBOT_CAMERA_FOV,
+  isInRectFrustum,
+  normalizeResolution,
+  resolveFovOpts,
+} from './robotCamera.js';
 
 const RAD2DEG = 180 / Math.PI;
+
+/**
+ * Project the yellow BIOBUZZ pollen bodies into the synthetic robot-camera frame.
+ * Uses the same camera as the AprilTag detection: same site (robot_up_cam, so the same
+ * mount height/pitch), same rectangular frustum (hfovDeg × vfovDeg from the Brio 4K preset,
+ * see robotCamera.js) and the stream resolution (width × height, default 640×480).
+ * A pollen counts when its projected circle overlaps the image (edge blobs are clipped,
+ * as a real blob detector would see a partial ball).
+ * The result mirrors the JSON fields exposed by FTC ColorBlobLocatorProcessor.Blob.
+ *
+ * @param {object} opts  { cameraSiteName, hfovDeg, vfovDeg, width, height, maxRangeM, pollenRadiusM }
+ *   Legacy `fovyDeg` alone still works (hfov derived from the image aspect).
+ */
+export function computePollenColorBlobs(mujoco, model, data, opts = {}) {
+  const {
+    cameraSiteName = 'robot_up_cam',
+    maxRangeM = 3.5,
+    pollenRadiusM = 0.03556,
+  } = opts;
+  const res = normalizeResolution(opts.width, opts.height) || {
+    width: DEFAULT_ROBOT_CAMERA_FOV.width,
+    height: DEFAULT_ROBOT_CAMERA_FOV.height,
+  };
+  const { width, height } = res;
+  const { hfovDeg, vfovDeg } = resolveFovOpts({
+    ...opts,
+    aspect: Number(opts.aspect) > 0 ? Number(opts.aspect) : width / height,
+  });
+  const SITE = mujoco.mjtObj.mjOBJ_SITE.value;
+  const BODY = mujoco.mjtObj.mjOBJ_BODY.value;
+  const camId = mujoco.mj_name2id(model, SITE, cameraSiteName);
+  if (camId < 0) return { blobs: [], json: '[]', width, height };
+
+  const co = camId * 3;
+  const cm = camId * 9;
+  const camPos = [data.site_xpos[co], data.site_xpos[co + 1], data.site_xpos[co + 2]];
+  const right = matrixColumn(data.site_xmat, cm, 0);
+  const up = matrixColumn(data.site_xmat, cm, 1);
+  const z = matrixColumn(data.site_xmat, cm, 2);
+  const forwardAxis = [-z[0], -z[1], -z[2]];
+  // Pinhole intrinsics from the rectangular frustum: the image edges are exactly ±hfov/2, ±vfov/2.
+  const fx = width / (2 * Math.tan((hfovDeg * Math.PI) / 360));
+  const fy = height / (2 * Math.tan((vfovDeg * Math.PI) / 360));
+  const blobs = [];
+
+  for (let bid = 0; bid < model.nbody; bid++) {
+    const name = mujoco.mj_id2name(model, BODY, bid);
+    if (!name || !/^pollen_\d+$/.test(name)) continue;
+    const bo = bid * 3;
+    const d = [
+      data.xpos[bo] - camPos[0],
+      data.xpos[bo + 1] - camPos[1],
+      data.xpos[bo + 2] - camPos[2],
+    ];
+    const forward = dot3(d, forwardAxis);
+    if (forward <= pollenRadiusM || forward > maxRangeM) continue;
+    const cx = width / 2 + (fx * dot3(d, right)) / forward;
+    const cy = height / 2 - (fy * dot3(d, up)) / forward;
+    const radius = Math.max(1, (Math.sqrt(fx * fy) * pollenRadiusM) / forward);
+    if (cx + radius < 0 || cx - radius > width || cy + radius < 0 || cy - radius > height) continue;
+
+    const left = Math.max(0, cx - radius);
+    const rightPx = Math.min(width, cx + radius);
+    const top = Math.max(0, cy - radius);
+    const bottom = Math.min(height, cy + radius);
+    const clippedRadius = Math.min(radius, (rightPx - left) / 2, (bottom - top) / 2);
+    const area = Math.max(1, Math.round(Math.PI * clippedRadius * clippedRadius));
+    const circumference = 2 * Math.PI * clippedRadius;
+    const points = Array.from({ length: 16 }, (_, i) => {
+      const a = (i * Math.PI * 2) / 16;
+      return { x: cx + clippedRadius * Math.cos(a), y: cy + clippedRadius * Math.sin(a) };
+    });
+    blobs.push({
+      ContourArea: area,
+      Density: 1,
+      AspectRatio: 1,
+      ArcLength: circumference,
+      Circularity: 1,
+      ContourPoints: points,
+      // Property names follow the FTC Blocks generators: RotatedRect uses center/size/angle/boundingRect/points,
+      // Circle uses X/Y/Radius/Center (circle_getProperty_* emits `circle.X`, `circle.Center`, ...).
+      BoxFit: {
+        center: { x: cx, y: cy },
+        size: { width: 2 * clippedRadius, height: 2 * clippedRadius },
+        angle: 0,
+        boundingRect: {
+          x: Math.floor(cx - clippedRadius), y: Math.floor(cy - clippedRadius),
+          width: Math.ceil(2 * clippedRadius), height: Math.ceil(2 * clippedRadius),
+        },
+        points: [
+          { x: cx - clippedRadius, y: cy + clippedRadius }, { x: cx - clippedRadius, y: cy - clippedRadius },
+          { x: cx + clippedRadius, y: cy - clippedRadius }, { x: cx + clippedRadius, y: cy + clippedRadius },
+        ],
+      },
+      Circle: { X: cx, Y: cy, Radius: clippedRadius, Center: { x: cx, y: cy } },
+    });
+  }
+  blobs.sort((a, b) => b.ContourArea - a.ContourArea);
+  return { blobs, json: JSON.stringify(blobs), width, height };
+}
 
 /** MuJoCo quat (w,x,y,z) → yaw/pitch/roll (ZYX / aerospace), radians. */
 export function quatToYawPitchRoll(qw, qx, qy, qz) {
@@ -453,4 +558,3 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
   detections.sort((a, b) => a.ftcPose.range - b.ftcPose.range);
   return { detections, json: JSON.stringify(detections) };
 }
-
