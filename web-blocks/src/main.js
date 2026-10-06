@@ -7,6 +7,8 @@ import { seedBlkProject } from './editor/seedProject.js';
 import { createRuntime } from './ftc-runtime/createRuntime.js';
 import { initSplitLayout } from './ui/splitLayout.js';
 import { initHelpPanel } from './help/helpPanel.js';
+import { resolveCameraConfig, cameraFov, normalizeResolution } from './mujoco/robotCamera.js';
+import { initCameraFovSelect, loadStoredDfov, describeFov } from './ui/cameraFovSelect.js';
 
 const $ = (id) => document.getElementById(id);
 const log = (msg) => {
@@ -27,6 +29,47 @@ let anim = 0;
 let physicsAccumulator = 0;
 let teleopInput = null;
 let opModeOwns = false; // true from INIT through RUN until DONE/ERROR/Idle after STOP
+
+// ——— Robotcamera (Logitech Brio 4K) ———
+let cameraCfg = resolveCameraConfig(null);
+let cameraDfov = cameraCfg.defaultDfovDeg;
+/** Resolutie uit VisionPortal.Builder.setCameraResolution (null = config, 640×480). */
+let opModeCameraRes = null;
+
+/** Eén zichtveld voor PiP, frustum-gizmo en detectie. */
+function applyCameraFov() {
+  const fov = cameraFov(cameraCfg, { dfovDeg: cameraDfov, ...(opModeCameraRes || {}) });
+  adapter?.setCameraFov?.(fov);
+  viewer?.setCameraFov?.(fov);
+  const info = $('camFovInfo');
+  if (info) {
+    info.textContent = `${Math.round(fov.hfovDeg)}° × ${Math.round(fov.vfovDeg)}° · ${fov.width}×${fov.height}`;
+    info.title = describeFov(fov);
+  }
+  const sel = $('camFovSelect');
+  if (sel) sel.title = `${fov.model}: ${describeFov(fov)}`;
+  return fov;
+}
+
+/**
+ * OpMode-resolutie (pseudo-command `__camera` uit setCameraResolution) volgen, alleen
+ * zolang de OpMode de robot bezit. Blijft staan na STOP; INIT en Reset sim zetten terug.
+ */
+function syncCameraResolution(cmds) {
+  const cam = cmds && cmds.__camera;
+  const res = cam && cam.type === 'cameraResolution' ? normalizeResolution(cam.width, cam.height) : null;
+  if (!res) return;
+  if (opModeCameraRes && opModeCameraRes.width === res.width && opModeCameraRes.height === res.height) return;
+  opModeCameraRes = res;
+  const fov = applyCameraFov();
+  log(`Camera-resolutie ${res.width}×${res.height} → zichtveld ${describeFov(fov)}`);
+}
+
+function resetCameraResolution() {
+  if (!opModeCameraRes) return;
+  opModeCameraRes = null;
+  applyCameraFov();
+}
 
 // ——— Blok-debugger ———
 let debugMode = false; // toolbar-toggle (alleen te wisselen buiten een OpMode-sessie)
@@ -112,6 +155,18 @@ async function boot() {
     mujocoBundle.data,
   );
   await viewer.init();
+  cameraCfg = resolveCameraConfig(simConfig.webcam?.camera);
+  cameraDfov = loadStoredDfov(cameraCfg);
+  initCameraFovSelect($('camFovSelect'), cameraCfg, {
+    value: cameraDfov,
+    onChange: (d) => {
+      cameraDfov = d;
+      const fov = applyCameraFov();
+      updateBiobuzzHud();
+      log(`Camera-zichtveld: ${describeFov(fov)}`);
+    },
+  });
+  applyCameraFov();
   teleopInput = new InputHandler();
   $('biobuzzHud').hidden = false;
   $('teleopHint').textContent =
@@ -133,7 +188,10 @@ async function boot() {
     },
     onCommands: (cmds) => {
       latestCommands = cmds;
-      if (opModeOwns) adapter.applyCommands(cmds);
+      if (opModeOwns) {
+        syncCameraResolution(cmds);
+        adapter.applyCommands(cmds);
+      }
     },
     onTelemetryUpdate: (text) => {
       $('telemetryOut').textContent = mergeTelemetry(text);
@@ -564,6 +622,7 @@ function wireUi() {
     adapter.resetPose();
     runtime.resetAll();
     latestCommands = {};
+    resetCameraResolution();
     opModeOwns = false;
     clearGamepadOverrides();
     $('telemetryOut').textContent = '';
@@ -591,6 +650,7 @@ function wireUi() {
       adapter.resetPose();
       runtime.resetAll();
       latestCommands = {};
+      resetCameraResolution();
       adapter.zeroAll();
       opModeOwns = true;
       const sensors = adapter.readSensors();

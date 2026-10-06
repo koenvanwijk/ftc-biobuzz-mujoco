@@ -2,6 +2,7 @@
  * Shared IMU + synthetic AprilTag computation from MuJoCo state.
  * Simulated extensions — not real CV / calibrated IMU.
  */
+import { isInRectFrustum, resolveFovOpts } from './robotCamera.js';
 
 const RAD2DEG = 180 / Math.PI;
 
@@ -317,7 +318,10 @@ function makeSingleDetection(id, tagPos, pose, facing) {
  * Visibility:
  *  - in front of camera (FTC y > 0)
  *  - within maxRangeM
- *  - inside vertical FOV cone (fovyDeg, default 70 — matches robot_up_cam)
+ *  - inside the rectangular camera frustum: |horizontal angle| <= hfov/2 AND
+ *    |vertical angle| <= vfov/2 (hfovDeg/vfovDeg; default Logitech Brio 4K 90°
+ *    preset at 640x480 → ~66.3° x 52.2°, see robotCamera.js). Legacy `fovyDeg`
+ *    alone still works (hfov derived for 4:3).
  *  - tag printed face roughly toward camera (stricter facing dot)
  *
  * @returns {{ detections: object[], json: string }}
@@ -328,8 +332,8 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
     tagIds = null, // default 30..45
     maxRangeM = 2.5,
     minFacingDot = 0.55,
-    fovyDeg = 70,
   } = opts;
+  const { hfovDeg, vfovDeg } = resolveFovOpts(opts);
 
   const SITE = mujoco.mjtObj.mjOBJ_SITE.value;
   const camId = mujoco.mj_name2id(model, SITE, cameraSiteName);
@@ -357,9 +361,6 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
     up: axisY,
   };
 
-  const halfFov = ((fovyDeg / 2) * Math.PI) / 180;
-  const cosHalfFov = Math.cos(halfFov);
-
   const singleDetections = [];
   const visibleClusterMembers = new Map();
 
@@ -381,8 +382,10 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
       dx * camera.forward[0] + dy * camera.forward[1] + dz * camera.forward[2];
     if (forward <= 1e-4) continue;
 
-    // FOV cone: angle from optical axis must be <= fovy/2.
-    if (forward / range < cosHalfFov) continue;
+    // Rectangular frustum (camera frame X right, Y forward, Z up).
+    const camX = dx * camera.right[0] + dy * camera.right[1] + dz * camera.right[2];
+    const camZ = dx * camera.up[0] + dy * camera.up[1] + dz * camera.up[2];
+    if (!isInRectFrustum(camX, forward, camZ, hfovDeg, vfovDeg)) continue;
 
     // Tag local Z from site_xmat. Hive underside tags may expose either matrix
     // normal depending on mesh/site convention, so accept the stronger face.

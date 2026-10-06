@@ -119,8 +119,24 @@
     "simulated": true,
     "cameraSite": "robot_up_cam",
     "aprilTagSites": "apriltag_30..apriltag_45",
-    "note": "Simulator extension \u2014 synthetic AprilTags, no real CV",
+    "note": "Simulator extension \u2014 synthetic AprilTags, no real CV. FOV = rectangular frustum from Logitech Brio 4K presets.",
     "enabled": true,
-    "world": "biobuzz"
+    "world": "biobuzz",
+    "camera": {
+      "model": "Logitech Brio 4K",
+      "shortName": "Brio 4K",
+      "nativeAspect": "16:9",
+      "dfovPresetsDeg": [
+        65,
+        78,
+        90
+      ],
+      "defaultDfovDeg": 90,
+      "resolution": {
+        "width": 640,
+        "height": 480
+      },
+      "note": "Diagonal FOV presets (Logi Tune / G HUB). 640x480 = 4:3 center crop of the 16:9 sensor (vertical FOV kept): 90\u00b0 \u2192 66.3\u00b0 x 52.2\u00b0 (H x V). Derived in src/mujoco/robotCamera.js."
+    }
   }
 }

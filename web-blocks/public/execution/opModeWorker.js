@@ -1426,7 +1426,16 @@ function createVisionPortalAccessNative() {
     setLiveViewContainerId(b, id) {
       if (b) b._cfg = { ...(b._cfg || {}), containerId: id };
     },
-    setCameraResolution() {},
+    setCameraResolution(b, width, height) {
+      // De sim krijgt de resolutie direct (beeldverhouding → zichtveld van PiP/detectie).
+      // Niet pas bij build(): argumenten komen als kopie uit de interpreter, dus
+      // wijzigingen aan b._cfg komen niet terug in de builder-variabele.
+      const w = Math.round(Number(width));
+      const h = Math.round(Number(height));
+      if (!(w >= 16 && h >= 16 && w <= 8192 && h <= 8192)) return;
+      if (b) b._cfg = { ...(b._cfg || {}), resolution: { width: w, height: h } };
+      pub({ jsId: '__camera', type: 'cameraResolution', width: w, height: h });
+    },
     addProcessor(b, processor) {
       if (b) {
         const procs = [...((b._cfg && b._cfg.processors) || []), processor];

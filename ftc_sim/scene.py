@@ -1125,7 +1125,9 @@ def _add_robot(world: ET.Element) -> None:
         name="robot_up_cam",
         pos=_pos(0.16, 0.0, 0.28),
         xyaxes="0 -1 0  -0.64 0 0.77",
-        fovy="70",
+        # Logitech Brio 4K, 90° diagonal preset, 640x480 (4:3 crop of 16:9):
+        # vertical FOV 52.2° (horizontal 66.3°). See web-blocks/src/mujoco/robotCamera.js.
+        fovy="52.2",
     )
     ET.SubElement(
         robot,

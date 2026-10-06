@@ -28,13 +28,14 @@ Synthetic `ftcPose` follows the FTC SDK camera frame: **X right, Y forward, Z up
 
 | World | IMU | AprilTags |
 |-------|-----|-----------|
-| BIOBUZZ | from body `robot` / joint `robot_free` | sites on field elements; FOV/facing/range filters (approx.) |
+| BIOBUZZ | from body `robot` / joint `robot_free` | sites on field elements; rectangular Brio 4K frustum + facing/range filters |
 | simple (`REVStarterBot2026`) | from body `chassis` / joint `root` | empty list (no `apriltag_*` sites) |
 
 ## Known gaps (simulated)
 
-- BIOBUZZ cluster members 30–45 are grouped into the four official CELL clusters; one visible member yields one cluster detection, and cluster pose targets the moving CELL opening center.\n- No real image CV / lens intrinsics / distortion.
-- FOV is a hemisphere + max range (default 3 m), not a calibrated frustum.
+- BIOBUZZ cluster members 30–45 are grouped into the four official CELL clusters; one visible member yields one cluster detection, and cluster pose targets the moving CELL opening center.
+- No real image CV / lens intrinsics / distortion.
+- FOV is a **rectangular frustum** from the Logitech Brio 4K presets (diagonal 65°/78°/90°, 16:9 sensor; default 90° at 640×480 → H 66.3° × V 52.2°, 4:3 crop keeps vertical), plus max range 2.5 m. Config: `simulation.json` → `webcam.camera`; math in `src/mujoco/robotCamera.js`. UI selector *Camera-zichtveld*; `setCameraResolution` (e.g. 1280×720) switches to 16:9. No lens distortion / calibrated intrinsics.
 - Tag “facing camera” uses site ±Z · direction-to-camera threshold (approx.).
 - `robot_up_cam` is upward-tilted; horizontal wall tags may rarely appear — many BIOBUZZ tags lie on horizontal faces.
 - AxesReference / AxesOrder on `getRobotOrientation` are not fully modeled.

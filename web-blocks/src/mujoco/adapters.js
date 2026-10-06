@@ -11,6 +11,7 @@
  */
 
 import { readImuFromBody, computeAprilTagDetections } from './simSensors.js';
+import { DEFAULT_ROBOT_CAMERA_FOV } from './robotCamera.js';
 
 export class HardwareAdapter {
   constructor(mujoco, model, data, simConfig) {
@@ -130,6 +131,15 @@ export class HardwareAdapter {
     for (let i = 0; i < this.model.nu; i++) this.data.ctrl[i] = 0;
   }
 
+  /** Robotcamera-zichtveld (Brio 4K preset + resolutie), zie robotCamera.js. */
+  get cameraFov() {
+    return this._cameraFov || DEFAULT_ROBOT_CAMERA_FOV;
+  }
+
+  setCameraFov(fov) {
+    if (fov && fov.hfovDeg > 0 && fov.vfovDeg > 0) this._cameraFov = { ...fov };
+  }
+
   readSensors() {
     const out = Object.create(null);
     for (const jsId of Object.keys(this._motorMeta)) {
@@ -146,7 +156,8 @@ export class HardwareAdapter {
     const april = computeAprilTagDetections(this.mujoco, this.model, this.data, {
       cameraSiteName: 'robot_up_cam',
       maxRangeM: 2.5,
-      fovyDeg: 70,
+      hfovDeg: this.cameraFov.hfovDeg,
+      vfovDeg: this.cameraFov.vfovDeg,
       minFacingDot: 0.55,
     });
     if (april.json !== this._aprilJson) {

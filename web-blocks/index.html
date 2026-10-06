@@ -101,6 +101,15 @@
           <span>Score <strong id="hudScore">R0 · B0</strong></span>
           <span>Intake <strong id="hudIntake">uit</strong></span>
           <span>Control <strong id="hudOwner">Teleop</strong></span>
+          <label class="cam-fov-picker" title="Zichtveld van de robotcamera (Logitech Brio 4K). Geldt voor het camerabeeld rechtsboven, de blauwe kijkpiramide en de AprilTag-detectie.">
+            Camera-zichtveld
+            <select id="camFovSelect" aria-label="Camera-zichtveld">
+              <option value="90">Brio 4K 90°</option>
+              <option value="78">78°</option>
+              <option value="65">65°</option>
+            </select>
+          </label>
+          <span id="camFovInfo" class="muted small cam-fov-info"></span>
         </div>
         <canvas id="simCanvas"></canvas>
         <div class="on-screen-pad" id="gamepadPad" aria-label="Virtuele gamepad">
