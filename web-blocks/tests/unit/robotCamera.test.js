@@ -267,7 +267,14 @@ describe('Keuzelijst Camera-zichtveld', () => {
   });
 
   it('describeFov noemt preset, H × V en resolutie', () => {
-    assert.equal(describeFov(DEFAULT_ROBOT_CAMERA_FOV), 'Brio 4K 90° diagonaal → 66° × 52° (H × V) bij 640×480');
+    assert.equal(
+      describeFov(cameraFov(resolveCameraConfig(null), { rollDeg: 0 })),
+      'Brio 4K 90° diagonaal → 66° × 52° (H × V) bij 640×480',
+    );
+    assert.equal(
+      describeFov(DEFAULT_ROBOT_CAMERA_FOV),
+      'Brio 4K 90° diagonaal, portret (90° gedraaid) → 52° × 66° (H × V) bij 640×480 (beeld 480×640)',
+    );
   });
 });
 

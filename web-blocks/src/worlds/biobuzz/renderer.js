@@ -68,7 +68,7 @@ export class MujocoThreeViewer {
     // Second camera: robot upward view (PiP) — Logitech Brio 4K (see robotCamera.js).
     // Three.js fov = VERTICAL field of view; aspect from the stream resolution.
     this._camFov = { ...DEFAULT_ROBOT_CAMERA_FOV };
-    this.robotCam = new THREE.PerspectiveCamera(this._camFov.vfovDeg, this._camFov.aspect, 0.05, 40);
+    this.robotCam = new THREE.PerspectiveCamera(pipVfov(this._camFov), pipAspect(this._camFov), 0.05, 40);
     this.robotCam.up.set(0, 0, 1);
     this._robotCamSiteId = -1;
     this._frustumHelper = null;
@@ -137,8 +137,9 @@ export class MujocoThreeViewer {
   setCameraFov(fov) {
     if (!fov || !(fov.vfovDeg > 0) || !(fov.aspect > 0)) return;
     this._camFov = { ...fov };
-    this.robotCam.fov = fov.vfovDeg;
-    this.robotCam.aspect = fov.aspect;
+    // PiP = rechtop gezet beeld: bij portret (rol 90°) H/V en aspect verwisseld, smal en hoog.
+    this.robotCam.fov = pipVfov(fov);
+    this.robotCam.aspect = pipAspect(fov);
     this.robotCam.updateProjectionMatrix();
     if (this._frustumLines) {
       const geom = this._frustumLines.geometry;
@@ -352,7 +353,11 @@ export class MujocoThreeViewer {
     );
     const quat = new THREE.Quaternion().setFromRotationMatrix(mat);
     this.robotCam.position.copy(pos);
-    this.robotCam.quaternion.copy(quat);
+    // De site draait mee met de camerarol (sensorframe, voor detectie en kijkpiramide). De PiP zet
+    // het beeld rechtop: rol terugdraaien om de optische as (lokaal Z).
+    const roll = ((this._camFov?.rollDeg || 0) * Math.PI) / 180;
+    const unroll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -roll);
+    this.robotCam.quaternion.copy(quat).multiply(unroll);
     this.robotCam.up.set(0, 0, 1);
     if (this._frustumHelper) {
       this._frustumHelper.position.copy(pos);
@@ -375,8 +380,11 @@ export class MujocoThreeViewer {
     const margin = 16;
     // Top-right corner; canvas is sized from its panel, so a small inset keeps the frame visible.
     const rightInset = 24;
-    const pipW = Math.min(280, Math.max(140, Math.floor(cw * 0.24)));
-    const pipH = Math.floor(pipW / (this._camFov?.aspect || 4 / 3));
+    // Lange zijde 140–280 px; portret (aspect < 1) wordt smal en hoog.
+    const base = Math.min(280, Math.max(140, Math.floor(cw * 0.24)));
+    const aspect = pipAspect(this._camFov);
+    const pipW = aspect >= 1 ? base : Math.floor(base * aspect);
+    const pipH = aspect >= 1 ? Math.floor(base / aspect) : base;
     return { cw, ch, margin, rightInset, pipW, pipH };
   }
 
@@ -402,8 +410,8 @@ export class MujocoThreeViewer {
     this.canvas.style.height = '100%';
     this.camera.aspect = cw / Math.max(ch, 1);
     this.camera.updateProjectionMatrix();
-    // PiP aspect = camera stream aspect (4:3 for 640x480, 16:9 for 1280x720)
-    this.robotCam.aspect = this._camFov?.aspect || 4 / 3;
+    // PiP aspect = camera stream aspect (4:3 for 640x480, 16:9 for 1280x720), portrait: 3:4 / 9:16
+    this.robotCam.aspect = pipAspect(this._camFov);
     this.robotCam.updateProjectionMatrix();
     this._layoutPipLabel();
   }
@@ -479,6 +487,17 @@ export class MujocoThreeViewer {
 }
 
 /** Line-segment positions (camera looks along -Z) for a rectangular H/V frustum. */
+/** Aspect van het rechtop gezette PiP-beeld (portret: verwisseld). */
+function pipAspect(fov) {
+  return fov?.viewAspect > 0 ? fov.viewAspect : fov?.aspect > 0 ? fov.aspect : 4 / 3;
+}
+
+/** Verticaal zichtveld van het rechtop gezette PiP-beeld. */
+function pipVfov(fov) {
+  return fov?.viewVfovDeg > 0 ? fov.viewVfovDeg : fov?.vfovDeg || 52.23;
+}
+
+/** Kijkpiramide in het (meegedraaide) sensorframe van de site: beeld-X = hfov, beeld-Y = vfov. */
 function frustumLinePositions(fov, near = 0.12, far = 0.5) {
   const th = Math.tan(((fov.hfovDeg || 66.34) / 2) * (Math.PI / 180));
   const tv = Math.tan(((fov.vfovDeg || 52.23) / 2) * (Math.PI / 180));

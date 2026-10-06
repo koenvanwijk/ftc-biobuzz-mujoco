@@ -136,12 +136,15 @@
         "width": 640,
         "height": 480
       },
+      "orientation": "portrait",
+      "orientationNote": "portrait = camera rotated 90 deg about the lens (mount.rollDeg 90; use -90 if mounted the other way round), landscape = 0. The 'Portret' checkbox next to the FOV picker overrides this per browser. Detection (POLLEN blobs, AprilTag ftcPose) stays in the sensor frame (640x480, image X = long side, then pointing up), like the real FTC SDK which does not rotate the stream; the PiP shows the image upright (480x640, 52.2 x 66.3 deg H x V at the 90 deg preset).",
       "mount": {
-        "x": 0.16,
+        "x": 0.24,
         "y": 0,
-        "z": 0.28,
-        "pitchDeg": 39.73,
-        "note": "robot_up_cam pose in the robot frame (x forward, y left, z up from the robot body origin, ~0.044 m above the mat; lens height above mat = z + 0.044). pitchDeg = optical axis above horizontal. Applied to site + camera at load; used by PiP, frustum, AprilTag and POLLEN detection. Default = MJCF pose (32 cm above mat, +39.7 deg): the floor is never in view. To see floor POLLEN and the raised CELL tags in one frame (fov-study): x = 0.24 (in front of the intake), z = 0.021 (~6.5 cm above mat), pitchDeg = 22.5 (bottom image edge ~horizontal), 90 deg preset; both visible ~1.05-1.8 m from the tags."
+        "z": 0.141,
+        "pitchDeg": 22.5,
+        "rollDeg": 90,
+        "note": "robot_up_cam pose in the robot frame (x forward, y left, z up from the robot body origin, ~0.044 m above the mat; lens height above mat = z + 0.044). pitchDeg = optical axis above horizontal, rollDeg = rotation about the optical axis (90 = portrait, image X up). Applied to site + camera at load; used by PiP, frustum, AprilTag and POLLEN detection. Default (fov-study): portrait, lens 18.5 cm above the mat in front of the intake (x 0.24), +22.5 deg, 90 deg preset, 640x480: floor POLLEN (from ~0.8 m) and the raised CELL tags in one frame on ~72% of field positions, ~0.76-1.62 m from the tags, ~96% of the (assumed) shooting zone while aiming. Old MJCF pose (x 0.16, z 0.28, +39.73 deg, landscape): floor never in view (0%)."
       },
       "note": "Diagonal FOV presets (Logi Tune / G HUB). 640x480 = 4:3 center crop of the 16:9 sensor (vertical FOV kept): 90\u00b0 \u2192 66.3\u00b0 x 52.2\u00b0 (H x V). Derived in src/mujoco/robotCamera.js."
     }

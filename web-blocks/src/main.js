@@ -8,7 +8,13 @@ import { createRuntime } from './ftc-runtime/createRuntime.js';
 import { initSplitLayout } from './ui/splitLayout.js';
 import { initHelpPanel } from './help/helpPanel.js';
 import { resolveCameraConfig, cameraFov, normalizeResolution, applyCameraMount } from './mujoco/robotCamera.js';
-import { initCameraFovSelect, loadStoredDfov, describeFov } from './ui/cameraFovSelect.js';
+import {
+  initCameraFovSelect,
+  loadStoredDfov,
+  describeFov,
+  initCameraPortraitToggle,
+  loadStoredPortrait,
+} from './ui/cameraFovSelect.js';
 
 const $ = (id) => document.getElementById(id);
 const log = (msg) => {
@@ -33,17 +39,34 @@ let opModeOwns = false; // true from INIT through RUN until DONE/ERROR/Idle afte
 // ——— Robotcamera (Logitech Brio 4K) ———
 let cameraCfg = resolveCameraConfig(null);
 let cameraDfov = cameraCfg.defaultDfovDeg;
+/** Portret = camera 90° om de optische as gedraaid (standaard, zie simulation.json → orientation). */
+let cameraPortrait = cameraCfg.orientation === 'portrait';
 /** Resolutie uit VisionPortal.Builder.setCameraResolution (null = config, 640×480). */
 let opModeCameraRes = null;
 
 /** Eén zichtveld voor PiP, frustum-gizmo en detectie. */
+function cameraRollDeg() {
+  return cameraPortrait ? cameraCfg.portraitRollDeg : 0;
+}
+
+/** Montage (positie/kanteling uit simulation.json) met de rol van de Portret-schakelaar. */
+function applyCameraPose() {
+  if (!mujocoBundle || !cameraCfg.mount) return;
+  applyCameraMount(mujocoBundle.mujoco, mujocoBundle.model, mujocoBundle.data, {
+    ...cameraCfg.mount,
+    rollDeg: cameraRollDeg(),
+  });
+}
+
 function applyCameraFov() {
-  const fov = cameraFov(cameraCfg, { dfovDeg: cameraDfov, ...(opModeCameraRes || {}) });
+  const fov = cameraFov(cameraCfg, { dfovDeg: cameraDfov, ...(opModeCameraRes || {}), rollDeg: cameraRollDeg() });
   adapter?.setCameraFov?.(fov);
   viewer?.setCameraFov?.(fov);
   const info = $('camFovInfo');
   if (info) {
-    info.textContent = `${Math.round(fov.hfovDeg)}° × ${Math.round(fov.vfovDeg)}° · ${fov.width}×${fov.height}`;
+    info.textContent =
+      `${Math.round(fov.viewHfovDeg)}° × ${Math.round(fov.viewVfovDeg)}° · ${fov.width}×${fov.height}` +
+      (fov.orientation === 'portrait' ? ' portret' : '');
     info.title = describeFov(fov);
   }
   const sel = $('camFovSelect');
@@ -143,10 +166,10 @@ async function boot() {
     $('runStatus').textContent = s;
   });
   cameraCfg = resolveCameraConfig(simConfig.webcam?.camera);
-  // Camerapositie/-kanteling uit simulation.json (webcam.camera.mount); zonder mount blijft de MJCF-pose.
-  if (cameraCfg.mount) {
-    applyCameraMount(mujocoBundle.mujoco, mujocoBundle.model, mujocoBundle.data, cameraCfg.mount);
-  }
+  // Camerapositie/-kanteling/-rol uit simulation.json (webcam.camera.mount + orientation),
+  // rol overschreven door de Portret-schakelaar (localStorage).
+  cameraPortrait = loadStoredPortrait(cameraCfg);
+  applyCameraPose();
   adapter = new BiobuzzHardwareAdapter(
     mujocoBundle.mujoco,
     mujocoBundle.model,
@@ -168,6 +191,16 @@ async function boot() {
       const fov = applyCameraFov();
       updateBiobuzzHud();
       log(`Camera-zichtveld: ${describeFov(fov)}`);
+    },
+  });
+  initCameraPortraitToggle($('camPortrait'), {
+    value: cameraPortrait,
+    onChange: (p) => {
+      cameraPortrait = p;
+      applyCameraPose();
+      const fov = applyCameraFov();
+      updateBiobuzzHud();
+      log(`Camera ${p ? 'portret (90° gedraaid)' : 'liggend'}: ${describeFov(fov)}`);
     },
   });
   applyCameraFov();
@@ -236,6 +269,25 @@ async function boot() {
     get debugDepth() { return lastDepth; },
     /** Huidig camerazichtveld (preset + resolutie) zoals AprilTag- en POLLEN-detectie het gebruiken. */
     get cameraFov() { return adapter?.cameraFov ? { ...adapter.cameraFov } : null; },
+    /** Zichtveld van het PiP-beeld (rechtop gezet; portret = smal en hoog). */
+    get pipFov() { return viewer?.cameraFov ? { ...viewer.cameraFov } : null; },
+    get cameraPortrait() { return cameraPortrait; },
+    /**
+     * Alleen voor smoke tests: zet de robot stil op (x, y) m met kijkrichting yawDeg.
+     * @returns {boolean}
+     */
+    placeRobot(x, y, yawDeg = 0) {
+      const { mujoco, model, data } = mujocoBundle || {};
+      const id = mujoco ? mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT.value, 'robot_free') : -1;
+      if (id < 0) return false;
+      const qa = model.jnt_qposadr[id];
+      const va = model.jnt_dofadr[id];
+      const h = ((Number(yawDeg) || 0) * Math.PI) / 360;
+      data.qpos.set([Number(x) || 0, Number(y) || 0, data.qpos[qa + 2], Math.cos(h), 0, 0, Math.sin(h)], qa);
+      for (let i = 0; i < 6; i++) data.qvel[va + i] = 0;
+      mujoco.mj_forward(model, data);
+      return true;
+    },
     /** Aantal AprilTag-detecties en POLLEN-blobs in de laatste sensor-uitlezing. */
     visionCounts() {
       const s = adapter?.readSensors?.();
