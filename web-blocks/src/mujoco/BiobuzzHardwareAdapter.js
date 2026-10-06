@@ -23,7 +23,7 @@ import { HiveTipController } from '../worlds/biobuzz/hive_tip.js';
 import { FieldBoundsReturn } from '../worlds/biobuzz/field_bounds.js';
 import { HOPPER_CAPACITY, NECTAR_HOPPER_CAPACITY } from '../worlds/biobuzz/constants.js';
 import { mapIntakePower, mapFlywheelEdge, mapPollenServoEdge } from './biobuzzMapping.js';
-import { readImuFromBody, computeAprilTagDetections } from './simSensors.js';
+import { readImuFromBody, computeAprilTagDetections, computePollenColorBlobs } from './simSensors.js';
 
 export class BiobuzzHardwareAdapter {
   constructor(mujoco, model, data, simConfig) {
@@ -246,6 +246,8 @@ export class BiobuzzHardwareAdapter {
       generation: this._aprilGen || 0,
       count: april.detections.length,
     };
+    const pollen = computePollenColorBlobs(this.mujoco, this.model, this.data);
+    out.colorBlobDetections = { json: pollen.json, count: pollen.blobs.length };
     this._aprilCount = april.detections.length;
     return out;
   }
