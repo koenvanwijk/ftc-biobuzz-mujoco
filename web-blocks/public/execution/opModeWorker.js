@@ -457,7 +457,16 @@ function createMotorPseudo(interp, _global, jsId) {
     emit();
   });
   setNative('getVelocity', () => sensor(jsId).velocityTicksPerSec * dirSign());
-  setNative('isBusy', () => !!sensor(jsId).busy);
+  // isBusy wordt lokaal berekend uit de eigen (altijd actuele) mode/target/power + de encoderstand
+  // van de laatste 'clock'. De host-vlag sensor().busy loopt minstens één frame achter: commando's
+  // gaan pas aan het eind van pump() naar de host, dus direct na setPower zag de while-lus altijd false.
+  setNative('isBusy', () => {
+    if (state.mode !== 'RUN_TO_POSITION' || !state.enabled) return false;
+    const driving = state.velocityMode ? state.vel !== 0 : state.power !== 0;
+    if (!driving) return false;
+    const pos = Math.round((sensor(jsId).positionTicks - state.encOff) * dirSign());
+    return Math.abs(state.target - pos) > state.tol;
+  });
   setNative('setMotorEnable', () => {
     state.enabled = true;
     emit();

@@ -11,7 +11,7 @@ Legenda: **W** = working · **P** = partial · **U** = unsupported (faalt luid)
 | setDualPower / Mode / TargetPosition | W | |
 | Encoders getCurrentPosition | W | Uit joint qpos × ticksPerRad |
 | STOP_AND_RESET_ENCODER | W | Offset in bridge |
-| RUN_TO_POSITION + isBusy | P | Eenvoudige P-achtige nadering, geen echte PID |
+| RUN_TO_POSITION + isBusy | P | Eenvoudige P-achtige nadering, geen echte PID; `\|power\|` begrenst de snelheid (0 = staat stil). `isBusy()` is true zolang RUN_TO_POSITION met power ≠ 0 buiten de tolerantie zit (ook direct na `setPower`) |
 | setVelocity / getVelocity | P | ticks/s ↔ rad/s via simulation.json |
 | PIDF / current alerts | U | Expliciete Error |
 | Servo position / direction / scaleRange | W | Position actuator |

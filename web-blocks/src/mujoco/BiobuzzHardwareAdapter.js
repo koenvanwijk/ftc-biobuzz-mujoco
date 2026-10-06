@@ -126,6 +126,7 @@ export class BiobuzzHardwareAdapter {
       leftMeta.tol = leftCmd.targetTolerance;
       leftMeta.encoderOffset = leftCmd.encoderOffsetTicks || 0;
       leftMeta.dirSign = leftCmd.direction === 'REVERSE' ? -1 : 1;
+      leftMeta.driving = rtpDriving(leftCmd);
       leftElec = this._motorPower01(leftCmd, leftMeta);
     }
     if (rightCmd?.type === 'motor' && rightMeta) {
@@ -134,6 +135,7 @@ export class BiobuzzHardwareAdapter {
       rightMeta.tol = rightCmd.targetTolerance;
       rightMeta.encoderOffset = rightCmd.encoderOffsetTicks || 0;
       rightMeta.dirSign = rightCmd.direction === 'REVERSE' ? -1 : 1;
+      rightMeta.driving = rtpDriving(rightCmd);
       rightElec = this._motorPower01(rightCmd, rightMeta);
     }
 
@@ -168,11 +170,14 @@ export class BiobuzzHardwareAdapter {
   _motorPower01(cmd, meta) {
     if (cmd.mode === 'RUN_TO_POSITION') {
       // Target/position are in the FTC-Direction frame; return electrical power (× dirSign).
+      // FTC: |power| (or |velocity|) is the max speed toward the target; the sign is ignored; 0 = no motion.
+      const maxP = rtpMaxPower(cmd, meta);
+      if (maxP <= 0) return 0;
       const s = this._motorSensor(cmd.jsId);
       const logicalPos = (s.positionTicks - (cmd.encoderOffsetTicks || 0)) * meta.dirSign;
       const err = cmd.targetPosition - logicalPos;
-      if (Math.abs(err) > (cmd.targetTolerance || meta.tol)) {
-        return meta.dirSign * Math.max(-1, Math.min(1, err / 200));
+      if (Math.abs(err) > (cmd.targetTolerance ?? meta.tol)) {
+        return meta.dirSign * Math.max(-maxP, Math.min(maxP, err / 200));
       }
       return 0;
     }
@@ -258,6 +263,7 @@ export class BiobuzzHardwareAdapter {
     const dirSign = meta.dirSign ?? 1;
     const busy =
       meta.mode === 'RUN_TO_POSITION' &&
+      meta.driving !== false &&
       Math.abs(meta.target - (positionTicks - meta.encoderOffset) * dirSign) > meta.tol;
     return { positionTicks, velocityTicksPerSec, busy };
   }
@@ -309,4 +315,20 @@ export class BiobuzzHardwareAdapter {
     if (h.hiveEvent) lines.push(h.hiveEvent);
     return lines.join('\n');
   }
+}
+
+/** RUN_TO_POSITION max |power| [0,1]: |power|, or |velocity| as a fraction of max speed. */
+function rtpMaxPower(cmd, meta) {
+  if (cmd.enabled === false) return 0;
+  if (cmd.velocityMode) {
+    const rad = Math.abs(cmd.velocityTicksPerSec || 0) / (meta.ticksPerRad || 1);
+    return Math.min(1, rad / (meta.maxRadPerSec || 1));
+  }
+  return Math.min(1, Math.abs(cmd.power || 0));
+}
+
+/** True when a RUN_TO_POSITION command actually drives (FTC isBusy needs power ≠ 0). */
+function rtpDriving(cmd) {
+  if (cmd.enabled === false) return false;
+  return cmd.velocityMode ? (cmd.velocityTicksPerSec || 0) !== 0 : (cmd.power || 0) !== 0;
 }
