@@ -29,10 +29,11 @@ export const BRIO_4K_CAMERA = Object.freeze({
  * rollDeg = rotatie om de optische as (0 = liggend, 90 = portret: beeld-X, de lange 640-px-kant
  * met 66°, wijst dan omhoog).
  *
- * Standaard = PORTRET op 18,5 cm boven de mat, +22,5°, vóór de intake (zie fov-study: vloer-POLLEN én
- * tags van de omhoog-CELL in één beeld op ±75 % van de veldposities, tegen 0 % met de oude montage).
+ * Standaard = PORTRET op 16,5 cm boven de mat, +17,5°, vóór de intake (fov-study + #22-tweeak: vloer-POLLEN
+ * vanaf ±0,46 m i.p.v. 0,79 m zodat nabije ballen niet onder het beeld vallen; tags van de omhoog-CELL
+ * tegelijk op ±61 % van de veldposities / ±95 % van de schietzone, tegen 0 % met de oude montage).
  */
-export const DEFAULT_CAMERA_MOUNT = Object.freeze({ x: 0.24, y: 0, z: 0.141, pitchDeg: 22.5, rollDeg: 90 });
+export const DEFAULT_CAMERA_MOUNT = Object.freeze({ x: 0.24, y: 0, z: 0.121, pitchDeg: 17.5, rollDeg: 90 });
 
 /** Oude MJCF-pose van vóór de portretmontage (32,4 cm boven de mat, +39,7°, liggend). */
 export const LEGACY_CAMERA_MOUNT = Object.freeze({ x: 0.16, y: 0, z: 0.28, pitchDeg: 39.73, rollDeg: 0 });

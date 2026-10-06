@@ -145,12 +145,13 @@ De robotcamera (`robot_up_cam`) volgt de echte **Logitech Brio 4K**: diagonaal z
   - De rol zit in de montage (`mountQuat(pitch, roll)`), dus site/camera `robot_up_cam` draaien mee: de frustum-piramide en de AprilTag-/POLLEN-detectie werken in het **sensorframe** (640×480, beeld-X = lange kant, wijst omhoog). Zo levert de FTC-SDK het ook aan (VisionPortal draait een gedraaide webcam niet terug): blob-X = wereld-verticaal (klein = onder), blob-Y = wereld-horizontaal (klein = links), ROI's in datzelfde frame, `ftcPose` x/z gedraaid.
   - Het PiP-beeld draait de rol terug en is daardoor rechtop en smal-hoog (3:4 / 9:16).
 - **Camerapositie:** `webcam.camera.mount` = `{ x, y, z, pitchDeg, rollDeg }` in het robotframe (z vanaf de robot-oorsprong; lens boven de mat ≈ z + 0,044 m; `rollDeg` 90 = portret, −90 = andersom; zonder `rollDeg` volgt die uit `orientation`). Wordt bij het laden op site + camera `robot_up_cam` gezet (`applyCameraMount`), dus PiP, frustum, AprilTag- en POLLEN-detectie volgen. Ontbrekende velden = standaardmontage.
-- **Standaard: portret, lens 18,5 cm boven de mat, +22,5°, 90°, 640×480** → `mount: { "x": 0.24, "y": 0, "z": 0.141, "pitchDeg": 22.5, "rollDeg": 90 }` (vóór de intake, boven de intake-rollen). Geometriestudie op de echte scène (raster 5 cm × 72 richtingen, tag gezien = in het frustum, ≤ 2,5 m, facing ≥ 0,55; vloer = POLLEN zichtbaar vanaf ≤ 1 m; occlusie genegeerd):
+- **Standaard: portret, lens 16,5 cm boven de mat, +17,5°, 90°, 640×480** → `mount: { "x": 0.24, "y": 0, "z": 0.121, "pitchDeg": 17.5, "rollDeg": 90 }` (vóór de intake; bijgesteld t.o.v. #22 zodat nabije POLLEN niet onder het beeld vallen). Geometriestudie op de echte scène (raster 5 cm × 72 richtingen, tag gezien = in het frustum, ≤ 2,5 m, facing ≥ 0,55; vloer = POLLEN-midden in frustum; occlusie genegeerd):
 
   | Montage | Onderrand | Vloer vanaf | Tag 1,25 m vanaf | Veldposities | Poses | Afstand tot tags (p5–p95) | Schietzone gedekt |
   |---|---|---|---|---|---|---|---|
-  | **portret 18,5 cm, +22,5° (standaard)** | −10,7° | 0,79 m | 0,72 m | **72 %** | 11,4 % | 0,76–1,62 m | **96 %** |
-  | liggend, zelfde montage | −3,6° | 2,36 m | 0,93 m | 0 % | 0 % | — | 0 % |
+  | **portret 16,5 cm, +17,5° (standaard)** | −15,7° | 0,46 m | 0,88 m | **61 %** | 8,9 % | ~0,88–1,6 m | **95 %** |
+  | portret 18,5 cm, +22,5° (PR #22) | −10,7° | 0,79 m | 0,72 m | 72 % | 11,4 % | 0,76–1,62 m | 96 % |
+  | liggend, 18,5 cm / +22,5° | −3,6° | 2,36 m | 0,93 m | 0 % | 0 % | — | 0 % |
   | liggend laag 6,5 cm, +22,5° (`z: 0.021`) | −3,6° | 0,47 m | 1,04 m | 55 % | 9,6 % | 1,07–1,77 m | 93 % |
   | oud: liggend 32,4 cm, +39,7° (MJCF-pose) | +13,6° | nooit | 0,41 m | 0 % | 0 % | — | 0 % |
 

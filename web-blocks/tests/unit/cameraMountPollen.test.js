@@ -94,7 +94,7 @@ describe('Camera-montage (webcam.camera.mount)', () => {
     assert.equal(applyCameraMount(mujoco, model, {}, null), false);
   });
 
-  it('beide simulation.json-kopieën: portret, mount = standaard (18,5 cm boven de mat, +22,5°, vóór de intake)', () => {
+  it('beide simulation.json-kopieën: portret, mount = standaard (16,5 cm boven de mat, +17,5°, vóór de intake)', () => {
     for (const p of ['robots/BIOBUZZ/simulation.json', 'public/robots/BIOBUZZ/simulation.json']) {
       const cam = JSON.parse(read(p)).webcam.camera;
       assert.ok(cam.mount, `${p} heeft webcam.camera.mount`);
@@ -104,10 +104,10 @@ describe('Camera-montage (webcam.camera.mount)', () => {
       assert.deepEqual(resolveCameraConfig(cam).resolution, { width: 640, height: 480 });
       assert.equal(resolveCameraConfig(cam).defaultDfovDeg, 90);
     }
-    near(mountHeightAboveFloor(DEFAULT_CAMERA_MOUNT), 0.185, 0.002, 'lenshoogte boven de mat');
+    near(mountHeightAboveFloor(DEFAULT_CAMERA_MOUNT), 0.165, 0.002, 'lenshoogte boven de mat');
     assert.deepEqual(
       { x: DEFAULT_CAMERA_MOUNT.x, pitchDeg: DEFAULT_CAMERA_MOUNT.pitchDeg, rollDeg: DEFAULT_CAMERA_MOUNT.rollDeg },
-      { x: 0.24, pitchDeg: 22.5, rollDeg: 90 },
+      { x: 0.24, pitchDeg: 17.5, rollDeg: 90 },
     );
   });
 });
