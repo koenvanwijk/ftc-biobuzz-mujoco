@@ -199,8 +199,15 @@ export class DcMotorBridge {
     other?.[`set${prop}`]?.(v2);
   }
 
+  /**
+   * FTC-semantiek: true zolang RUN_TO_POSITION actief (power ≠ 0) naar het doel rijdt.
+   * Lokaal berekend (eigen mode/target/power + encoder), niet via de host-vlag die een frame achterloopt.
+   */
   isBusy() {
-    return !!this._readSensor().busy;
+    if (this._mode !== 'RUN_TO_POSITION' || !this._enabled) return false;
+    const driving = this._velocityMode ? this._velocityTicksPerSec !== 0 : this._power !== 0;
+    if (!driving) return false;
+    return Math.abs(this._targetPosition - this.getCurrentPosition()) > this._targetTolerance;
   }
 
   setMotorEnable() {
