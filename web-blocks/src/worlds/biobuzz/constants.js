@@ -1,4 +1,5 @@
 /** SI constants mirrored from ftc_sim/constants.py */
+import { DEFAULT_ROBOT_CAMERA_FOV } from '../../mujoco/robotCamera.js';
 
 export const FIELD_SIZE = 3.6576;
 export const HALF = FIELD_SIZE / 2.0;
@@ -97,4 +98,13 @@ export const NECTAR_DIA = 0.09144;
 export const ROBOT_UP_CAM_POS = [0.16, 0.0, 0.28];
 /** Look direction in robot frame ≈ normalize(0.77, 0, 0.64). */
 export const ROBOT_UP_CAM_LOOK = [0.77, 0.0, 0.64];
-export const ROBOT_UP_CAM_FOVY = 70;
+/**
+ * Logitech Brio 4K robot camera, default 90° diagonal preset (16:9 sensor) streamed at 640x480
+ * (4:3 center crop, vertical kept): vertical ≈ 52.2°, horizontal ≈ 66.3°.
+ * Source of truth: ../../mujoco/robotCamera.js (+ simulation.json webcam.camera); runtime
+ * preset changes go through viewer.setCameraFov / adapter.setCameraFov.
+ */
+export const ROBOT_UP_CAM_DFOV = DEFAULT_ROBOT_CAMERA_FOV.dfovDeg;
+export const ROBOT_UP_CAM_FOVY = DEFAULT_ROBOT_CAMERA_FOV.vfovDeg;
+export const ROBOT_UP_CAM_HFOV = DEFAULT_ROBOT_CAMERA_FOV.hfovDeg;
+export const ROBOT_UP_CAM_ASPECT = DEFAULT_ROBOT_CAMERA_FOV.aspect;

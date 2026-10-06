@@ -1426,7 +1426,16 @@ function createVisionPortalAccessNative() {
     setLiveViewContainerId(b, id) {
       if (b) b._cfg = { ...(b._cfg || {}), containerId: id };
     },
-    setCameraResolution() {},
+    setCameraResolution(b, width, height) {
+      // De sim krijgt de resolutie direct (beeldverhouding → zichtveld van PiP/detectie).
+      // Niet pas bij build(): argumenten komen als kopie uit de interpreter, dus
+      // wijzigingen aan b._cfg komen niet terug in de builder-variabele.
+      const w = Math.round(Number(width));
+      const h = Math.round(Number(height));
+      if (!(w >= 16 && h >= 16 && w <= 8192 && h <= 8192)) return;
+      if (b) b._cfg = { ...(b._cfg || {}), resolution: { width: w, height: h } };
+      pub({ jsId: '__camera', type: 'cameraResolution', width: w, height: h });
+    },
     addProcessor(b, processor) {
       if (b) {
         const procs = [...((b._cfg && b._cfg.processors) || []), processor];
@@ -1556,8 +1565,11 @@ function createColorBlobLocatorAccessNative() {
       let blobs = typeof snap.json === 'string' ? JSON.parse(snap.json) : (snap.json || []);
       const roi = s.roi;
       if (roi && roi.units !== 'ENTIRE') {
+        // Unity-coördinaten (−1…1) → pixels van het actuele camerabeeld (setCameraResolution).
+        const hw = (Number(snap.width) > 0 ? Number(snap.width) : 640) / 2;
+        const hh = (Number(snap.height) > 0 ? Number(snap.height) : 480) / 2;
         const bounds = roi.units === 'UNITY'
-          ? { left: 320 * (roi.left + 1), right: 320 * (roi.right + 1), top: 240 * (1 - roi.top), bottom: 240 * (1 - roi.bottom) }
+          ? { left: hw * (roi.left + 1), right: hw * (roi.right + 1), top: hh * (1 - roi.top), bottom: hh * (1 - roi.bottom) }
           : roi;
         blobs = blobs.filter((b) => {
           const c = b.Circle;

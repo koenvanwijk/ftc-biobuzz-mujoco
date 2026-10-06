@@ -8,6 +8,7 @@ import { yawPitchRollAnglesAccess } from '../../src/ftc-runtime/yawPitchRollAngl
 import { createAprilTagAccess } from '../../src/ftc-runtime/aprilTag.js';
 import { nullOrJson } from '../../src/ftc-runtime/helpers.js';
 import { quatToYawPitchRoll, computeAprilTagDetections } from '../../src/mujoco/simSensors.js';
+import { DEFAULT_ROBOT_CAMERA_FOV } from '../../src/mujoco/robotCamera.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -102,7 +103,7 @@ describe('quatToYawPitchRoll', () => {
 });
 
 describe('Synthetic AprilTag FOV', () => {
-  it('FOV cone rejects off-axis tags', () => {
+  it('FOV frustum (Brio 4K standaard) rejects off-axis tags', () => {
     // Camera at origin, look = +X. columns X=(0,1,0), Y=(0,0,1), Z=(-1,0,0) → look=-Z=+X
     const camMatRM = [0, 0, -1, 1, 0, 0, 0, 1, 0];
     // Tag Z = +X so printed −Z faces camera
@@ -127,7 +128,8 @@ describe('Synthetic AprilTag FOV', () => {
     let r = computeAprilTagDetections(mujoco, {}, data, {
       tagIds: [30],
       maxRangeM: 3,
-      fovyDeg: 70,
+      hfovDeg: DEFAULT_ROBOT_CAMERA_FOV.hfovDeg,
+      vfovDeg: DEFAULT_ROBOT_CAMERA_FOV.vfovDeg,
       minFacingDot: 0.55,
     });
     assert.equal(r.detections.length, 1);
@@ -138,7 +140,8 @@ describe('Synthetic AprilTag FOV', () => {
     r = computeAprilTagDetections(mujoco, {}, data, {
       tagIds: [30],
       maxRangeM: 3,
-      fovyDeg: 70,
+      hfovDeg: DEFAULT_ROBOT_CAMERA_FOV.hfovDeg,
+      vfovDeg: DEFAULT_ROBOT_CAMERA_FOV.vfovDeg,
       minFacingDot: 0.55,
     });
     assert.equal(r.detections.length, 0);

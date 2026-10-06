@@ -2,26 +2,46 @@
  * Shared IMU + synthetic AprilTag / color-blob computation from MuJoCo state.
  * Simulated extensions — not real CV / calibrated IMU.
  */
+import {
+  DEFAULT_ROBOT_CAMERA_FOV,
+  isInRectFrustum,
+  normalizeResolution,
+  resolveFovOpts,
+} from './robotCamera.js';
 
 const RAD2DEG = 180 / Math.PI;
 
 /**
- * Project the yellow BIOBUZZ pollen bodies into a synthetic 640x480 camera frame.
+ * Project the yellow BIOBUZZ pollen bodies into the synthetic robot-camera frame.
+ * Uses the same camera as the AprilTag detection: same site (robot_up_cam, so the same
+ * mount height/pitch), same rectangular frustum (hfovDeg × vfovDeg from the Brio 4K preset,
+ * see robotCamera.js) and the stream resolution (width × height, default 640×480).
+ * A pollen counts when its projected circle overlaps the image (edge blobs are clipped,
+ * as a real blob detector would see a partial ball).
  * The result mirrors the JSON fields exposed by FTC ColorBlobLocatorProcessor.Blob.
+ *
+ * @param {object} opts  { cameraSiteName, hfovDeg, vfovDeg, width, height, maxRangeM, pollenRadiusM }
+ *   Legacy `fovyDeg` alone still works (hfov derived from the image aspect).
  */
 export function computePollenColorBlobs(mujoco, model, data, opts = {}) {
   const {
     cameraSiteName = 'robot_up_cam',
-    width = 640,
-    height = 480,
-    fovyDeg = 70,
     maxRangeM = 3.5,
     pollenRadiusM = 0.03556,
   } = opts;
+  const res = normalizeResolution(opts.width, opts.height) || {
+    width: DEFAULT_ROBOT_CAMERA_FOV.width,
+    height: DEFAULT_ROBOT_CAMERA_FOV.height,
+  };
+  const { width, height } = res;
+  const { hfovDeg, vfovDeg } = resolveFovOpts({
+    ...opts,
+    aspect: Number(opts.aspect) > 0 ? Number(opts.aspect) : width / height,
+  });
   const SITE = mujoco.mjtObj.mjOBJ_SITE.value;
   const BODY = mujoco.mjtObj.mjOBJ_BODY.value;
   const camId = mujoco.mj_name2id(model, SITE, cameraSiteName);
-  if (camId < 0) return { blobs: [], json: '[]' };
+  if (camId < 0) return { blobs: [], json: '[]', width, height };
 
   const co = camId * 3;
   const cm = camId * 9;
@@ -30,8 +50,9 @@ export function computePollenColorBlobs(mujoco, model, data, opts = {}) {
   const up = matrixColumn(data.site_xmat, cm, 1);
   const z = matrixColumn(data.site_xmat, cm, 2);
   const forwardAxis = [-z[0], -z[1], -z[2]];
-  const fy = height / (2 * Math.tan((fovyDeg * Math.PI) / 360));
-  const fx = fy;
+  // Pinhole intrinsics from the rectangular frustum: the image edges are exactly ±hfov/2, ±vfov/2.
+  const fx = width / (2 * Math.tan((hfovDeg * Math.PI) / 360));
+  const fy = height / (2 * Math.tan((vfovDeg * Math.PI) / 360));
   const blobs = [];
 
   for (let bid = 0; bid < model.nbody; bid++) {
@@ -47,7 +68,7 @@ export function computePollenColorBlobs(mujoco, model, data, opts = {}) {
     if (forward <= pollenRadiusM || forward > maxRangeM) continue;
     const cx = width / 2 + (fx * dot3(d, right)) / forward;
     const cy = height / 2 - (fy * dot3(d, up)) / forward;
-    const radius = Math.max(1, (fy * pollenRadiusM) / forward);
+    const radius = Math.max(1, (Math.sqrt(fx * fy) * pollenRadiusM) / forward);
     if (cx + radius < 0 || cx - radius > width || cy + radius < 0 || cy - radius > height) continue;
 
     const left = Math.max(0, cx - radius);
@@ -87,7 +108,7 @@ export function computePollenColorBlobs(mujoco, model, data, opts = {}) {
     });
   }
   blobs.sort((a, b) => b.ContourArea - a.ContourArea);
-  return { blobs, json: JSON.stringify(blobs) };
+  return { blobs, json: JSON.stringify(blobs), width, height };
 }
 
 /** MuJoCo quat (w,x,y,z) → yaw/pitch/roll (ZYX / aerospace), radians. */
@@ -402,7 +423,10 @@ function makeSingleDetection(id, tagPos, pose, facing) {
  * Visibility:
  *  - in front of camera (FTC y > 0)
  *  - within maxRangeM
- *  - inside vertical FOV cone (fovyDeg, default 70 — matches robot_up_cam)
+ *  - inside the rectangular camera frustum: |horizontal angle| <= hfov/2 AND
+ *    |vertical angle| <= vfov/2 (hfovDeg/vfovDeg; default Logitech Brio 4K 90°
+ *    preset at 640x480 → ~66.3° x 52.2°, see robotCamera.js). Legacy `fovyDeg`
+ *    alone still works (hfov derived for 4:3).
  *  - tag printed face roughly toward camera (stricter facing dot)
  *
  * @returns {{ detections: object[], json: string }}
@@ -413,8 +437,8 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
     tagIds = null, // default 30..45
     maxRangeM = 2.5,
     minFacingDot = 0.55,
-    fovyDeg = 70,
   } = opts;
+  const { hfovDeg, vfovDeg } = resolveFovOpts(opts);
 
   const SITE = mujoco.mjtObj.mjOBJ_SITE.value;
   const camId = mujoco.mj_name2id(model, SITE, cameraSiteName);
@@ -442,9 +466,6 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
     up: axisY,
   };
 
-  const halfFov = ((fovyDeg / 2) * Math.PI) / 180;
-  const cosHalfFov = Math.cos(halfFov);
-
   const singleDetections = [];
   const visibleClusterMembers = new Map();
 
@@ -466,8 +487,10 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
       dx * camera.forward[0] + dy * camera.forward[1] + dz * camera.forward[2];
     if (forward <= 1e-4) continue;
 
-    // FOV cone: angle from optical axis must be <= fovy/2.
-    if (forward / range < cosHalfFov) continue;
+    // Rectangular frustum (camera frame X right, Y forward, Z up).
+    const camX = dx * camera.right[0] + dy * camera.right[1] + dz * camera.right[2];
+    const camZ = dx * camera.up[0] + dy * camera.up[1] + dz * camera.up[2];
+    if (!isInRectFrustum(camX, forward, camZ, hfovDeg, vfovDeg)) continue;
 
     // Tag local Z from site_xmat. Hive underside tags may expose either matrix
     // normal depending on mesh/site convention, so accept the stronger face.

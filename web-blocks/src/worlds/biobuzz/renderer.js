@@ -1,6 +1,7 @@
 import { publicUrl } from '../../publicUrl.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { DEFAULT_ROBOT_CAMERA_FOV } from '../../mujoco/robotCamera.js';
 
 /**
  * Three.js MuJoCo geom viewer (zalo-style): build meshes from model geoms,
@@ -64,11 +65,14 @@ export class MujocoThreeViewer {
     this._texLoader = new THREE.TextureLoader();
     this._aprilTextures = new Map();
 
-    // Second camera: robot upward view (PiP)
-    this.robotCam = new THREE.PerspectiveCamera(70, 1, 0.05, 40);
+    // Second camera: robot upward view (PiP) — Logitech Brio 4K (see robotCamera.js).
+    // Three.js fov = VERTICAL field of view; aspect from the stream resolution.
+    this._camFov = { ...DEFAULT_ROBOT_CAMERA_FOV };
+    this.robotCam = new THREE.PerspectiveCamera(this._camFov.vfovDeg, this._camFov.aspect, 0.05, 40);
     this.robotCam.up.set(0, 0, 1);
     this._robotCamSiteId = -1;
     this._frustumHelper = null;
+    this._frustumLines = null;
 
     this._onResize = () => this.resize();
     window.addEventListener('resize', this._onResize);
@@ -112,47 +116,50 @@ export class MujocoThreeViewer {
     ]);
     const dirLine = new THREE.Line(dirGeom, new THREE.LineBasicMaterial({ color: 0x33ddff }));
     group.add(dirLine);
-    // Frustum pyramid (approx fovy 70, aspect 4/3, near 0.15 far 0.55)
-    const fovy = (70 * Math.PI) / 180;
-    const aspect = 4 / 3;
-    const near = 0.12;
-    const far = 0.5;
-    const nh = Math.tan(fovy / 2) * near;
-    const nw = nh * aspect;
-    const fh = Math.tan(fovy / 2) * far;
-    const fw = fh * aspect;
-    // Camera looks along -Z; build near/far rects in cam frame
-    const pts = [
-      // near
-      new THREE.Vector3(-nw, -nh, -near),
-      new THREE.Vector3(nw, -nh, -near),
-      new THREE.Vector3(nw, nh, -near),
-      new THREE.Vector3(-nw, nh, -near),
-      // far
-      new THREE.Vector3(-fw, -fh, -far),
-      new THREE.Vector3(fw, -fh, -far),
-      new THREE.Vector3(fw, fh, -far),
-      new THREE.Vector3(-fw, fh, -far),
-    ];
-    const idx = [
-      0,1, 1,2, 2,3, 3,0,
-      4,5, 5,6, 6,7, 7,4,
-      0,4, 1,5, 2,6, 3,7,
-    ];
-    const positions = [];
-    for (let i = 0; i < idx.length; i++) {
-      const p = pts[idx[i]];
-      positions.push(p.x, p.y, p.z);
-    }
+    // Frustum pyramid: rectangular, same H/V field of view as the PiP + detection.
     const fGeom = new THREE.BufferGeometry();
-    fGeom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    fGeom.setAttribute('position', new THREE.Float32BufferAttribute(frustumLinePositions(this._camFov), 3));
     const frustum = new THREE.LineSegments(
       fGeom,
       new THREE.LineBasicMaterial({ color: 0x33ddff, transparent: true, opacity: 0.55 }),
     );
+    this._frustumLines = frustum;
     group.add(frustum);
     this.scene.add(group);
     this._frustumHelper = group;
+  }
+
+  /**
+   * Switch the robot camera field of view (Brio preset / stream resolution).
+   * Updates PiP projection + aspect, frustum gizmo and MuJoCo cam_fovy.
+   * @param {{ hfovDeg: number, vfovDeg: number, aspect: number }} fov
+   */
+  setCameraFov(fov) {
+    if (!fov || !(fov.vfovDeg > 0) || !(fov.aspect > 0)) return;
+    this._camFov = { ...fov };
+    this.robotCam.fov = fov.vfovDeg;
+    this.robotCam.aspect = fov.aspect;
+    this.robotCam.updateProjectionMatrix();
+    if (this._frustumLines) {
+      const geom = this._frustumLines.geometry;
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(frustumLinePositions(fov), 3));
+      geom.attributes.position.needsUpdate = true;
+      geom.computeBoundingSphere();
+    }
+    // MuJoCo camera (not used for the PiP — that is the Three.js robotCam — but keep in sync).
+    try {
+      const CAM = this.mujoco.mjtObj?.mjOBJ_CAMERA?.value;
+      const camId = CAM == null ? -1 : this.mujoco.mj_name2id(this.model, CAM, 'robot_up_cam');
+      if (camId >= 0 && this.model.cam_fovy) this.model.cam_fovy[camId] = fov.vfovDeg;
+    } catch {
+      /* cam_fovy not writable in this build — PiP is what matters */
+    }
+    this._layoutPipLabel();
+  }
+
+  /** Current robot camera field of view (for tests / debugging). */
+  get cameraFov() {
+    return { ...this._camFov };
   }
 
   async _preloadAprilTagTextures() {
@@ -369,7 +376,7 @@ export class MujocoThreeViewer {
     // Top-right corner; canvas is sized from its panel, so a small inset keeps the frame visible.
     const rightInset = 24;
     const pipW = Math.min(280, Math.max(140, Math.floor(cw * 0.24)));
-    const pipH = Math.floor(pipW * 0.75);
+    const pipH = Math.floor(pipW / (this._camFov?.aspect || 4 / 3));
     return { cw, ch, margin, rightInset, pipW, pipH };
   }
 
@@ -395,8 +402,8 @@ export class MujocoThreeViewer {
     this.canvas.style.height = '100%';
     this.camera.aspect = cw / Math.max(ch, 1);
     this.camera.updateProjectionMatrix();
-    // PiP aspect ~ 4:3
-    this.robotCam.aspect = 4 / 3;
+    // PiP aspect = camera stream aspect (4:3 for 640x480, 16:9 for 1280x720)
+    this.robotCam.aspect = this._camFov?.aspect || 4 / 3;
     this.robotCam.updateProjectionMatrix();
     this._layoutPipLabel();
   }
@@ -469,6 +476,24 @@ export class MujocoThreeViewer {
     this.controls.dispose();
     this.renderer.dispose();
   }
+}
+
+/** Line-segment positions (camera looks along -Z) for a rectangular H/V frustum. */
+function frustumLinePositions(fov, near = 0.12, far = 0.5) {
+  const th = Math.tan(((fov.hfovDeg || 66.34) / 2) * (Math.PI / 180));
+  const tv = Math.tan(((fov.vfovDeg || 52.23) / 2) * (Math.PI / 180));
+  const nw = th * near;
+  const nh = tv * near;
+  const fw = th * far;
+  const fh = tv * far;
+  const pts = [
+    [-nw, -nh, -near], [nw, -nh, -near], [nw, nh, -near], [-nw, nh, -near],
+    [-fw, -fh, -far], [fw, -fh, -far], [fw, fh, -far], [-fw, fh, -far],
+  ];
+  const idx = [0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7];
+  const out = [];
+  for (const i of idx) out.push(...pts[i]);
+  return out;
 }
 
 function makeCheckerTexture() {

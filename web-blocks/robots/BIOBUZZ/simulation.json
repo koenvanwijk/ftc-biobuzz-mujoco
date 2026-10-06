@@ -119,8 +119,31 @@
     "simulated": true,
     "cameraSite": "robot_up_cam",
     "aprilTagSites": "apriltag_30..apriltag_45",
-    "note": "Simulator extension \u2014 synthetic AprilTags, no real CV",
+    "note": "Simulator extension \u2014 synthetic AprilTags, no real CV. FOV = rectangular frustum from Logitech Brio 4K presets.",
     "enabled": true,
-    "world": "biobuzz"
+    "world": "biobuzz",
+    "camera": {
+      "model": "Logitech Brio 4K",
+      "shortName": "Brio 4K",
+      "nativeAspect": "16:9",
+      "dfovPresetsDeg": [
+        65,
+        78,
+        90
+      ],
+      "defaultDfovDeg": 90,
+      "resolution": {
+        "width": 640,
+        "height": 480
+      },
+      "mount": {
+        "x": 0.16,
+        "y": 0,
+        "z": 0.28,
+        "pitchDeg": 39.73,
+        "note": "robot_up_cam pose in the robot frame (x forward, y left, z up from the robot body origin, ~0.044 m above the mat; lens height above mat = z + 0.044). pitchDeg = optical axis above horizontal. Applied to site + camera at load; used by PiP, frustum, AprilTag and POLLEN detection. Default = MJCF pose (32 cm above mat, +39.7 deg): the floor is never in view. To see floor POLLEN and the raised CELL tags in one frame (fov-study): x = 0.24 (in front of the intake), z = 0.021 (~6.5 cm above mat), pitchDeg = 22.5 (bottom image edge ~horizontal), 90 deg preset; both visible ~1.05-1.8 m from the tags."
+      },
+      "note": "Diagonal FOV presets (Logi Tune / G HUB). 640x480 = 4:3 center crop of the 16:9 sensor (vertical FOV kept): 90\u00b0 \u2192 66.3\u00b0 x 52.2\u00b0 (H x V). Derived in src/mujoco/robotCamera.js."
+    }
   }
 }

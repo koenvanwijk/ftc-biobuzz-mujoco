@@ -120,11 +120,30 @@ worden in hetzelfde (gespiegelde) frame gerapporteerd. Idle-teleop en `web/` geb
 | crServo | crServoAsCRServo | `|power|>0.3` forceert rear eject (zoals hold C) |
 | Voltage / hub | … | stubs ongewijzigd |
 | imu | imuAsIMU | **Simulated** body yaw/pitch/roll (zie `extensions.md`) |
-| Webcam 1 | aprilTagAccess / colorBlobLocatorAccess / visionPortalAccess | **Simulated** AprilTags en gele POLLEN-color-blobs op BIOBUZZ |
+| Webcam 1 | aprilTagAccess / colorBlobLocatorAccess / visionPortalAccess | **Simulated** AprilTags en gele POLLEN-color-blobs op BIOBUZZ; geen CV. Camera = **Logitech Brio 4K** (zie hieronder) |
 
 Details: `robots/BIOBUZZ/simulation.json`. Soft devices hebben geen MJCF-joint; encoders voor flywheel/intake blijven 0 (commando’s in telemetry/HUD).
 
 Wheel-encoders (`left_wheel_j` / `right_wheel_j`) blijven beschikbaar voor EncoderAuto / RUN_TO_POSITION.
+
+### Robotcamera: Logitech Brio 4K
+
+De robotcamera (`robot_up_cam`) volgt de echte **Logitech Brio 4K**: diagonaal zichtveld **90°** (standaard), **78°** of **65°** (zoals in Logi Tune / G HUB), native 16:9. FTC streamt standaard **640×480** (4:3): een uitsnede die het verticale zichtveld behoudt.
+
+| Preset (diagonaal) | Verticaal | Horizontaal 16:9 (1280×720) | Horizontaal 4:3 (640×480) |
+|---|---|---|---|
+| 90° (standaard) | 52,2° | 82,1° | 66,3° |
+| 78° | 43,3° | 70,4° | 55,8° |
+| 65° | 34,7° | 58,1° | 45,2° |
+
+- **Eén bron:** `simulation.json` → `webcam.camera` (model, `dfovPresetsDeg`, `defaultDfovDeg`, resolutie); H/V worden in code afgeleid (`src/mujoco/robotCamera.js`, unit-getest). Dezelfde waarden sturen het PiP-camerabeeld (Three.js `robotCam`), de frustum-piramide, de AprilTag-detectie en de POLLEN-kleur-blob-detectie (`computePollenColorBlobs`: zelfde H × V, beeldmaat = streamresolutie, ook voor unity-ROI's).
+- **Keuzelijst "Camera-zichtveld"** in de sim-HUD; keuze bewaard in `localStorage` (`ftc-sim-camera-dfov-v1`). Wisselen werkt direct.
+- **Zichtbaarheid = rechthoekig frustum:** |horizontale hoek| ≤ H/2 én |verticale hoek| ≤ V/2 in het cameraframe (niet langer een kegel), plus bereik 2,5 m en facing-drempel.
+- **`setCameraResolution`** (VisionPortal.Builder) stuurt de resolutie naar de sim; 1280×720 geeft dus 16:9 met het volle horizontale zichtveld. Terug naar 640×480 bij de volgende INIT of *Reset sim*.
+- MJCF `fovy` van `robot_up_cam` = 52,2 (verticaal bij 90°); bij een andere preset wordt `model.cam_fovy` bijgewerkt. Het PiP-beeld komt uit de Three.js-camera, niet uit de MuJoCo-renderer.
+- **Camerapositie:** `webcam.camera.mount` = `{ x, y, z, pitchDeg }` in het robotframe (z vanaf de robot-oorsprong; lens boven de mat ≈ z + 0,044 m). Wordt bij het laden op site + camera `robot_up_cam` gezet (`applyCameraMount`), dus PiP, frustum, AprilTag- en POLLEN-detectie volgen. Standaard = MJCF-pose (32 cm boven de mat, +39,7°): de vloer is dan nooit in beeld.
+- **Vloer-POLLEN én hoge CELL-tags in één beeld** (geometriestudie op de echte scène): lens ±6,5 cm boven de mat vóór de intake, +22,5° omhoog (onderrand ≈ horizontaal), preset 90° → `mount: { "x": 0.24, "z": 0.021, "pitchDeg": 22.5 }`. Vloer zichtbaar vanaf ±0,47 m, tags van de omhoog-CELL (1,25 m) vanaf ±1,04 m; beide tegelijk op ±1,05–1,8 m van de tags, ±55 % van de veldposities. 78°/65° zijn hiervoor te smal verticaal. Occlusie niet meegenomen.
+- Niet gemodelleerd: lensvervorming, autofocus/zoom (Brio digitale zoom/RightLight), exacte sensor-uitsnede per resolutie.
 
 
 

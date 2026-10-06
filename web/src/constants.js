@@ -97,4 +97,15 @@ export const NECTAR_DIA = 0.09144;
 export const ROBOT_UP_CAM_POS = [0.16, 0.0, 0.28];
 /** Look direction in robot frame ≈ normalize(0.77, 0, 0.64). */
 export const ROBOT_UP_CAM_LOOK = [0.77, 0.0, 0.64];
-export const ROBOT_UP_CAM_FOVY = 70;
+/**
+ * Logitech Brio 4K robot camera, 90° diagonal preset (16:9 sensor) streamed at 640x480
+ * (4:3 center crop, vertical kept): vertical 52.2°, horizontal 66.3°.
+ */
+export const ROBOT_UP_CAM_DFOV = 90;
+export const ROBOT_UP_CAM_ASPECT = 4 / 3;
+const _tanHalfD = Math.tan((ROBOT_UP_CAM_DFOV / 2) * (Math.PI / 180));
+const _tanHalfV = _tanHalfD / Math.hypot(16 / 9, 1); // 16:9 sensor; 4:3 crop keeps vertical
+/** Vertical FOV (deg) ≈ 52.2 — also MuJoCo `fovy` of robot_up_cam. */
+export const ROBOT_UP_CAM_FOVY = (2 * Math.atan(_tanHalfV) * 180) / Math.PI;
+/** Horizontal FOV (deg) at 4:3 ≈ 66.3. */
+export const ROBOT_UP_CAM_HFOV = (2 * Math.atan(_tanHalfV * ROBOT_UP_CAM_ASPECT) * 180) / Math.PI;

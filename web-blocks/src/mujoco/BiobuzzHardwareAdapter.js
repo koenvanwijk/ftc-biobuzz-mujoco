@@ -24,6 +24,7 @@ import { FieldBoundsReturn } from '../worlds/biobuzz/field_bounds.js';
 import { HOPPER_CAPACITY, NECTAR_HOPPER_CAPACITY } from '../worlds/biobuzz/constants.js';
 import { mapIntakePower, mapFlywheelEdge, mapPollenServoEdge } from './biobuzzMapping.js';
 import { readImuFromBody, computeAprilTagDetections, computePollenColorBlobs } from './simSensors.js';
+import { DEFAULT_ROBOT_CAMERA_FOV } from './robotCamera.js';
 
 export class BiobuzzHardwareAdapter {
   constructor(mujoco, model, data, simConfig) {
@@ -219,6 +220,15 @@ export class BiobuzzHardwareAdapter {
     this._lastCmds = Object.create(null);
   }
 
+  /** Robotcamera-zichtveld (Brio 4K preset + resolutie), zie robotCamera.js. */
+  get cameraFov() {
+    return this._cameraFov || DEFAULT_ROBOT_CAMERA_FOV;
+  }
+
+  setCameraFov(fov) {
+    if (fov && fov.hfovDeg > 0 && fov.vfovDeg > 0) this._cameraFov = { ...fov };
+  }
+
   readSensors() {
     const out = Object.create(null);
     for (const jsId of Object.keys(this._motorMeta)) {
@@ -234,7 +244,8 @@ export class BiobuzzHardwareAdapter {
     const april = computeAprilTagDetections(this.mujoco, this.model, this.data, {
       cameraSiteName: 'robot_up_cam',
       maxRangeM: 2.5,
-      fovyDeg: 70,
+      hfovDeg: this.cameraFov.hfovDeg,
+      vfovDeg: this.cameraFov.vfovDeg,
       minFacingDot: 0.55,
     });
     if (april.json !== this._aprilJson) {
@@ -246,8 +257,20 @@ export class BiobuzzHardwareAdapter {
       generation: this._aprilGen || 0,
       count: april.detections.length,
     };
-    const pollen = computePollenColorBlobs(this.mujoco, this.model, this.data);
-    out.colorBlobDetections = { json: pollen.json, count: pollen.blobs.length };
+    // Zelfde camera als AprilTag: zelfde site/montage, preset (H×V) en streamresolutie.
+    const pollen = computePollenColorBlobs(this.mujoco, this.model, this.data, {
+      cameraSiteName: 'robot_up_cam',
+      hfovDeg: this.cameraFov.hfovDeg,
+      vfovDeg: this.cameraFov.vfovDeg,
+      width: this.cameraFov.width,
+      height: this.cameraFov.height,
+    });
+    out.colorBlobDetections = {
+      json: pollen.json,
+      count: pollen.blobs.length,
+      width: pollen.width,
+      height: pollen.height,
+    };
     this._aprilCount = april.detections.length;
     return out;
   }

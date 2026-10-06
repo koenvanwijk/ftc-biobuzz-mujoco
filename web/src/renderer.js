@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { ROBOT_UP_CAM_FOVY, ROBOT_UP_CAM_ASPECT } from './constants.js';
 
 /**
  * Three.js MuJoCo geom viewer (zalo-style): build meshes from model geoms,
@@ -64,7 +65,7 @@ export class MujocoThreeViewer {
     this._aprilTextures = new Map();
 
     // Second camera: robot upward view (PiP)
-    this.robotCam = new THREE.PerspectiveCamera(70, 1, 0.05, 40);
+    this.robotCam = new THREE.PerspectiveCamera(ROBOT_UP_CAM_FOVY, ROBOT_UP_CAM_ASPECT, 0.05, 40);
     this.robotCam.up.set(0, 0, 1);
     this._robotCamSiteId = -1;
     this._frustumHelper = null;
@@ -111,9 +112,9 @@ export class MujocoThreeViewer {
     ]);
     const dirLine = new THREE.Line(dirGeom, new THREE.LineBasicMaterial({ color: 0x33ddff }));
     group.add(dirLine);
-    // Frustum pyramid (approx fovy 70, aspect 4/3, near 0.15 far 0.55)
-    const fovy = (70 * Math.PI) / 180;
-    const aspect = 4 / 3;
+    // Frustum pyramid: Logitech Brio 4K 90° preset at 640x480 (vfov 52.2°, 4:3 → hfov 66.3°)
+    const fovy = (ROBOT_UP_CAM_FOVY * Math.PI) / 180;
+    const aspect = ROBOT_UP_CAM_ASPECT;
     const near = 0.12;
     const far = 0.5;
     const nh = Math.tan(fovy / 2) * near;
@@ -368,7 +369,7 @@ export class MujocoThreeViewer {
     // Keep whole cyan frame clear of the panel/splitter edge (48px was still clipped).
     const rightInset = Math.max(100, Math.min(220, Math.round(cw * 0.2)));
     const pipW = Math.min(280, Math.max(140, Math.floor(cw * 0.24)));
-    const pipH = Math.floor(pipW * 0.75);
+    const pipH = Math.floor(pipW / ROBOT_UP_CAM_ASPECT);
     return { cw, ch, margin, rightInset, pipW, pipH };
   }
 
@@ -394,7 +395,7 @@ export class MujocoThreeViewer {
     this.camera.aspect = cw / Math.max(ch, 1);
     this.camera.updateProjectionMatrix();
     // PiP aspect ~ 4:3
-    this.robotCam.aspect = 4 / 3;
+    this.robotCam.aspect = ROBOT_UP_CAM_ASPECT;
     this.robotCam.updateProjectionMatrix();
     this._layoutPipLabel();
   }

@@ -105,7 +105,12 @@ export function createVisionPortalAccess() {
     setLiveViewContainerId(builder, id) {
       if (builder) builder._cfg = { ...builder._cfg, containerId: id };
     },
-    setCameraResolution(builder) {
+    setCameraResolution(builder, width, height) {
+      const w = Math.round(Number(width));
+      const h = Math.round(Number(height));
+      if (builder && w >= 16 && h >= 16) {
+        builder._cfg = { ...builder._cfg, resolution: { width: w, height: h } };
+      }
       return builder;
     },
     addProcessor(builder, processor) {
@@ -120,6 +125,7 @@ export function createVisionPortalAccess() {
         __type: 'VisionPortal',
         camera: cfg.camera,
         processors: cfg.processors || [],
+        ...(cfg.resolution ? { resolution: { ...cfg.resolution } } : {}),
       };
     },
 

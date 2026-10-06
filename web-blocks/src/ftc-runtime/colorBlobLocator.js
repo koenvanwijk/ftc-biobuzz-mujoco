@@ -30,8 +30,11 @@ export function createColorBlobLocatorAccess(readDetections) {
       let blobs = typeof snap.json === 'string' ? JSON.parse(snap.json) : (snap.json || []);
       const roi = processor && processor.roi;
       if (roi && roi.units !== 'ENTIRE') {
+        // Unity-coördinaten (−1…1) → pixels van het actuele camerabeeld (setCameraResolution).
+        const hw = (Number(snap.width) > 0 ? Number(snap.width) : 640) / 2;
+        const hh = (Number(snap.height) > 0 ? Number(snap.height) : 480) / 2;
         const bounds = roi.units === 'UNITY'
-          ? { left: 320 * (roi.left + 1), right: 320 * (roi.right + 1), top: 240 * (1 - roi.top), bottom: 240 * (1 - roi.bottom) }
+          ? { left: hw * (roi.left + 1), right: hw * (roi.right + 1), top: hh * (1 - roi.top), bottom: hh * (1 - roi.bottom) }
           : roi;
         blobs = blobs.filter((b) => {
           const c = b.Circle;

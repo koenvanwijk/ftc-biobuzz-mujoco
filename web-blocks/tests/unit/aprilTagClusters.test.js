@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { computeAprilTagDetections } from '../../src/mujoco/simSensors.js';
+import { DEFAULT_ROBOT_CAMERA_FOV } from '../../src/mujoco/robotCamera.js';
 
 const CAM_MAT = [0, 0, -1, -1, 0, 0, 0, 1, 0];
 const TAG_MAT = [0, 0, 1, 0, 1, 0, -1, 0, 0];
@@ -51,7 +52,8 @@ function detect(tagIds, bodyMatrix = IDENTITY) {
   return computeAprilTagDetections(mujoco, model, data, {
     tagIds,
     maxRangeM: 3,
-    fovyDeg: 70,
+    hfovDeg: DEFAULT_ROBOT_CAMERA_FOV.hfovDeg,
+    vfovDeg: DEFAULT_ROBOT_CAMERA_FOV.vfovDeg,
     minFacingDot: 0.55,
   }).detections;
 }
