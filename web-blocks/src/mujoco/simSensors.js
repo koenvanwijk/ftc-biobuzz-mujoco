@@ -68,8 +68,22 @@ export function computePollenColorBlobs(mujoco, model, data, opts = {}) {
       ArcLength: circumference,
       Circularity: 1,
       ContourPoints: points,
-      BoxFit: { center: { x: cx, y: cy }, size: { width: 2 * clippedRadius, height: 2 * clippedRadius }, angle: 0 },
-      Circle: { center: { x: cx, y: cy }, radius: clippedRadius },
+      // Property names follow the FTC Blocks generators: RotatedRect uses center/size/angle/boundingRect/points,
+      // Circle uses X/Y/Radius/Center (circle_getProperty_* emits `circle.X`, `circle.Center`, ...).
+      BoxFit: {
+        center: { x: cx, y: cy },
+        size: { width: 2 * clippedRadius, height: 2 * clippedRadius },
+        angle: 0,
+        boundingRect: {
+          x: Math.floor(cx - clippedRadius), y: Math.floor(cy - clippedRadius),
+          width: Math.ceil(2 * clippedRadius), height: Math.ceil(2 * clippedRadius),
+        },
+        points: [
+          { x: cx - clippedRadius, y: cy + clippedRadius }, { x: cx - clippedRadius, y: cy - clippedRadius },
+          { x: cx + clippedRadius, y: cy - clippedRadius }, { x: cx + clippedRadius, y: cy + clippedRadius },
+        ],
+      },
+      Circle: { X: cx, Y: cy, Radius: clippedRadius, Center: { x: cx, y: cy } },
     });
   }
   blobs.sort((a, b) => b.ContourArea - a.ContourArea);

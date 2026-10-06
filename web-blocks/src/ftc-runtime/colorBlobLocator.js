@@ -34,8 +34,8 @@ export function createColorBlobLocatorAccess(readDetections) {
           ? { left: 320 * (roi.left + 1), right: 320 * (roi.right + 1), top: 240 * (1 - roi.top), bottom: 240 * (1 - roi.bottom) }
           : roi;
         blobs = blobs.filter((b) => {
-          const c = b.Circle && b.Circle.center;
-          return c && c.x >= bounds.left && c.x <= bounds.right && c.y >= bounds.top && c.y <= bounds.bottom;
+          const c = b.Circle;
+          return c && c.X >= bounds.left && c.X <= bounds.right && c.Y >= bounds.top && c.Y <= bounds.bottom;
         });
       }
       for (const f of (processor && processor.filters) || []) {

@@ -4,8 +4,8 @@ import { createColorBlobLocatorAccess } from '../../src/ftc-runtime/colorBlobLoc
 import { opencvAccess } from '../../src/ftc-runtime/opencv.js';
 
 const blobs = [
-  { ContourArea: 100, Density: 1, Circle: { center: { x: 100, y: 100 }, radius: 6 } },
-  { ContourArea: 400, Density: 1, Circle: { center: { x: 500, y: 300 }, radius: 12 } },
+  { ContourArea: 100, Density: 1, Circle: { X: 100, Y: 100, Radius: 6, Center: { x: 100, y: 100 } } },
+  { ContourArea: 400, Density: 1, Circle: { X: 500, Y: 300, Radius: 12, Center: { x: 500, y: 300 } } },
 ];
 
 describe('ColorBlobLocator simulated runtime', () => {

@@ -1452,9 +1452,13 @@ function createVisionPortalAccessNative() {
       return 30;
     },
     setProcessorEnabled(_p, processor, enabled) {
-      if (processor) processor.enabled = !!enabled;
+      const s = visionState(processor);
+      if (s) s.enabled = !!enabled;
+      else if (processor) processor.enabled = !!enabled;
     },
     getProcessorEnabled(_p, processor) {
+      const s = visionState(processor);
+      if (s) return s.enabled !== false;
       return processor ? processor.enabled !== false : false;
     },
     close(p) {
@@ -1496,47 +1500,76 @@ function createVisionPortalAccessNative() {
   };
 }
 
+/**
+ * Vision objects (ColorBlobLocator builders/processors/filters) cross the JS-Interpreter boundary as
+ * copies (pseudoToNative/nativeToPseudo), so mutations on an argument would be lost. They therefore
+ * travel as `{ __type, __handle }` and their state lives here. Reset per OpMode in bindSimulatedSensors.
+ */
+let visionHandles = new Map();
+let nextVisionHandle = 1;
+function visionHandle(type, state) {
+  const id = nextVisionHandle++;
+  visionHandles.set(id, state);
+  return { __type: type, __handle: id };
+}
+function visionState(obj) {
+  if (obj && typeof obj === 'object' && obj.__handle != null) return visionHandles.get(obj.__handle) || null;
+  return null;
+}
+
+const COLOR_BLOB_VALUE_KEY = {
+  BY_CONTOUR_AREA: 'ContourArea', BY_DENSITY: 'Density',
+  BY_ASPECT_RATIO: 'AspectRatio', BY_ARC_LENGTH: 'ArcLength',
+  BY_CIRCULARITY: 'Circularity',
+};
+
 function createColorBlobLocatorAccessNative() {
-  const valueKey = {
-    BY_CONTOUR_AREA: 'ContourArea', BY_DENSITY: 'Density',
-    BY_ASPECT_RATIO: 'AspectRatio', BY_ARC_LENGTH: 'ArcLength',
-    BY_CIRCULARITY: 'Circularity',
-  };
-  const set = (b, key, value) => { if (b) b._cfg = { ...(b._cfg || {}), [key]: value }; };
+  const valueKey = COLOR_BLOB_VALUE_KEY;
+  const cfgOf = (b) => { const s = visionState(b); return s ? s.cfg : null; };
+  const set = (b, key, value) => { const cfg = cfgOf(b); if (cfg) cfg[key] = value; };
   const api = {
-    createColorBlobLocatorProcessorBuilder: () => ({ __type: 'ColorBlobLocatorProcessor.Builder', _cfg: {} }),
-    buildColorBlobLocatorProcessor: (b) => ({
-      __type: 'ColorBlobLocatorProcessor', enabled: true, filters: [], ...((b && b._cfg) || {}),
+    createColorBlobLocatorProcessorBuilder: () => visionHandle('ColorBlobLocatorProcessor.Builder', { cfg: {} }),
+    buildColorBlobLocatorProcessor: (b) => visionHandle('ColorBlobLocatorProcessor', {
+      enabled: true, filters: [], sort: null, ...(cfgOf(b) || {}),
     }),
-    addFilter(p, f) { if (p && f) p.filters = [...(p.filters || []), f]; },
-    removeFilter(p, f) { if (p) p.filters = (p.filters || []).filter((x) => x !== f); },
-    removeAllFilters(p) { if (p) p.filters = []; },
-    setSort(p, sort) { if (p) p.sort = sort; },
-    createColorBlobLocatorProcessorBlobFilter: (criteria, minValue, maxValue) => ({ criteria, minValue, maxValue }),
+    addFilter(p, f) {
+      const s = visionState(p);
+      if (s && f) s.filters = [...s.filters, f];
+    },
+    removeFilter(p, f) {
+      const s = visionState(p);
+      if (s && f) s.filters = s.filters.filter((x) => x.__handle !== f.__handle);
+    },
+    removeAllFilters(p) { const s = visionState(p); if (s) s.filters = []; },
+    setSort(p, sort) { const s = visionState(p); if (s) s.sort = sort; },
+    createColorBlobLocatorProcessorBlobFilter: (criteria, minValue, maxValue) => {
+      const f = { criteria, minValue, maxValue };
+      return { ...f, ...visionHandle('ColorBlobLocatorProcessor.BlobFilter', f) };
+    },
     createColorBlobLocatorProcessorBlobSort: (criteria, sortOrder) => ({ criteria, sortOrder }),
     getBlobs(processor) {
-      if (processor && processor.enabled === false) return '[]';
-      const namedColor = processor && processor.targetColorRange && processor.targetColorRange.name;
+      const s = visionState(processor);
+      if (!s || s.enabled === false) return '[]';
+      const namedColor = s.targetColorRange && s.targetColorRange.name;
       if (namedColor && namedColor !== 'YELLOW') return '[]';
       const snap = sensorState.colorBlobDetections || { json: '[]' };
       let blobs = typeof snap.json === 'string' ? JSON.parse(snap.json) : (snap.json || []);
-      const roi = processor && processor.roi;
+      const roi = s.roi;
       if (roi && roi.units !== 'ENTIRE') {
         const bounds = roi.units === 'UNITY'
           ? { left: 320 * (roi.left + 1), right: 320 * (roi.right + 1), top: 240 * (1 - roi.top), bottom: 240 * (1 - roi.bottom) }
           : roi;
         blobs = blobs.filter((b) => {
-          const c = b.Circle && b.Circle.center;
-          return c && c.x >= bounds.left && c.x <= bounds.right && c.y >= bounds.top && c.y <= bounds.bottom;
+          const c = b.Circle;
+          return c && c.X >= bounds.left && c.X <= bounds.right && c.Y >= bounds.top && c.Y <= bounds.bottom;
         });
       }
-      for (const f of (processor && processor.filters) || []) {
+      for (const f of s.filters) {
         const key = valueKey[f.criteria];
         if (key) blobs = blobs.filter((b) => b[key] >= f.minValue && b[key] <= f.maxValue);
       }
-      const sort = processor && processor.sort;
-      const key = sort && valueKey[sort.criteria];
-      if (key) blobs.sort((a, b) => (sort.sortOrder === 'ASCENDING' ? 1 : -1) * (a[key] - b[key]));
+      const key = s.sort && valueKey[s.sort.criteria];
+      if (key) blobs.sort((a, b) => (s.sort.sortOrder === 'ASCENDING' ? 1 : -1) * (a[key] - b[key]));
       return JSON.stringify(blobs);
     },
   };
@@ -1547,6 +1580,52 @@ function createColorBlobLocatorAccessNative() {
   return api;
 }
 
+/**
+ * Global helpers emitted by the ColorBlobLocatorProcessor.Util blocks (colorBlobsFilterByArea(...) etc.).
+ * Like the Java Util methods they modify the passed (interpreter) list in place.
+ */
+function bindColorBlobUtil(interp, globalObject) {
+  const readList = (list) => {
+    const n = Number(interp.getProperty(list, 'length')) || 0;
+    const items = [];
+    for (let i = 0; i < n; i++) {
+      const el = interp.getProperty(list, i);
+      let nat = null;
+      try { nat = interp.pseudoToNative(el); } catch (_) { nat = null; }
+      items.push({ el, nat });
+    }
+    return items;
+  };
+  const writeList = (list, items) => {
+    items.forEach((it, i) => interp.setProperty(list, i, it.el));
+    interp.setProperty(list, 'length', items.length);
+  };
+  const value = (it, key) => Number(it.nat && it.nat[key]);
+  const filterBy = (key, min, max, list) => {
+    if (!key || !list || list.class !== 'Array') return;
+    writeList(list, readList(list).filter((it) => value(it, key) >= min && value(it, key) <= max));
+  };
+  const sortBy = (key, order, list) => {
+    if (!key || !list || list.class !== 'Array') return;
+    const sign = String(order) === 'ASCENDING' ? 1 : -1;
+    writeList(list, readList(list).sort((a, b) => sign * (value(a, key) - value(b, key))));
+  };
+  const fns = {
+    colorBlobsFilterByCriteria: (c, min, max, list) => filterBy(COLOR_BLOB_VALUE_KEY[c], min, max, list),
+    colorBlobsSortByCriteria: (c, order, list) => sortBy(COLOR_BLOB_VALUE_KEY[c], order, list),
+    colorBlobsFilterByArea: (min, max, list) => filterBy('ContourArea', min, max, list),
+    colorBlobsSortByArea: (order, list) => sortBy('ContourArea', order, list),
+    colorBlobsFilterByDensity: (min, max, list) => filterBy('Density', min, max, list),
+    colorBlobsSortByDensity: (order, list) => sortBy('Density', order, list),
+    colorBlobsFilterByAspectRatio: (min, max, list) => filterBy('AspectRatio', min, max, list),
+    colorBlobsSortByAspectRatio: (order, list) => sortBy('AspectRatio', order, list),
+  };
+  for (const [name, fn] of Object.entries(fns)) {
+    interp.setProperty(globalObject, name, interp.createNativeFunction(fn));
+  }
+  // BlobFilter/BlobSort getter blocks: getObjectViaJson(miscAccess, obj).criteria — our objects are plain already.
+  interp.setProperty(globalObject, 'getObjectViaJson', interp.createNativeFunction((_misc, obj) => obj));
+}
 
 function createElapsedTimeAccessNative() {
   const normalizeResolution = (resolution) => {
@@ -1868,6 +1947,8 @@ function wrapNativeAccess(interp, native) {
 }
 
 function bindSimulatedSensors(interp, globalObject) {
+  visionHandles = new Map();
+  nextVisionHandle = 1;
   const aprilNative = createAprilTagAccessNative();
   const colorBlobNative = createColorBlobLocatorAccessNative();
   const opencvNative = {
@@ -1945,6 +2026,7 @@ function bindSimulatedSensors(interp, globalObject) {
   interp.setProperty(globalObject, 'aprilTagAccess', wrapNativeAccess(interp, aprilNative));
   interp.setProperty(globalObject, 'colorBlobLocatorAccess', wrapNativeAccess(interp, colorBlobNative));
   interp.setProperty(globalObject, 'opencvAccess', wrapNativeAccess(interp, opencvNative));
+  bindColorBlobUtil(interp, globalObject);
   interp.setProperty(globalObject, 'visionPortalAccess', wrapNativeAccess(interp, visionNative));
   interp.setProperty(globalObject, 'exposureControlAccess', wrapNativeAccess(interp, exposureControlAccessNative));
   interp.setProperty(globalObject, 'gainControlAccess', wrapNativeAccess(interp, gainControlAccessNative));
