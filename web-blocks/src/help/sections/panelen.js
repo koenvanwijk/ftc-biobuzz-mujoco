@@ -8,7 +8,7 @@ export default {
   <thead><tr><th>Paneel</th><th>Wat zie je?</th></tr></thead>
   <tbody>
     <tr><td><strong>Blocks</strong></td><td>De officiële FTC Blocks-editor (offline, in een iframe). Hier bouw je je OpMode met blokken.</td></tr>
-    <tr><td><strong>Sim</strong></td><td>De MuJoCo-simulatie van het BIOBUZZ-veld met de robot. Bovenaan een HUD (Hopper, AprilTags, Rear, Score, Intake, Control: Teleop of OpMode) met rechts de keuzelijst <strong>Camera-zichtveld</strong> (zie hieronder). Rechtsboven in beeld het <em>camerabeeld van de robot</em>; de lichtblauwe piramide op de robot laat zien wat die camera ziet. Ook een virtuele gamepad (L↑/L↓/R↑/R↓) die je met de muis kunt indrukken.</td></tr>
+    <tr><td><strong>Sim</strong></td><td>De MuJoCo-simulatie van het BIOBUZZ-veld met de robot. Bovenaan een HUD (Hopper, AprilTags, Rear, Score, Intake, Control: Teleop of OpMode) met rechts de keuzelijst <strong>Camera-zichtveld</strong> en het vinkje <strong>Portret</strong> (zie hieronder). Rechtsboven in beeld het <em>camerabeeld van de robot</em>; de lichtblauwe piramide op de robot laat zien wat die camera ziet. Ook een virtuele gamepad (L↑/L↓/R↑/R↓) die je met de muis kunt indrukken.</td></tr>
     <tr><td><strong>Code</strong></td><td>Vier stukken onder elkaar: <em>Telemetry</em> (de telemetry van je OpMode plus mechanisme-status; de hoogte is te slepen), <em>JS (gegenereerd)</em>, <em>Java (preview)</em> en de <em>Runtime-log</em> (meldingen en fouten).</td></tr>
   </tbody>
 </table>
@@ -32,19 +32,27 @@ export default {
   </tbody>
 </table>
 <ul>
-  <li>Een andere stand past meteen het camerabeeld rechtsboven, de blauwe piramide en de <strong>AprilTag-detectie</strong> aan. Naast de keuzelijst staat het huidige zichtveld en de resolutie.</li>
+  <li>Een andere stand past meteen het camerabeeld rechtsboven, de blauwe piramide en de <strong>AprilTag-detectie</strong> aan. Naast de keuzelijst staat het huidige zichtveld (H × V zoals je het rechtop ziet) en de resolutie.</li>
   <li>FTC streamt standaard <strong>640×480</strong> (4:3). Dat is een uitsnede uit het 16:9-beeld van de Brio: de hoogte blijft gelijk, de zijkanten vallen weg. Zet je OpMode met <code>setCameraResolution</code> bijvoorbeeld 1280×720, dan wordt het beeld breder (16:9) tot de volgende INIT of Reset sim.</li>
   <li>Een tag telt als <em>gezien</em> als hij binnen de rechthoek van het beeld valt (horizontaal én verticaal binnen het zichtveld), binnen 2,5&nbsp;m, en ongeveer naar de camera gericht is.</li>
   <li>De keuze blijft bewaard in je browser (<code>localStorage</code>, sleutel <code>ftc-sim-camera-dfov-v1</code>).</li>
   <li>De <strong>POLLEN-detectie</strong> (ColorBlobLocator) gebruikt precies dezelfde camera: zelfde stand, resolutie en positie. Een bal telt als hij (deels) in het beeld valt.</li>
 </ul>
-<h3>Camerapositie en kanteling</h3>
-<p>Waar de camera op de robot zit, stel je in <code>robots/BIOBUZZ/simulation.json</code> → <code>webcam.camera.mount</code> in: <code>x</code> (vooruit), <code>y</code> (links), <code>z</code> (omhoog, vanaf de robot-oorsprong; lenshoogte boven de mat ≈ <code>z</code> + 4,4&nbsp;cm) en <code>pitchDeg</code> (graden omhoog). Standaard: lens 32&nbsp;cm boven de mat, 39,7° omhoog. Daarmee zie je de tags goed, maar de vloer nooit.</p>
-<p><strong>POLLEN op de vloer én de tags van de omhoog-CELL in één beeld?</strong> Dat kan met één camera als je hem laag zet en schuin omhoog laat kijken, zodat de onderrand van het beeld ongeveer horizontaal ligt:</p>
+<h3>Portret: camera 90° gedraaid (standaard)</h3>
+<p>Standaard zit de camera <strong>op zijn kant</strong> (portret, 90° om de lens gedraaid). Het beeld wordt dan smal en hoog: bij 640×480 en stand 90° is het rechtop <strong>52° breed × 66° hoog</strong> (480×640), bij 1280×720 zelfs 52° × 82°. Zo passen de POLLEN op de vloer én de AprilTags van de omhoog-CELL samen in één beeld, ook als de camera wat hoger zit.</p>
 <ul>
-  <li>lens ±6,5&nbsp;cm boven de mat, vóór de intake (<code>x: 0.24, z: 0.021</code>), <code>pitchDeg: 22.5</code>, stand <strong>90°</strong>;</li>
-  <li>dan zie je de vloer vanaf ±0,5&nbsp;m en de hoge tags (1,25&nbsp;m) vanaf ±1&nbsp;m: beide tegelijk als de robot <strong>±1,05–1,8&nbsp;m</strong> van de tags staat en naar de HIVE kijkt (±55&nbsp;% van de veldposities);</li>
-  <li>78° en 65° hebben te weinig verticaal zichtveld hiervoor. Met de standaardpositie lukt het nergens.</li>
+  <li>Het vinkje <strong>Portret</strong> naast de keuzelijst zet de camera direct terug op liggend (of weer op portret). Bewaard in je browser (<code>ftc-sim-camera-orientation-v1</code>).</li>
+  <li>Het camerabeeld rechtsboven staat rechtop (smal en hoog); de blauwe piramide draait mee.</li>
+  <li><strong>Let op:</strong> de detecties komen, net als op de echte robot, uit het <em>sensorbeeld</em> van 640×480, dat 90° gedraaid is. De FTC-SDK draait een gedraaide webcam niet terug. Bij POLLEN-blobs is <code>X</code> dan "omhoog/omlaag" (kleine X = onderaan in de wereld) en <code>Y</code> "links/rechts" (kleine Y = links). Ook bij AprilTags zijn x/z van <code>ftcPose</code> (en dus bearing/elevation) gedraaid. ROI's gelden ook in dat sensorbeeld.</li>
+</ul>
+<h3>Camerapositie en kanteling</h3>
+<p>Waar de camera op de robot zit, stel je in <code>robots/BIOBUZZ/simulation.json</code> → <code>webcam.camera</code> in: <code>orientation</code> (<code>"portrait"</code> of <code>"landscape"</code>) en <code>mount</code> met <code>x</code> (vooruit), <code>y</code> (links), <code>z</code> (omhoog, vanaf de robot-oorsprong; lenshoogte boven de mat ≈ <code>z</code> + 4,4&nbsp;cm), <code>pitchDeg</code> (graden omhoog) en <code>rollDeg</code> (90 = portret; −90 als de camera andersom gedraaid zit).</p>
+<p><strong>Standaard</strong> (uit de geometriestudie): portret, lens <strong>18,5&nbsp;cm</strong> boven de mat vóór de intake (<code>x: 0.24, z: 0.141</code>), <code>pitchDeg: 22.5</code>, stand <strong>90°</strong>, 640×480.</p>
+<ul>
+  <li>Je ziet de vloer vanaf ±0,8&nbsp;m en de hoge tags (1,25&nbsp;m) vanaf ±0,7&nbsp;m: beide tegelijk als de robot <strong>±0,8–1,6&nbsp;m</strong> van de tags staat en naar de HIVE kijkt. Dat lukt op ±72&nbsp;% van de veldposities, en tijdens het richten op ±96&nbsp;% van de plekken waar de sim-shooter een POLLEN in de CELL krijgt (schietafstand ±1,1–1,5&nbsp;m).</li>
+  <li>Liggend op dezelfde plek lukt het nergens (onderrand pas −3,6°: vloer pas vanaf ±2,4&nbsp;m). Liggend kan alleen heel laag (±6,5&nbsp;cm boven de mat, <code>z: 0.021</code>, +22,5°: ±55&nbsp;% van de posities).</li>
+  <li>De oude positie (32&nbsp;cm boven de mat, +39,7°, liggend) ziet de tags goed, maar de vloer nooit.</li>
+  <li>78° en 65° hebben te weinig zichtveld hiervoor. Occlusie (HIVE-poten, eigen intake, andere robots) is niet meegenomen.</li>
 </ul>
 
 <h3>Weergaveknoppen: Blocks / Sim / Code / Gelijk</h3>

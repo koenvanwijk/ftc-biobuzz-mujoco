@@ -37,12 +37,13 @@ function quatToMat([w, x, y, z]) {
 const col = (m, c) => [m[c], m[3 + c], m[6 + c]];
 
 describe('Camera-montage (webcam.camera.mount)', () => {
-  it('zonder mount → null (MJCF-pose blijft); resolveCameraConfig geeft mount door', () => {
+  it('resolveCameraMount(null) → null; resolveCameraConfig vult altijd de standaardmontage aan', () => {
     assert.equal(resolveCameraMount(undefined), null);
-    assert.equal(resolveCameraConfig({}).mount, null);
+    assert.deepEqual(resolveCameraConfig({}).mount, { ...DEFAULT_CAMERA_MOUNT });
     assert.deepEqual(resolveCameraConfig({ mount: { z: 0.04, pitchDeg: 26 } }).mount, {
-      x: DEFAULT_CAMERA_MOUNT.x, y: 0, z: 0.04, pitchDeg: 26,
+      x: DEFAULT_CAMERA_MOUNT.x, y: 0, z: 0.04, pitchDeg: 26, rollDeg: 90,
     });
+    assert.equal(resolveCameraConfig({ orientation: 'landscape', mount: { z: 0.04 } }).mount.rollDeg, 0);
   });
 
   it('ongeldige of extreme waarden: standaard resp. begrensd', () => {
@@ -82,21 +83,32 @@ describe('Camera-montage (webcam.camera.mount)', () => {
       mj_name2id: (_m, t, n) => (n !== 'robot_up_cam' ? -1 : t === 6 ? 1 : 0),
       mj_forward: () => { forwards++; },
     };
-    assert.equal(applyCameraMount(mujoco, model, {}, { x: 0.2, z: 0.03, pitchDeg: 26 }), true);
+    assert.equal(applyCameraMount(mujoco, model, {}, { x: 0.2, z: 0.03, pitchDeg: 26, rollDeg: 0 }), true);
     assert.deepEqual(Array.from(model.site_pos.slice(3)), [0.2, 0, 0.03]);
     assert.deepEqual(Array.from(model.cam_pos), [0.2, 0, 0.03]);
     assert.deepEqual(Array.from(model.site_quat.slice(4)), mountQuat(26));
-    assert.equal(forwards, 1);
+    // Zonder rollDeg: standaardrol (portret, 90°).
+    applyCameraMount(mujoco, model, {}, { x: 0.2, z: 0.03, pitchDeg: 26 });
+    assert.deepEqual(Array.from(model.cam_quat), mountQuat(26, 90));
+    assert.equal(forwards, 2);
     assert.equal(applyCameraMount(mujoco, model, {}, null), false);
   });
 
-  it('beide simulation.json-kopieën: mount = huidige pose (geen gedragswijziging)', () => {
+  it('beide simulation.json-kopieën: portret, mount = standaard (18,5 cm boven de mat, +22,5°, vóór de intake)', () => {
     for (const p of ['robots/BIOBUZZ/simulation.json', 'public/robots/BIOBUZZ/simulation.json']) {
-      const m = JSON.parse(read(p)).webcam.camera.mount;
-      assert.ok(m, `${p} heeft webcam.camera.mount`);
-      assert.deepEqual(resolveCameraMount(m), { ...DEFAULT_CAMERA_MOUNT });
+      const cam = JSON.parse(read(p)).webcam.camera;
+      assert.ok(cam.mount, `${p} heeft webcam.camera.mount`);
+      assert.equal(cam.orientation, 'portrait');
+      assert.deepEqual(resolveCameraMount(cam.mount), { ...DEFAULT_CAMERA_MOUNT });
+      assert.deepEqual(resolveCameraConfig(cam).mount, { ...DEFAULT_CAMERA_MOUNT });
+      assert.deepEqual(resolveCameraConfig(cam).resolution, { width: 640, height: 480 });
+      assert.equal(resolveCameraConfig(cam).defaultDfovDeg, 90);
     }
-    near(mountHeightAboveFloor(DEFAULT_CAMERA_MOUNT), 0.324, 0.002, 'lenshoogte boven de mat');
+    near(mountHeightAboveFloor(DEFAULT_CAMERA_MOUNT), 0.185, 0.002, 'lenshoogte boven de mat');
+    assert.deepEqual(
+      { x: DEFAULT_CAMERA_MOUNT.x, pitchDeg: DEFAULT_CAMERA_MOUNT.pitchDeg, rollDeg: DEFAULT_CAMERA_MOUNT.rollDeg },
+      { x: 0.24, pitchDeg: 22.5, rollDeg: 90 },
+    );
   });
 });
 
