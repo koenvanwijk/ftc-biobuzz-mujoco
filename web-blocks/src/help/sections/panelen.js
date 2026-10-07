@@ -8,7 +8,7 @@ export default {
   <thead><tr><th>Paneel</th><th>Wat zie je?</th></tr></thead>
   <tbody>
     <tr><td><strong>Blocks</strong></td><td>De officiële FTC Blocks-editor (offline, in een iframe). Hier bouw je je OpMode met blokken.</td></tr>
-    <tr><td><strong>Sim</strong></td><td>De MuJoCo-simulatie van het BIOBUZZ-veld met de robot. Bovenaan een HUD (Hopper, AprilTags, Rear, Score, Intake, Control: Teleop of OpMode) met rechts de keuzelijst <strong>Camera-zichtveld</strong> en het vinkje <strong>Portret</strong> (zie hieronder). Rechtsboven in beeld het <em>camerabeeld van de robot</em>; de lichtblauwe piramide op de robot laat zien wat die camera ziet. Ook een virtuele gamepad (L↑/L↓/R↑/R↓) die je met de muis kunt indrukken.</td></tr>
+    <tr><td><strong>Sim</strong></td><td>De MuJoCo-simulatie van het BIOBUZZ-veld met de robot. Bovenaan een HUD (Robot x&nbsp;/&nbsp;4, Hopper, Rear, AprilTags, Score, Intake, Control: Teleop of OpMode) met rechts de keuzelijst <strong>Camera-zichtveld</strong> en het vinkje <strong>Portret</strong> (zie hieronder). Linksboven in beeld het <strong>score-paneel</strong> (zie hieronder), rechtsboven het <em>camerabeeld van de robot</em>; de lichtblauwe piramide op de robot laat zien wat die camera ziet. Ook een virtuele gamepad (L↑/L↓/R↑/R↓) die je met de muis kunt indrukken.</td></tr>
     <tr><td><strong>Code</strong></td><td>Vier stukken onder elkaar: <em>Telemetry</em> (de telemetry van je OpMode plus mechanisme-status; de hoogte is te slepen), <em>JS (gegenereerd)</em>, <em>Java (preview)</em> en de <em>Runtime-log</em> (meldingen en fouten).</td></tr>
   </tbody>
 </table>
@@ -20,6 +20,30 @@ export default {
   <li><strong>INIT</strong> draait dat JavaScript in een aparte worker. De OpMode stuurt motoren en servo's aan in de <strong>Sim</strong>.</li>
   <li>Sensoren (encoders, IMU, AprilTags) en je gamepad/toetsen gaan de andere kant op: van de sim naar je blokken. Telemetry en fouten komen terug in het <strong>Code</strong>-paneel.</li>
 </ol>
+
+<h3>Score-paneel en spelregels (Competition Manual TU03)</h3>
+<p>Linksboven in het simbeeld staat de score per alliantie (<span style="color:#ff7b7b">Rood</span> / <span style="color:#7bb4ff">Blauw</span>), volgens §10.5 en Table 10-2/10-3. Klik op de kop om het paneel in of uit te klappen; in een smal simpaneel klapt het vanzelf in (alleen de totalen) en in een heel smal simpaneel verdwijnt het (de totalen staan altijd ook in de HUD bij <strong>Score</strong>). Het getal tussen haakjes is het aantal (TIPs, elementen, FLOWERS).</p>
+<table class="help-table">
+  <thead><tr><th>Rij</th><th>Punten</th><th>Wanneer?</th></tr></thead>
+  <tbody>
+    <tr><td><strong>HIVE TIP</strong></td><td>20</td><td>Live, elke keer dat de eigen HIVE kantelt.</td></tr>
+    <tr><td><strong>In CELL</strong></td><td>2 per element</td><td>POLLEN/NECTAR die stil in de omhoog-CELL van de eigen HIVE ligt.</td></tr>
+    <tr><td><strong>BLOEM eigenaar</strong></td><td>2 per element</td><td>Alle elementen in een FLOWER (tussen middelste en bovenste ring) waarvan jouw NECTAR de bovenste is.</td></tr>
+    <tr><td><strong>Onderste NECTAR</strong></td><td>+5 per FLOWER</td><td>Jouw NECTAR is de onderste scorende NECTAR in die FLOWER.</td></tr>
+    <tr><td><strong>GARDEN</strong></td><td>1 per element</td><td>POLLEN/NECTAR (deels) in de eigen GARDEN.</td></tr>
+    <tr><td><strong>LEAVE*</strong></td><td>3</td><td>Indicatief: de robot raakt de muur niet meer. Blijft staan tot <em>Reset sim</em>.</td></tr>
+    <tr><td><strong>PARK* (nu)</strong></td><td>5</td><td>Indicatief: "als nu geparkeerd" — de robot staat nu (deels) in de eigen LOADING ZONE.</td></tr>
+    <tr><td><strong>SWARM* RP</strong></td><td>1 RP</td><td>LEAVE + PARK samen ≥ 16 (met één robot haal je hier max. 8).</td></tr>
+    <tr><td><strong>POLLINATOR RP</strong></td><td>1 + 1 RP</td><td>≥ 4 TIPS en ≥ 7 TIPS.</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li>CELL, FLOWER, onderste NECTAR en GARDEN rekent de sim uit de <em>huidige</em> veldtoestand: "als de wedstrijd nu zou eindigen". Alleen elementen die <strong>stilliggen</strong> en niet in de robot zitten tellen; rolt er nog iets, dan staat dat onder de tabel.</li>
+  <li><strong>* Indicatief:</strong> er is nog <strong>geen wedstrijdklok</strong> (AUTO/TELEOP). Daarom tellen AUTO PARK, WIN/TIE en fouten/penalty's niet mee, en zegt LEAVE niet of het in AUTO gebeurde.</li>
+  <li><strong>HIVE kantelt</strong> bij <strong>8 POLLEN</strong> of <strong>3 NECTAR + 3 POLLEN</strong> in de omhoog-CELL (Event Field Setup Guide §12.3). Bij de start liggen er al 3 NECTAR in, dus 3 POLLEN erin schieten kantelt de HIVE.</li>
+  <li><strong>G407:</strong> de robot mag maximaal <strong>4</strong> elementen tegelijk hebben (voorhopper + achtercompartiment samen). Hij start met 4 preload-POLLEN, dus eerst schieten voordat de intake iets nieuws oppakt. HUD: <em>Robot x&nbsp;/&nbsp;4</em> (oranje = vol).</li>
+  <li>Je robot hoort bij <strong>rood</strong>. Omdat de LOADING ZONE in de sim nog niet precies volgens het handboek ligt, staat PARK* bij de start al op 5.</li>
+</ul>
 
 <h3>Robotcamera en Camera-zichtveld</h3>
 <p>De gesimuleerde robotcamera is een <strong>Logitech Brio 4K</strong>, net als op de echte robot. Die camera heeft drie standen voor het (diagonale) zichtveld; die kies je op de echte camera met Logi Tune of G HUB, en in de sim met de keuzelijst <strong>Camera-zichtveld</strong> in de HUD:</p>

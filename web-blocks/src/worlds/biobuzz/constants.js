@@ -18,6 +18,12 @@ export const DRIVE_LINEAR_ACCEL = 2.4; // m/s² ≈ 0.30 m to top speed
 export const INTAKE_CAPTURE_R = 0.14;
 export const NECTAR_INTAKE_CAPTURE_R = 0.16;
 export const NECTAR_HOPPER_CAPACITY = 4; // rear mixed FIFO; full at 4
+/**
+ * G407 (Competition Manual TU03): een ROBOT mag nooit meer dan 4 SCORING ELEMENTS (POLLEN + NECTAR)
+ * tegelijk CONTROLLEREN. Geldt voor voorhopper + achtercompartiment samen; gelanceerde,
+ * uitgespuugde of in een FLOWER geplaatste elementen tellen niet meer mee.
+ */
+export const ROBOT_CONTROL_LIMIT = 4;
 export const NECTAR_HOPPER_LOCAL_SLOTS = [
   [-0.08, 0.0, 0.12],
   [-0.08, 0.05, 0.16],
@@ -26,16 +32,13 @@ export const NECTAR_HOPPER_LOCAL_SLOTS = [
 ];
 export const SHOOT_SPEED = 5.7;
 export const SHOOT_ELEVATION_DEG = 75.0;
-export const HOPPER_CAPACITY = 8;
+/** Voorhopper: max 4 (G407; was 8). De 4 preload-POLLEN (G304.G) vullen hem bij de start. */
+export const HOPPER_CAPACITY = 4;
 export const HOPPER_LOCAL_SLOTS = [
   [0.02, 0.0, 0.1],
   [-0.02, 0.0, 0.1],
   [0.02, 0.04, 0.14],
-  [-0.02, 0.04, 0.14],
-  [0.02, -0.04, 0.14],
   [-0.02, -0.04, 0.14],
-  [0.0, 0.0, 0.18],
-  [0.0, 0.0, 0.22],
 ];
 
 /** Staging indices 24–27 are the 4 preload pollen. */
@@ -62,8 +65,12 @@ export const CELL_SHELLS = {
   blue_audience: { open_sign: -1.0 },
   blue_scoring: { open_sign: 1.0 },
 };
+/**
+ * HIVE kantelt (Event Field Setup Guide §12.3, HIVE-kalibratie): bij 8 POLLEN, of bij
+ * 3 NECTAR + 3 POLLEN in de omhoog-CELL (telling, geen gewichtsmodel).
+ */
 export const TIP_NECTAR_REQUIRED = 3;
-export const TIP_POLLEN_WITH_NECTAR = 4;
+export const TIP_POLLEN_WITH_NECTAR = 3;
 export const TIP_POLLEN_ALONE = 8;
 export const TIP_POINTS = 20;
 export const TILE_THICKNESS = 0.015;
@@ -92,6 +99,14 @@ export const FLOWER_PLACE_RANGE = 0.55;
 export const FLOWER_NECTAR_PLACE_Z = TILE_THICKNESS + FLOWER_FLOOR_H + NECTAR_R + 0.001;
 export const FLOWER_PLANT_CAPACITY = 8; // soft cap mixed nectar+pollen stack
 export const POLLEN_DIA = 0.07112;
+/**
+ * FLOWER-scoringsvolume (TU03 §10.5.2): tussen de middelste en de bovenste ring. Middelste ring ≈
+ * onderring 1,0 cm + Retrieval Opening 9,0 cm (§9.7) boven de TILES; bovenrand 54,6 cm. Benadering
+ * zonder CAD Reference 10-4. Straal = binnenkant van de 4 in-opening.
+ */
+export const FLOWER_SCORE_Z_MIN = 0.10;
+export const FLOWER_SCORE_Z_MAX = 0.546;
+export const FLOWER_SCORE_R = 0.0508 + 0.005;
 export const NECTAR_DIA = 0.09144;
 
 /** Robot upward camera local pose (robot frame), above hopper. Look ≈ normalize(0.77, 0, 0.64). */

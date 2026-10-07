@@ -45,5 +45,6 @@ Legenda: **W** = working · **P** = partial · **U** = unsupported (faalt luid)
 | flywheel | velocity joint | soft shoot edge-trigger (P) |
 | pollenServo | position joint | soft place edge-trigger (P) |
 | crServo | velocity joint | soft rear eject while powered (P) |
-| Hive tip / scoring | n/a | W (copied controllers) |
+| Hive tip / scoring | n/a | W — tip bij 8 POLLEN of 3 NECTAR + 3 POLLEN (Guide §12.3); score per alliantie volgens TU03 §10.5 / Table 10-2/10-3 uit de veldtoestand (TIP live; CELL/FLOWER/bonus/GARDEN in rust). Geen klok: LEAVE/PARK/SWARM indicatief, geen AUTO PARK/WIN/TIE/fouten (P) |
+| G407 control limit | n/a | W — max 4 elementen (voor + achter), intake weigert de 5e; start vol met 4 preload (G304.G) |
 | Idle keyboard teleop | gamepad1 overrides only | Full BIOBUZZ teleop when OpMode idle (W) |

@@ -122,8 +122,10 @@ HIVE_UPWARD_CELL = {
     "red": {0: "red_audience", 1: "red_scoring"},
     "blue": {0: "blue_scoring", 1: "blue_audience"},
 }
+# HIVE tips at 8 POLLEN, or 3 NECTAR + 3 POLLEN in the upward CELL
+# (Event Field Setup Guide §12.3, HIVE calibration; count-based, no weight model).
 TIP_NECTAR_REQUIRED = 3
-TIP_POLLEN_WITH_NECTAR = 4
+TIP_POLLEN_WITH_NECTAR = 3
 TIP_POLLEN_ALONE = 8
 TIP_POINTS = 20  # points awarded to that alliance color per HIVE tip
 # Extra nectar appears in alliance loading area after each tip

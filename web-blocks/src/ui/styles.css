@@ -290,6 +290,38 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
 .cam-fov-info { align-self: center; white-space: nowrap; }
 .cam-portrait-toggle { display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap; }
 .cam-portrait-toggle input { margin: 0; }
+#hudControl.is-full { color: #ffb347; }
+
+/* BIOBUZZ-score (TU03 §10.5): compact, linksboven in het simbeeld (PiP zit rechtsboven, gamepad linksonder). */
+.score-panel {
+  position: absolute; left: 0.5rem; top: 2.4rem; z-index: 3;
+  min-width: 10.5rem; max-width: 13.5rem;
+  background: rgba(15, 20, 28, 0.82); border: 1px solid var(--border); border-radius: 6px;
+  font-size: 0.7rem; color: var(--muted); line-height: 1.25;
+  overflow: auto;
+}
+.score-head {
+  display: flex; align-items: center; gap: 0.4rem; width: 100%;
+  padding: 0.2rem 0.4rem; background: transparent; border: 0; color: var(--text);
+  font: inherit; font-weight: 600; cursor: pointer; text-align: left;
+}
+.score-sum { margin-left: auto; font-variant-numeric: tabular-nums; }
+.score-caret { opacity: 0.7; }
+.score-panel.is-collapsed { min-width: 0; }
+.score-panel.is-tiny { display: none; } /* heel smal simpaneel: totalen staan in de HUD (Score) */
+.score-panel.is-collapsed .score-body { display: none; }
+.score-panel.is-collapsed .score-caret { transform: rotate(-90deg); }
+.score-body { padding: 0 0.4rem 0.3rem; }
+.score-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.score-table th, .score-table td { padding: 0.05rem 0.2rem; text-align: right; white-space: nowrap; }
+.score-table th:first-child, .score-table td:first-child { text-align: left; padding-left: 0; }
+.score-table td small { opacity: 0.65; font-size: 0.62rem; }
+.score-table tr.score-total td { border-top: 1px solid var(--border); color: var(--text); font-weight: 600; }
+.score-table tr.score-rp td { font-size: 0.64rem; }
+.score-table .rp-yes { color: #7bd88f; }
+.sc-red { color: #ff7b7b; }
+.sc-blue { color: #7bb4ff; }
+.score-note { margin: 0.2rem 0 0; font-size: 0.6rem; opacity: 0.8; }
 .example-picker { display: flex; flex-direction: column; font-size: 0.7rem; color: var(--muted); gap: 0.15rem; }
 
 @media (max-width: 1100px) {

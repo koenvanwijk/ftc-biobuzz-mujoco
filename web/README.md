@@ -71,7 +71,7 @@ cp ../ftc_sim/assets/textures/*.png public/assets/textures/
 3. Three.js bouwt meshes uit MuJoCo-geoms (`mesh_vert`/`mesh_face` voor CAD)
 4. Elke frame: controls → `mech.update()` → `mj_step` (substeps) → sync `geom_xpos`/`geom_xmat`
 
-Intake/shooter is dezelfde benadering als `ftc_sim/mechanisms.py` (capture-zone + 7 m/s @ 75° boog). HIVE tip: `hive_tip.js` (3 nectar+4 pollen of 8 pollen).
+Intake/shooter is dezelfde benadering als `ftc_sim/mechanisms.py` (capture-zone + 7 m/s @ 75° boog). HIVE tip: `hive_tip.js` (3 nectar + 3 pollen of 8 pollen, Event Field Setup Guide §12.3). De G407-limiet (max 4 elementen) en de score volgens TU03 §10.5 zitten alleen in `web-blocks/`; deze viewer houdt de oude hopper (8 + 4).
 
 ## Beperkingen
 
