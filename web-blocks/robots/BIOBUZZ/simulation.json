@@ -141,10 +141,10 @@
       "mount": {
         "x": 0.24,
         "y": 0,
-        "z": 0.141,
-        "pitchDeg": 22.5,
+        "z": 0.121,
+        "pitchDeg": 17.5,
         "rollDeg": 90,
-        "note": "robot_up_cam pose in the robot frame (x forward, y left, z up from the robot body origin, ~0.044 m above the mat; lens height above mat = z + 0.044). pitchDeg = optical axis above horizontal, rollDeg = rotation about the optical axis (90 = portrait, image X up). Applied to site + camera at load; used by PiP, frustum, AprilTag and POLLEN detection. Default (fov-study): portrait, lens 18.5 cm above the mat in front of the intake (x 0.24), +22.5 deg, 90 deg preset, 640x480: floor POLLEN (from ~0.8 m) and the raised CELL tags in one frame on ~72% of field positions, ~0.76-1.62 m from the tags, ~96% of the (assumed) shooting zone while aiming. Old MJCF pose (x 0.16, z 0.28, +39.73 deg, landscape): floor never in view (0%)."
+        "note": "robot_up_cam pose in the robot frame (x forward, y left, z up from the robot body origin, ~0.044 m above the mat; lens height above mat = z + 0.044). pitchDeg = optical axis above horizontal, rollDeg = rotation about the optical axis (90 = portrait, image X up). Applied to site + camera at load; used by PiP, frustum, AprilTag and POLLEN detection. Default (fov-study, tweaked after #22): portrait, lens 16.5 cm above the mat in front of the intake (x 0.24), +17.5 deg, 90 deg preset, 640x480: floor POLLEN from ~0.46 m (was ~0.79 m at 18.5 cm/+22.5\u00b0 which looked over nearer balls) and raised CELL tags in one frame on ~61% of field positions, ~0.88\u20131.6 m from the tags, ~95% of the (assumed) shooting zone while aiming. Old MJCF pose (x 0.16, z 0.28, +39.73 deg, landscape): floor never in view (0%)."
       },
       "note": "Diagonal FOV presets (Logi Tune / G HUB). 640x480 = 4:3 center crop of the 16:9 sensor (vertical FOV kept): 90\u00b0 \u2192 66.3\u00b0 x 52.2\u00b0 (H x V). Derived in src/mujoco/robotCamera.js."
     }

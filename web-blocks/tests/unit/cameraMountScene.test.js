@@ -1,6 +1,6 @@
 /**
  * Echte BIOBUZZ-scène (MuJoCo WASM):
- * - standaard = portret (90° gedraaid), lens 18,5 cm boven de mat, +22,5°: vanaf ±1,2 m tegelijk een
+ * - standaard = portret (90° gedraaid), lens 16,5 cm boven de mat, +17,5°: vanaf ±1,2 m tegelijk een
  *   POLLEN op de vloer en de tags van de omhoog-CELL; liggend op dezelfde plek niet;
  * - lage liggende montage (6,5 cm, +22,5°) kan het ook; de oude MJCF-pose (32 cm, +39,7°) alleen de tags.
  */
@@ -85,25 +85,37 @@ describe('Camera-montage in de echte scène', () => {
     assert.ok(Math.abs(legacy.camZ - 0.339) < 0.005, 'LEGACY_CAMERA_MOUNT = MJCF-pose');
   });
 
-  it('standaard uit simulation.json (portret, 18,5 cm, +22,5°): vloer-POLLEN én omhoog-CELL-tags in één beeld', () => {
+  it('standaard uit simulation.json (portret, 16,5 cm, +17,5°): vloer-POLLEN én omhoog-CELL-tags in één beeld', () => {
     const mount = resolveCameraConfig(SIM_CAMERA).mount;
     assert.equal(mount.rollDeg, 90);
     const r = detect(mount, 1.1);
-    assert.ok(Math.abs(r.camZ - 0.2) < 0.005, `lens op ±20 cm wereld-z (18,5 cm boven de mat): ${r.camZ}`);
+    assert.ok(Math.abs(r.camZ - 0.18) < 0.005, `lens op ±18 cm wereld-z (16,5 cm boven de mat): ${r.camZ}`);
     // Sensorframe draait mee: beeld-X (640 px) wijst omhoog (rechtop gezet beeld = 480×640).
     assert.ok(r.xmat[6] > 0.9, `beeld-X wijst omhoog: ${r.xmat}`);
     assert.equal(r.fov.viewWidth, 480);
     assert.equal(r.fov.viewHeight, 640);
     assert.ok(r.tags.some((d) => d.metadata.name === 'BLUE SCORING'), JSON.stringify(r.tags.map((d) => d.metadata.name)));
     // POLLEN recht vooruit op de vloer: onderaan in de wereld = kleine X in het sensorbeeld, Y ≈ midden.
-    const floorBlob = r.pollen.blobs.find((b) => b.Circle.X < 64 && Math.abs(b.Circle.Y - 240) < 3);
+    const floorBlob = r.pollen.blobs.find((b) => b.Circle.X < 200 && Math.abs(b.Circle.Y - 240) < 3);
     assert.ok(floorBlob, `POLLEN onderin het (rechtop gezette) beeld: ${r.pollen.json}`);
+    // Nabije bal ±0,75 m vóór het robotmidden (= ±0,51 m vóór de lens): in beeld na de tweak
+    // (vóór #22-tweeak: pas vanaf ±0,79 m vóór de lens ≈ ±1,0 m vóór het robotmidden).
+    const near = detect(mount, 0.75);
+    assert.ok(
+      near.pollen.blobs.some((b) => b.Circle.X < 120 && Math.abs(b.Circle.Y - 240) < 5),
+      `nabije POLLEN in beeld: ${near.pollen.json}`,
+    );
   });
 
-  it('zelfde montage liggend (zonder Portret): POLLEN recht vooruit valt onder het beeld', () => {
+  it('zelfde montage liggend (zonder Portret): nabije POLLEN (±0,75 m) valt onder het beeld (portret wel)', () => {
+    // Liggend V≈52°: pollen pas vanaf ±0,85 m vóór de lens; portret V≈66° al vanaf ±0,46 m.
     const mount = { ...resolveCameraConfig(SIM_CAMERA).mount, rollDeg: 0 };
-    const r = detect(mount, 1.1);
+    const r = detect(mount, 0.75);
     assert.ok(r.tags.some((d) => d.metadata.name === 'BLUE SCORING'));
-    assert.equal(r.pollen.blobs.filter((b) => Math.abs(b.Circle.X - 320) < 3).length, 0, r.pollen.json);
+    assert.equal(
+      r.pollen.blobs.filter((b) => Math.abs(b.Circle.X - 320) < 5).length,
+      0,
+      r.pollen.json,
+    );
   });
 });
