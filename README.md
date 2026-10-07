@@ -67,6 +67,11 @@ GitHub Pages (built from `web-blocks/` via Actions):
 
 The teleop-only WASM app in [`web/`](web/) is unchanged (port 5173).
 
+### Spelregels (Competition Manual TU03)
+
+- **HIVE kantelt** bij **8 POLLEN** of **3 NECTAR + 3 POLLEN** in de omhoog-CELL (Event Field Setup Guide §12.3) — in `web-blocks/`, `web/` en `ftc_sim/`.
+- **G407** (max 4 elementen per robot, voor + achter samen; start = 4 preload-POLLEN, G304.G) en de **score** per alliantie volgens §10.5 / Table 10-2 / 10-3 (zonder wedstrijdklok; LEAVE/PARK/SWARM indicatief, geen fouten) zitten alleen in `web-blocks/` — zie [`web-blocks/README.md`](web-blocks/README.md#spelregels--score-competition-manual-tu03). De Python-sim en `web/` houden de oude hopper (8 + 4) en tellen alleen TIPs.
+
 
 ## Besturing (teleop)
 
@@ -86,7 +91,7 @@ The teleop-only WASM app in [`web/`](web/) is unchanged (port 5173).
 
 ### Intake + arc shoot + achtercompartiment / bloemen
 
-- **Front intake** (+X): POLLEN → voorhopper (shooter), max 8; **4 preload** starten daar.
+- **Front intake** (+X): POLLEN → voorhopper (shooter), max 8; **4 preload** starten daar. (In `web-blocks/`: max 4 elementen samen, G407.)
 - **Rear intake** (-X): NECTAR én POLLEN → achtercompartiment (FIFO gemengd), max 4.
 - **Shooter**: `SPACE`/`F` lanceert één pollen uit de voorhopper (`SHOOT_SPEED` 5.7 m/s, elevatie 75°).
 - **X**: FIFO uit achtercompartiment in de dichtstbijzijnde bloem als je binnen
@@ -177,7 +182,7 @@ cad/step/           # uitgepakte STEP
 
 - HIVE Goal Ribs in CAD-meshes; skins semi-transparant; onzichtbare CELL-cups voor fysica.
 - Intake/shooter zijn **benaderingen** (capture-zone + impuls), geen volledige roller-physics.
-- HIVE tip is bi-stabiel (hinge); NECTAR is free + valt bij tip.
+- HIVE tip is bi-stabiel (hinge); kantelt bij 8 POLLEN of 3 NECTAR + 3 POLLEN (telling, geen gewichtsmodel); NECTAR is free + valt bij tip.
 - Turns in auto op track-geometrie (geen IMU).
 
 Officiële CAD: https://ftc-resources.firstinspires.org/ftc/field

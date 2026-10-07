@@ -21,7 +21,12 @@ import {
 } from '../worlds/biobuzz/mechanisms.js';
 import { HiveTipController } from '../worlds/biobuzz/hive_tip.js';
 import { FieldBoundsReturn } from '../worlds/biobuzz/field_bounds.js';
-import { HOPPER_CAPACITY, NECTAR_HOPPER_CAPACITY } from '../worlds/biobuzz/constants.js';
+import { BiobuzzScorer } from '../worlds/biobuzz/scoring.js';
+import {
+  HOPPER_CAPACITY,
+  NECTAR_HOPPER_CAPACITY,
+  ROBOT_CONTROL_LIMIT,
+} from '../worlds/biobuzz/constants.js';
 import { mapIntakePower, mapFlywheelEdge, mapPollenServoEdge } from './biobuzzMapping.js';
 import { readImuFromBody, computeAprilTagDetections, computePollenColorBlobs } from './simSensors.js';
 import { DEFAULT_ROBOT_CAMERA_FOV } from './robotCamera.js';
@@ -106,6 +111,7 @@ export class BiobuzzHardwareAdapter {
     this.fieldBounds = new FieldBoundsReturn(mujoco, model, data);
     this.mech.resetAndPreload();
     this.hiveTip.reset();
+    this.scorer = new BiobuzzScorer(mujoco, model, data, { mech: this.mech, hiveTip: this.hiveTip });
     this._aprilGen = 0;
     this._aprilJson = '[]';
     this._refreshHud();
@@ -195,6 +201,7 @@ export class BiobuzzHardwareAdapter {
     this.fieldBounds.setProtected(this.mech.protectedBodyIds());
     this.hiveTip.update();
     this.fieldBounds.update();
+    this.scorer.tick();
     updateDriveSlew(this.data, dt);
     this._refreshHud();
   }
@@ -300,6 +307,7 @@ export class BiobuzzHardwareAdapter {
     this.mech.resetAndPreload();
     this.hiveTip.reset();
     this.mujoco.mj_forward(this.model, this.data);
+    this.scorer.reset();
     this._refreshHud();
   }
 
@@ -309,6 +317,8 @@ export class BiobuzzHardwareAdapter {
       hopperCap: HOPPER_CAPACITY,
       nectar: this.mech.nectarCount,
       nectarCap: NECTAR_HOPPER_CAPACITY,
+      controlled: this.mech.controlledCount,
+      controlLimit: ROBOT_CONTROL_LIMIT,
       scoreRed: this.hiveTip.score?.red ?? 0,
       scoreBlue: this.hiveTip.score?.blue ?? 0,
       intake:
@@ -329,11 +339,19 @@ export class BiobuzzHardwareAdapter {
     return { ...this._hud, aprilCount: this._aprilCount || 0 };
   }
 
+  /**
+   * BIOBUZZ-score per alliantie (TU03 §10.5, Table 10-2/10-3), uit de huidige veldtoestand.
+   * Zonder wedstrijdklok: LEAVE/PARK/SWARM indicatief. Zie worlds/biobuzz/scoring.js.
+   */
+  getScore() {
+    return this.scorer.score();
+  }
+
   /** Extra telemetry lines for soft-bridge visibility. */
   mechanismTelemetryText() {
     const h = this._hud;
     const lines = [
-      `BIOBUZZ hopper ${h.hopper}/${h.hopperCap}  rearFIFO ${h.nectar}/${h.nectarCap}`,
+      `BIOBUZZ robot ${h.controlled}/${h.controlLimit} (G407)  hopper ${h.hopper}  rearFIFO ${h.nectar}`,
       `score R${h.scoreRed} B${h.scoreBlue}  intake ${h.intake}`,
     ];
     if (h.lastPlace) lines.push(`place: ${h.lastPlace}`);

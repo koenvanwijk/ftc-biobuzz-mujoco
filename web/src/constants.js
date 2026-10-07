@@ -61,8 +61,9 @@ export const CELL_SHELLS = {
   blue_audience: { open_sign: -1.0 },
   blue_scoring: { open_sign: 1.0 },
 };
+/** HIVE kantelt bij 8 POLLEN, of 3 NECTAR + 3 POLLEN (Event Field Setup Guide §12.3; telling). */
 export const TIP_NECTAR_REQUIRED = 3;
-export const TIP_POLLEN_WITH_NECTAR = 4;
+export const TIP_POLLEN_WITH_NECTAR = 3;
 export const TIP_POLLEN_ALONE = 8;
 export const TIP_POINTS = 20;
 export const TILE_THICKNESS = 0.015;

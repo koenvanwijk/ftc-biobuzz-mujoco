@@ -55,6 +55,21 @@ function matMulVec(M, v) {
 }
 
 /**
+ * Kantelregel (Event Field Setup Guide §12.3): de omhoog-CELL kantelt bij 8 POLLEN, of bij
+ * 3 NECTAR + 3 POLLEN. Puur op aantallen; meer is altijd ook goed (bv. 4 NECTAR + 3 POLLEN).
+ * Houdt: 7 POLLEN, 3 NECTAR + 2 POLLEN, 6 NECTAR zonder POLLEN.
+ * @param {number} nNectar
+ * @param {number} nPollen
+ * @returns {boolean}
+ */
+export function shouldTip(nNectar, nPollen) {
+  return (
+    nPollen >= TIP_POLLEN_ALONE ||
+    (nNectar >= TIP_NECTAR_REQUIRED && nPollen >= TIP_POLLEN_WITH_NECTAR)
+  );
+}
+
+/**
  * Bi-stable HIVE tip both ways; each tip spawns +1 nectar up to 8 per alliance.
  * Tip animates about the pivot; free pieces inside either CELL are carried
  * rigidly so they stay captured (instant qpos teleport would spill out the back).
@@ -165,10 +180,7 @@ export class HiveTipController {
       if (this._tipAnim[color] != null) continue;
       if (t < this.cooldownUntil[color]) continue;
       const [nNectar, nPollen] = this.countInUpwardCell(color);
-      if (
-        (nNectar >= TIP_NECTAR_REQUIRED && nPollen >= TIP_POLLEN_WITH_NECTAR) ||
-        nPollen >= TIP_POLLEN_ALONE
-      ) {
+      if (shouldTip(nNectar, nPollen)) {
         this._doTip(color, nNectar, nPollen);
       }
     }
@@ -241,11 +253,7 @@ export class HiveTipController {
 
   _ballsInHiveCells(color) {
     const keys = this._hiveCellKeys(color);
-    const candidates = [
-      ...this.nectarIds[color],
-      ...this.pollenIds,
-      ...this.extraIds[color].slice(0, this.extrasReleased[color]),
-    ];
+    const candidates = [...this._liveNectarIds(), ...this.pollenIds];
     const out = [];
     const seen = new Set();
     for (const bid of candidates) {
@@ -258,10 +266,34 @@ export class HiveTipController {
     return out;
   }
 
+  /** Sleutel van de omhoog gerichte CELL van deze HIVE (bv. 'red_audience'). */
+  upwardCellKey(color) {
+    return HIVE_UPWARD_CELL[color][this.tipState[color]];
+  }
+
+  /** True terwijl de HIVE van deze kleur nog aan het kantelen/bezinken is. */
+  isTipping(color) {
+    return this._tipAnim[color] != null;
+  }
+
+  /** Alle NECTAR die (nu) op het veld kan liggen: gestaged + vrijgegeven extra's, beide kleuren. */
+  _liveNectarIds() {
+    return [
+      ...this.nectarIds.red,
+      ...this.nectarIds.blue,
+      ...this.extraIds.red.slice(0, this.extrasReleased.red),
+      ...this.extraIds.blue.slice(0, this.extrasReleased.blue),
+    ];
+  }
+
+  /**
+   * [NECTAR, POLLEN] in de omhoog-CELL. Telt elke NECTAR (ook vrijgegeven extra's en NECTAR van
+   * de andere kleur): het kantelen is gewicht, geen eigendom.
+   */
   countInUpwardCell(color) {
-    const cellKey = HIVE_UPWARD_CELL[color][this.tipState[color]];
+    const cellKey = this.upwardCellKey(color);
     let nNectar = 0;
-    for (const bid of this.nectarIds[color]) {
+    for (const bid of this._liveNectarIds()) {
       if (this._inCell(bid, cellKey)) nNectar++;
     }
     let nPollen = 0;

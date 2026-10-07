@@ -95,10 +95,11 @@
           </span>
         </div>
         <div id="biobuzzHud" class="biobuzz-hud" hidden>
-          <span>Hopper <strong id="hudHopper">0 / 8</strong></span>
+          <span title="G407: een robot mag maximaal 4 SCORING ELEMENTS (POLLEN + NECTAR) tegelijk controleren (voorhopper + achtercompartiment samen). Bij 4 pakt de intake niets meer op.">Robot <strong id="hudControl">4 / 4</strong></span>
+          <span>Hopper <strong id="hudHopper">4</strong></span>
+          <span>Rear <strong id="hudNectar">0</strong></span>
           <span>AprilTags <strong id="hudApril">0</strong></span>
-          <span>Rear <strong id="hudNectar">0 / 4</strong></span>
-          <span>Score <strong id="hudScore">R0 · B0</strong></span>
+          <span title="Totaalscore rood · blauw volgens TU03 §10.5 (details in het score-paneel linksboven in het simbeeld).">Score <strong id="hudScore">R0 · B0</strong></span>
           <span>Intake <strong id="hudIntake">uit</strong></span>
           <span>Control <strong id="hudOwner">Teleop</strong></span>
           <label class="cam-fov-picker" title="Zichtveld van de robotcamera (Logitech Brio 4K). Geldt voor het camerabeeld rechtsboven, de blauwe kijkpiramide en de AprilTag-detectie.">
@@ -115,6 +116,20 @@
           <span id="camFovInfo" class="muted small cam-fov-info"></span>
         </div>
         <canvas id="simCanvas"></canvas>
+        <div id="scorePanel" class="score-panel" hidden aria-label="Score per alliantie">
+          <button type="button" class="score-head" id="scoreToggle" aria-expanded="true" title="Score volgens Competition Manual TU03 §10.5 (Table 10-2/10-3). Klik om in/uit te klappen.">
+            <span>Score</span>
+            <span class="score-sum"><span class="sc-red" id="scoreSumRed">0</span> · <span class="sc-blue" id="scoreSumBlue">0</span></span>
+            <span class="score-caret" aria-hidden="true">▾</span>
+          </button>
+          <div class="score-body" id="scoreBody">
+            <table class="score-table">
+              <thead><tr><th></th><th class="sc-red">Rood</th><th class="sc-blue">Blauw</th></tr></thead>
+              <tbody id="scoreRows"></tbody>
+            </table>
+            <p class="score-note" id="scoreNote">* indicatief: nog geen wedstrijdklok</p>
+          </div>
+        </div>
         <div class="on-screen-pad" id="gamepadPad" aria-label="Virtuele gamepad">
           <div class="pad-row">
             <button type="button" data-axis="ly" data-dir="-1">L↑</button>

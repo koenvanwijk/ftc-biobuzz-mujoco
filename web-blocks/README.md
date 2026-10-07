@@ -64,6 +64,17 @@ De **Help**-knop (rechts in de werkbalk) opent een in-app naslagvenster in het N
 De drie panelen (Blocks / Sim / Code) zijn **versleepbaar** via de verticale splits (horizontaal op smalle schermen). Toolbar: **Blocks · Sim · Code · Gelijk** vergroot één paneel of herstelt de standaardverdeling (~40/35/25). Per paneel: **◀** inklappen, **⛶** vergroten. Breedtes en inklapstatus blijven bewaard in `localStorage` (`ftc-blocks-layout-v1`). Na layout-wijziging krijgt de MuJoCo-canvas een resize (window-event + `viewer.resize()`).
 
 
+### Spelregels & score (Competition Manual TU03)
+
+- **HIVE-kantelregel** (Event Field Setup Guide §12.3): de omhoog-CELL kantelt bij **8 POLLEN** of **3 NECTAR + 3 POLLEN** (puur op aantallen; meer mag ook). Houdt bij o.a. 7 POLLEN, 3 NECTAR + 2 POLLEN en 6 NECTAR zonder POLLEN. Elke NECTAR in de CELL telt mee (ook vrijgegeven extra's en de andere kleur). Bij de start liggen er al 3 NECTAR in elke omhoog-CELL, dus **3 gelanceerde POLLEN kantelen de HIVE**. `shouldTip()` in `src/worlds/biobuzz/hive_tip.js`.
+- **G407**: de robot controleert nooit meer dan **4** SCORING ELEMENTS (voorhopper + achtercompartiment samen; `ROBOT_CONTROL_LIMIT`). Bij 4 pakt de intake niets meer op; ballen blijven liggen of worden weggeduwd. Gelanceerde, uitgespuugde of in een FLOWER geplaatste elementen tellen niet meer. De robot start met de **4 preload-POLLEN** (G304.G) en is dus vol: eerst schieten. HUD: **Robot x / 4** (oranje als vol).
+- **Score** (§10.5, Table 10-2 / 10-3), paneel linksboven in het simbeeld en `window.__ftcSim.score()` (read-only):
+  - **HIVE TIP** 20 — live, per TIP van de eigen HIVE.
+  - **In CELL** 2, **BLOEM eigenaar** 2 per element, **Onderste NECTAR** +5, **GARDEN** 1 — uit de huidige veldtoestand ("als de wedstrijd nu eindigt"). Alleen elementen die stilliggen (|v| < 0,05 m/s) en niet in de robot zitten; zolang er nog iets rolt staat dat onder de tabel. FLOWER: elementen (deels) tussen de middelste ring (≈ 10 cm: onderring 1,0 cm + Retrieval Opening 9,0 cm, §9.7) en de bovenrand (54,6 cm); eigenaar = alliantie van de bovenste NECTAR, bonus = alliantie van de onderste. GARDEN/CELL zijn alliantie-gebonden, ongeacht wie het element plaatste.
+  - **Zonder wedstrijdklok** (bewust nog niet gebouwd) zijn de fase-afhankelijke regels **indicatief** (met * in het paneel): **LEAVE*** (3) vergrendelt zodra de robot (omhullende van alle botsende geoms, incl. de achter-intake) ≥ 3 cm van elke muur staat en blijft staan tot *Reset sim*; **PARK*** (5) = "als nu geparkeerd": robot nu (deels) in de eigen LOADING ZONE (TELEOP PARK). **AUTO PARK**, **WIN/TIE** en **fouten/penalty's** (§10.6–10.8) worden niet gescoord. **SWARM RP*** = LEAVE + PARK ≥ 16 (met één robot max. 8, dus nooit), **POLLINATOR RP** bij ≥ 4 / ≥ 7 TIPS.
+  - De robot hoort bij **rood** (start op de rode helft). Let op: de huidige startpose ligt deels in onze (nog niet volgens §9 geplaatste) LOADING ZONE, dus PARK* toont bij de start al 5 (G304.E zegt: niet in de LOADING ZONE starten).
+  - Code: `src/worlds/biobuzz/scoring.js` (puur `computeScore()` + `BiobuzzScorer`), paneel `src/ui/scorePanel.js`; tests `tests/unit/biobuzzRules*.test.js`.
+
 ### Idle teleop (BIOBUZZ, geen actieve OpMode)
 
 | Input | Actie |

@@ -18,6 +18,7 @@ import {
   POLLEN_DIA,
   POLLEN_R,
   PRELOAD_SLICE,
+  ROBOT_CONTROL_LIMIT,
   SHOOT_ELEVATION_DEG,
   SHOOT_SPEED,
   TILE_THICKNESS,
@@ -30,6 +31,8 @@ import {
  * Front pollen hopper + rear mixed FIFO + arc shooter + flower place.
  * E / bumper: intake both. Hold C / left bumper reverse: FIFO spit rear.
  * X: FIFO rear → flower stack (or drop).
+ * G407: samen nooit meer dan ROBOT_CONTROL_LIMIT (4) elementen; bij 4 pakt de intake niets meer
+ * op (ballen blijven liggen en worden hooguit weggeduwd). Start = 4 preload-POLLEN (G304.G) → vol.
  */
 export class IntakeShooter {
   constructor(mujoco, model, data) {
@@ -89,6 +92,16 @@ export class IntakeShooter {
 
   get rearCount() {
     return this.rearStored.length;
+  }
+
+  /** G407: aantal SCORING ELEMENTS dat de robot nu controleert (voor + achter). */
+  get controlledCount() {
+    return this.stored.length + this.rearStored.length;
+  }
+
+  /** True als de robot al ROBOT_CONTROL_LIMIT (4) elementen heeft: intake weigert verder. */
+  get atControlLimit() {
+    return this.controlledCount >= ROBOT_CONTROL_LIMIT;
   }
 
   protectedBodyIds() {
@@ -180,7 +193,7 @@ export class IntakeShooter {
   }
 
   _tryCapturePollenFront() {
-    if (this.stored.length >= HOPPER_CAPACITY) return;
+    if (this.stored.length >= HOPPER_CAPACITY || this.atControlLimit) return;
     const center = this._intakePos();
     const r2 = INTAKE_CAPTURE_R * INTAKE_CAPTURE_R;
     const busy = new Set([...this.stored, ...this.rearStored, ...this.planted]);
@@ -194,14 +207,14 @@ export class IntakeShooter {
       if (dx * dx + dy * dy + dz * dz <= r2) {
         this._stowPollen(bid);
         busy.add(bid);
-        if (this.stored.length >= HOPPER_CAPACITY) break;
+        if (this.stored.length >= HOPPER_CAPACITY || this.atControlLimit) break;
       }
     }
   }
 
   _tryCapturePollenRear() {
     if (this.nectarIntakeSite < 0) return;
-    if (this.rearStored.length >= NECTAR_HOPPER_CAPACITY) return;
+    if (this.rearStored.length >= NECTAR_HOPPER_CAPACITY || this.atControlLimit) return;
     const center = this._nectarIntakePos();
     const r2 = NECTAR_INTAKE_CAPTURE_R * NECTAR_INTAKE_CAPTURE_R;
     const busy = new Set([...this.stored, ...this.rearStored, ...this.planted]);
@@ -215,14 +228,14 @@ export class IntakeShooter {
       if (dx * dx + dy * dy + dz * dz <= r2) {
         this._stowRear(bid);
         busy.add(bid);
-        if (this.rearStored.length >= NECTAR_HOPPER_CAPACITY) break;
+        if (this.rearStored.length >= NECTAR_HOPPER_CAPACITY || this.atControlLimit) break;
       }
     }
   }
 
   _tryCaptureNectarRear() {
     if (this.nectarIntakeSite < 0) return;
-    if (this.rearStored.length >= NECTAR_HOPPER_CAPACITY) return;
+    if (this.rearStored.length >= NECTAR_HOPPER_CAPACITY || this.atControlLimit) return;
     const center = this._nectarIntakePos();
     const r2 = NECTAR_INTAKE_CAPTURE_R * NECTAR_INTAKE_CAPTURE_R;
     for (const bid of this.nectarBodyIds) {
@@ -235,7 +248,7 @@ export class IntakeShooter {
       const dz = p[i + 2] - center[2];
       if (dx * dx + dy * dy + dz * dz <= r2) {
         this._stowRear(bid);
-        if (this.rearStored.length >= NECTAR_HOPPER_CAPACITY) break;
+        if (this.rearStored.length >= NECTAR_HOPPER_CAPACITY || this.atControlLimit) break;
       }
     }
   }
@@ -243,6 +256,7 @@ export class IntakeShooter {
   _stowPollen(bid) {
     if (this.stored.includes(bid) || this.stored.length >= HOPPER_CAPACITY) return;
     const ri = this.rearStored.indexOf(bid);
+    if (ri < 0 && this.atControlLimit) return; // G407: geen 5e element
     if (ri >= 0) this.rearStored.splice(ri, 1);
     this.planted.delete(bid);
     this.plantPose.delete(bid);
@@ -253,6 +267,7 @@ export class IntakeShooter {
   _stowRear(bid) {
     if (this.rearStored.includes(bid) || this.rearStored.length >= NECTAR_HOPPER_CAPACITY) return;
     const si = this.stored.indexOf(bid);
+    if (si < 0 && this.atControlLimit) return; // G407: geen 5e element
     if (si >= 0) this.stored.splice(si, 1);
     this.planted.delete(bid);
     this.plantPose.delete(bid);

@@ -1,4 +1,5 @@
 import { publicUrl } from './publicUrl.js';
+import { initScorePanel } from './ui/scorePanel.js';
 import { loadBiobuzzSim, BiobuzzViewer, InputHandler } from './worlds/biobuzz/index.js';
 import { BiobuzzHardwareAdapter } from './mujoco/BiobuzzHardwareAdapter.js';
 import { OpModeRunner } from './execution/OpModeRunner.js';
@@ -34,6 +35,9 @@ let latestCommands = {};
 let anim = 0;
 let physicsAccumulator = 0;
 let teleopInput = null;
+let scorePanel = null; // BIOBUZZ-score (TU03 §10.5), zie ui/scorePanel.js
+let lastScore = null;
+let lastScoreT = 0;
 let opModeOwns = false; // true from INIT through RUN until DONE/ERROR/Idle after STOP
 
 // ——— Robotcamera (Logitech Brio 4K) ———
@@ -206,6 +210,16 @@ async function boot() {
   applyCameraFov();
   teleopInput = new InputHandler();
   $('biobuzzHud').hidden = false;
+  scorePanel = initScorePanel({
+    panel: $('scorePanel'),
+    toggle: $('scoreToggle'),
+    rows: $('scoreRows'),
+    note: $('scoreNote'),
+    sumRed: $('scoreSumRed'),
+    sumBlue: $('scoreSumBlue'),
+    hud: $('biobuzzHud'),
+  });
+  scorePanel.show();
   $('teleopHint').textContent =
     'Idle teleop: W/S·I/K tank · pijltjes · E intake · Space/F shoot · X place · C reverse · T arcade. OpMode: sticks + E/C/X/Space/F/G/B/Y + UJHL dpad → gamepad1.';
 
@@ -288,6 +302,32 @@ async function boot() {
       mujoco.mj_forward(model, data);
       return true;
     },
+    /**
+     * BIOBUZZ-score per alliantie (TU03 §10.5, Table 10-2/10-3) uit de huidige veldtoestand; read-only kopie.
+     * Zonder wedstrijdklok: LEAVE/PARK/SWARM indicatief (zie Help → Panelen).
+     */
+    score() {
+      return adapter?.getScore ? JSON.parse(JSON.stringify(adapter.getScore())) : null;
+    },
+    /** Aantal elementen dat de robot nu controleert (G407, max 4). */
+    get controlled() { return adapter?.mech ? adapter.mech.controlledCount : null; },
+    /**
+     * Alleen voor smoke tests: zet een vrij element (bv. 'pollen_00', 'nectar_red_0') stil op (x, y, z) m.
+     * @returns {boolean}
+     */
+    placeElement(bodyName, x, y, z) {
+      const { mujoco, model, data } = mujocoBundle || {};
+      if (!mujoco) return false;
+      const bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY.value, String(bodyName));
+      const jnt = bid >= 0 ? model.body_jntadr[bid] : -1;
+      if (jnt < 0) return false;
+      const qa = model.jnt_qposadr[jnt];
+      const va = model.jnt_dofadr[jnt];
+      data.qpos.set([Number(x) || 0, Number(y) || 0, Number(z) || 0, 1, 0, 0, 0], qa);
+      for (let i = 0; i < 6; i++) data.qvel[va + i] = 0;
+      mujoco.mj_forward(model, data);
+      return true;
+    },
     /** Aantal AprilTag-detecties en POLLEN-blobs in de laatste sensor-uitlezing. */
     visionCounts() {
       const s = adapter?.readSensors?.();
@@ -311,12 +351,26 @@ function mergeTelemetry(opModeText) {
   return `${opModeText}\n---\n${mech}`;
 }
 
-function updateBiobuzzHud() {
+function updateBiobuzzHud(force = false) {
   if (!adapter?.getHud) return;
   const h = adapter.getHud();
-  $('hudHopper').textContent = `${h.hopper} / ${h.hopperCap}`;
-  $('hudNectar').textContent = `${h.nectar} / ${h.nectarCap}`;
-  $('hudScore').textContent = `R${h.scoreRed} · B${h.scoreBlue}`;
+  const ctl = $('hudControl');
+  if (ctl) {
+    ctl.textContent = `${h.controlled} / ${h.controlLimit}`;
+    ctl.classList.toggle('is-full', h.controlled >= h.controlLimit);
+  }
+  $('hudHopper').textContent = String(h.hopper);
+  $('hudNectar').textContent = String(h.nectar);
+  // Score (TU03 §10.5) ±5×/s herberekenen; HUD toont dezelfde totalen als het score-paneel.
+  const now = performance.now();
+  if (adapter.getScore && (force || !lastScore || now - lastScoreT >= 200)) {
+    lastScore = adapter.getScore();
+    lastScoreT = now;
+    scorePanel?.update(lastScore, { force: true });
+  }
+  $('hudScore').textContent = lastScore
+    ? `R${lastScore.red.total} · B${lastScore.blue.total}`
+    : `R${h.scoreRed} · B${h.scoreBlue}`;
   $('hudIntake').textContent = h.intake;
   if ($('hudApril')) $('hudApril').textContent = String(h.aprilCount ?? 0);
   $('hudOwner').textContent = opModeOwns ? 'OpMode' : 'Teleop';
@@ -693,7 +747,7 @@ function wireUi() {
     log('Sim gereset');
     updateButtons('Idle');
     $('runStatus').textContent = 'Idle';
-    updateBiobuzzHud();
+    updateBiobuzzHud(true);
   };
 
   $('btnInit').onclick = async () => {
