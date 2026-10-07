@@ -4,6 +4,7 @@ import {
   CELL_OPEN_W,
   CELL_SHELLS,
   EXTRA_NECTAR_PARK_Z,
+  EXTRA_NECTAR_GRID_STEP,
   EXTRA_NECTAR_SPAWN,
   HIVE_PIVOT_Z,
   HIVE_TIP_JOINT_SIGN,
@@ -363,8 +364,10 @@ export class HiveTipController {
     const pool = this.extraQadr[color];
     if (idx >= pool.length || idx >= NECTAR_EXTRA_POOL) return false;
     let [sx, sy, sz] = EXTRA_NECTAR_SPAWN[color];
-    sx += (color === 'blue' ? 0.05 : -0.05) * (idx % 3);
-    sy += 0.04 * (Math.floor(idx / 3) % 3);
+    // 2 × 3 grid inside the LOADING ZONE (G427): column toward the wall, rows 0 / +step / −step.
+    const step = EXTRA_NECTAR_GRID_STEP;
+    sx += (color === 'blue' ? step : -step) * (idx % 2);
+    sy += [0, step, -step][Math.floor(idx / 2) % 3];
     sz = Math.max(sz, TILE_THICKNESS + NECTAR_R + 0.002);
     const adr = pool[idx];
     this.data.qpos[adr] = sx;

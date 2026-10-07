@@ -10,13 +10,51 @@ TILE_THICKNESS = 0.015  # ~0.59 in
 WALL_HEIGHT = 0.3048  # 1 ft
 WALL_THICKNESS = 0.05
 
-# --- Gardens (tape zones) ---
+# --- TILE grid (Event Field Setup Guide §6 Fig. 6-2 = Competition Manual §9.4 Fig. 9-5) ---
+# Columns A–F run left→right and rows 1–6 run audience→rear, seen from the audience; the red
+# ALLIANCE AREA is on the left (manual §9.5). In this sim the CAD was imported with
+# (x,y,z)->(x,z,y) (a mirror, cad/meshes/import_report.txt), so the whole field is mirrored in Y:
+# columns A→F = −X→+X (red wall at −X), rows 1→6 = +Y→−Y (audience wall at +Y). That matches the
+# CAD content: red_audience CELL (AprilTags 34–37, "audience side", §9.9) and the FLOWERS
+# (audience-wall FLOWER at seam D/E, red-wall FLOWER at seam 2/3) all sit as in Fig. 6-2 mirrored in Y.
+TILE_COLUMNS = "ABCDEF"
+
+
+def tile_center(tile: str) -> tuple[float, float]:
+    """Sim XY of a TILE centre, e.g. tile_center("A5") (see TILE grid note above)."""
+    col = TILE_COLUMNS.index(tile[0].upper())
+    row = int(tile[1:])
+    return (-HALF + (col + 0.5) * TILE_SIZE, HALF - (row - 0.5) * TILE_SIZE)
+
+
+# --- Gardens (tape zones; Guide §8.4: red on TILE A1, blue on F6, against the audience/rear wall) ---
 GARDEN_LEN = 0.584  # 23 in along wall
 GARDEN_WIDTH = 0.051  # 2 in
+GARDEN_TILE = {"red": "A1", "blue": "F6"}
 
-# --- Loading zones ---
-LOADING_W = 0.584  # 23 in
-LOADING_D = 0.2795  # 11 in
+# --- Loading zones (Guide §8.3: red on TILE A5, blue on F2; manual §9.3: ~23 in wide × 11 in deep,
+# bounded by the tape and the alliance wall) ---
+LOADING_W = 0.584  # 23 in (between the TILE side seams)
+LOADING_D = 0.2795  # 11 in from the alliance wall
+LOADING_TILE = {"red": "A5", "blue": "F2"}
+
+
+def loading_zone_rect(color: str) -> tuple[float, float, float, float]:
+    """(x0, x1, y0, y1) of the alliance LOADING ZONE in sim coordinates."""
+    _cx, cy = tile_center(LOADING_TILE[color])
+    if color == "red":
+        x0, x1 = -HALF, -HALF + LOADING_D
+    else:
+        x0, x1 = HALF - LOADING_D, HALF
+    return (x0, x1, cy - LOADING_W / 2, cy + LOADING_W / 2)
+
+
+def garden_rect(color: str) -> tuple[float, float, float, float]:
+    """(x0, x1, y0, y1) of the alliance GARDEN: red along the audience wall (+Y) from the red
+    corner, blue along the rear wall (−Y) from the blue corner."""
+    if color == "red":
+        return (-HALF, -HALF + GARDEN_LEN, HALF - GARDEN_WIDTH, HALF)
+    return (HALF - GARDEN_LEN, HALF, -HALF, -HALF + GARDEN_WIDTH)
 
 # --- HIVE frame ---
 HIVE_FRAME_W = 1.2565  # 49.46 in
@@ -86,6 +124,10 @@ NUM_PRELOAD = 4  # start inside hopper when available
 # --- Tank robot (REV Starter Bot practical numbers) ---
 ROBOT_L = 0.40
 ROBOT_W = 0.35
+# Rear-most collision point behind the robot origin: nectar_intake_housing (x −0.22, half 0.04).
+# The start pose puts this exactly on the alliance wall (G304.C: touching, no penetration).
+ROBOT_REAR_EXTENT = 0.26
+ROBOT_HALF_WIDTH_BUMPER = ROBOT_W / 2 + 0.015  # 0.19 m (bumper)
 ROBOT_H = 0.12
 WHEEL_R = 0.045  # 90 mm wheels
 WHEEL_W = 0.03
@@ -133,10 +175,14 @@ TIP_POINTS = 20  # points awarded to that alliance color per HIVE tip
 NECTAR_STAGED_PER_ALLIANCE = 3
 NECTAR_MAX_PER_ALLIANCE = 8
 NECTAR_EXTRA_POOL = NECTAR_MAX_PER_ALLIANCE - NECTAR_STAGED_PER_ALLIANCE  # 5
+# G427: NECTAR enters the FIELD through the alliance LOADING ZONE (contacts the TILE inside it).
+# First release point (wall-far column, middle row); later ones fill a 2 × 3 grid (0.1 m pitch)
+# that stays inside the 0.28 × 0.58 m zone (see EXTRA_NECTAR_GRID_STEP / hive_tip).
 EXTRA_NECTAR_SPAWN = {
-    "red": (-1.45, -1.25, TILE_THICKNESS + NECTAR_R + 0.02),
-    "blue": (1.45, 1.25, TILE_THICKNESS + NECTAR_R + 0.02),
+    "red": (-HALF + 0.23, tile_center("A5")[1], TILE_THICKNESS + NECTAR_R + 0.02),
+    "blue": (HALF - 0.23, tile_center("F2")[1], TILE_THICKNESS + NECTAR_R + 0.02),
 }
+EXTRA_NECTAR_GRID_STEP = 0.10  # > NECTAR_DIA so released NECTAR never overlap
 EXTRA_NECTAR_PARK_Z = 3.5  # above field until released (kinematic hold)
 HOPPER_CAPACITY = 8
 HOPPER_LOCAL_SLOTS = [  # robot-frame stash positions inside hopper volume
