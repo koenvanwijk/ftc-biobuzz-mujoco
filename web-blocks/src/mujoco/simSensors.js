@@ -160,41 +160,23 @@ export function readImuFromBody(mujoco, model, data, bodyName, freeJointName) {
   return { ...ypr, wx, wy, wz };
 }
 
-const BIOBUZZ_CELL_OPEN_DEPTH_M = 0.305;
+/**
+ * FTC SDK 12.0 AprilTagGameDatabase.getBioBuzzTagLibrary(): member k (ID = first + k) sits at
+ * positionInClusterPlane = (x_k, 7.1874, −5.622) in. The cluster plane frame is the AprilTag object
+ * frame (+X right, +Y down as printed, +Z into the tag); its origin ≈ the CELL opening centre.
+ */
+const INCH_M = 0.0254;
+export const BIOBUZZ_CLUSTER_MEMBER_OFFSETS_M = [-6.5, -2.75, 2.75, 6.5].map((x) => [
+  x * INCH_M,
+  7.1874 * INCH_M,
+  -5.622 * INCH_M,
+]);
 
 const BIOBUZZ_CLUSTER_SPECS = [
-  {
-    key: 'red_scoring',
-    name: 'RED SCORING',
-    shortName: 'RS',
-    ids: [30, 31, 32, 33],
-    bodyName: 'red_scoring_shell',
-    openSign: 1,
-  },
-  {
-    key: 'red_audience',
-    name: 'RED AUDIENCE',
-    shortName: 'RA',
-    ids: [34, 35, 36, 37],
-    bodyName: 'red_audience_shell',
-    openSign: -1,
-  },
-  {
-    key: 'blue_audience',
-    name: 'BLUE AUDIENCE',
-    shortName: 'BA',
-    ids: [38, 39, 40, 41],
-    bodyName: 'blue_audience_shell',
-    openSign: -1,
-  },
-  {
-    key: 'blue_scoring',
-    name: 'BLUE SCORING',
-    shortName: 'BS',
-    ids: [42, 43, 44, 45],
-    bodyName: 'blue_scoring_shell',
-    openSign: 1,
-  },
+  { key: 'red_scoring', name: 'RED SCORING', shortName: 'RS', ids: [30, 31, 32, 33] },
+  { key: 'red_audience', name: 'RED AUDIENCE', shortName: 'RA', ids: [34, 35, 36, 37] },
+  { key: 'blue_audience', name: 'BLUE AUDIENCE', shortName: 'BA', ids: [38, 39, 40, 41] },
+  { key: 'blue_scoring', name: 'BLUE SCORING', shortName: 'BS', ids: [42, 43, 44, 45] },
 ];
 
 const BIOBUZZ_CLUSTER_BY_ID = new Map();
@@ -298,62 +280,40 @@ function quaternionFromAxes(xAxis, yAxis, zAxis) {
   return { w: w / norm, x: x / norm, y: y / norm, z: z / norm };
 }
 
-function averagePoints(points) {
-  if (!points.length) return [0, 0, 0];
-  const sum = points.reduce(
-    (acc, p) => [acc[0] + p[0], acc[1] + p[1], acc[2] + p[2]],
-    [0, 0, 0],
-  );
-  return [sum[0] / points.length, sum[1] / points.length, sum[2] / points.length];
+/**
+ * Target frame of a single printed tag from its site (site +X = printed right, +Y = printed up,
+ * +Z = out of the printed face). The visible face may be either site ±Z in synthetic worlds:
+ * pick the side facing the camera and flip X with it so the frame stays right-handed.
+ */
+function tagTargetAxes(xmat, sm, facePlus) {
+  const tX = matrixColumn(xmat, sm, 0);
+  const tY = matrixColumn(xmat, sm, 1);
+  const tZ = matrixColumn(xmat, sm, 2);
+  const faceSign = facePlus >= 0 ? 1 : -1;
+  return { right: scale3(tX, faceSign), away: scale3(tZ, -faceSign), up: tY };
 }
 
-function clusterTargetFromBody(mujoco, model, data, spec, fallbackPoints) {
-  const BODY = mujoco.mjtObj?.mjOBJ_BODY?.value;
-  if (BODY != null && data.xpos && data.xmat) {
-    const bodyId = mujoco.mj_name2id(model, BODY, spec.bodyName);
-    if (bodyId >= 0) {
-      const bo = bodyId * 3;
-      const bm = bodyId * 9;
-      const bodyPos = [data.xpos[bo], data.xpos[bo + 1], data.xpos[bo + 2]];
-      const localX = matrixColumn(data.xmat, bm, 0);
-      const localY = matrixColumn(data.xmat, bm, 1);
-      const localZ = matrixColumn(data.xmat, bm, 2);
-      const openingOffset = spec.openSign * (BIOBUZZ_CELL_OPEN_DEPTH_M / 2);
-      const clusterY = [
-        localY[0] * spec.openSign,
-        localY[1] * spec.openSign,
-        localY[2] * spec.openSign,
-      ];
-      const clusterZ = [
-        localZ[0] * spec.openSign,
-        localZ[1] * spec.openSign,
-        localZ[2] * spec.openSign,
-      ];
-      return {
-        position: [
-          bodyPos[0] + localY[0] * openingOffset,
-          bodyPos[1] + localY[1] * openingOffset,
-          bodyPos[2] + localY[2] * openingOffset,
-        ],
-        // The two CELL openings face opposite local-Y directions. Flip both Y/Z
-        // to keep a proper right-handed cluster frame while preserving the SDK
-        // roll discriminator between scorable and non-scorable CELLs.
-        targetAxes: {
-          right: localX,
-          away: clusterY,
-          up: clusterZ,
-        },
-        fieldOrientation: quaternionFromAxes(localX, clusterY, clusterZ),
-      };
+/**
+ * Cluster pose like the SDK's multi-tag solve: every visible member k gives
+ * origin = p_k − R_c · m_k with R_c = [right, −up, away] (SDK cluster plane frame) and m_k the SDK
+ * positionInClusterPlane; the result is averaged over the visible members.
+ */
+function clusterTargetFromMembers(spec, members) {
+  const axes = members[0].axes;
+  const down = scale3(axes.up, -1);
+  const sum = [0, 0, 0];
+  for (const m of members) {
+    const k = spec.ids.indexOf(m.id);
+    const [mx, my, mz] = BIOBUZZ_CLUSTER_MEMBER_OFFSETS_M[k];
+    for (let i = 0; i < 3; i++) {
+      sum[i] += m.position[i] - (axes.right[i] * mx + down[i] * my + axes.away[i] * mz);
     }
   }
-
-  // The real BIOBUZZ world has the *_shell bodies. Keep a graceful fallback for
-  // synthetic/unit-test worlds that only define tag sites.
+  const position = sum.map((v) => v / members.length);
   return {
-    position: averagePoints(fallbackPoints),
-    targetAxes: null,
-    fieldOrientation: { w: 1, x: 0, y: 0, z: 0 },
+    position,
+    targetAxes: axes,
+    fieldOrientation: quaternionFromAxes(axes.right, axes.away, axes.up),
   };
 }
 
@@ -415,7 +375,8 @@ function makeSingleDetection(id, tagPos, pose, facing) {
  *  - one visible member is enough to return one cluster detection;
  *  - cluster members are never returned as AprilTagSingleDetection;
  *  - percentClusterFound is 25/50/75/100;
- *  - cluster pose origin is the center of the CELL opening and follows HIVE tip.
+ *  - cluster pose = SDK multi-tag solve: origin from the SDK member offsets
+ *    (≈ CELL opening centre), orientation = the printed tags' frame; follows a HIVE tip.
  *
  * FTC ftcPose (meters / degrees): X=right, Y=forward, Z=up in the camera frame.
  * Pitch/roll/yaw are target orientation about X/Y/Z; bearing/elevation are
@@ -500,25 +461,15 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
     const facing = Math.max(facePlus, -facePlus);
     if (facing < minFacingDot) continue;
 
+    const targetAxes = tagTargetAxes(xmat, sm, facePlus);
     const clusterSpec = BIOBUZZ_CLUSTER_BY_ID.get(id);
     if (clusterSpec) {
       const members = visibleClusterMembers.get(clusterSpec.key) || [];
-      members.push({ id, position: tagPos, facing });
+      members.push({ id, position: tagPos, facing, axes: targetAxes });
       visibleClusterMembers.set(clusterSpec.key, members);
       continue;
     }
 
-    const tX = matrixColumn(xmat, sm, 0);
-    const tY = matrixColumn(xmat, sm, 1);
-    // The scene's visible printed face may be represented by either site ±Z.
-    // Pick the side facing the camera, and flip X with it so the resulting
-    // target frame remains right-handed while preserving printed "up".
-    const faceSign = facePlus >= 0 ? 1 : -1;
-    const targetAxes = {
-      right: scale3(tX, faceSign),
-      away: scale3(tZ, -faceSign),
-      up: tY,
-    };
     const pose = poseFromWorldTarget(tagPos, camera, targetAxes);
     singleDetections.push(makeSingleDetection(id, tagPos, pose, facing));
   }
@@ -528,13 +479,7 @@ export function computeAprilTagDetections(mujoco, model, data, opts = {}) {
     const members = visibleClusterMembers.get(spec.key) || [];
     if (!members.length) continue;
 
-    const target = clusterTargetFromBody(
-      mujoco,
-      model,
-      data,
-      spec,
-      members.map((m) => m.position),
-    );
+    const target = clusterTargetFromMembers(spec, members);
     const pose = poseFromWorldTarget(target.position, camera, target.targetAxes);
 
     clusterDetections.push({

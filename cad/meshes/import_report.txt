@@ -3,7 +3,8 @@ BIOBUZZ Field CAD → MuJoCo import report
 Source: cad/step/field-cad-step.step (from field-cad-step.zip, v26-27.2)
          + cad/meshes/field_coarse.glb (cascadio / Onshape export)
 Tooling: trimesh scene graph → per-part quadric decimate → merge STL
-Units: STEP LENGTH_UNIT = metre; Y-up → Z-up via (x,y,z)->(x,z,y)
+Units: STEP LENGTH_UNIT = metre; Y-up → Z-up via (x,y,z)->(x,-z,y)
+       (+90° about X, det +1: a proper rotation, NOT a mirror — see 2026-10 section below)
 Origin: field center; XY half-extent ≈ ±1.8236 m (expected ±1.8288 m)
 
 HIVE tip angle (measured from CAD, 2026-09-23)
@@ -13,7 +14,7 @@ Bi-stable pose baked into hive_red / hive_blue meshes:
   CELL bottom face (AprilTag plate) tip from horizontal: **30°**
   (plate contains the cell axis; earlier ±120°/60° note was wrong — that is 90° off).
   MuJoCo cell underside bodies use euler_x so geom +Z faces the tiles:
-  red hive: −150°, blue hive: +150°.
+  red hive: +150°, blue hive: −150° (was −150°/+150° in the mirrored import).
   Pivot axis height: HIVE_PIVOT_Z = 1.1165 m above tiles.
 
 Imported (visual mesh + convex hull collision):
@@ -42,7 +43,7 @@ AprilTag placement (post-fix)
 -----------------------------
 Tags are parented under red_cell_* / blue_cell_* bodies (children of hive_red /
 hive_blue). Strip centers are snapped to Goal-Rib/bottom-skin faces of the
-exported STL (within ~25 mm of mesh) with CAD tip euler_x = −150° (red) / +150° (blue)
+exported STL (within ~25 mm of mesh) with CAD tip euler_x = +150° (red) / −150° (blue)
 so geom +Z faces the tiles along the 30° bottom-face normal.
 
 CELL rim meshes (2026-09-23)
@@ -54,3 +55,49 @@ ring width 10 mm, thickness 10 mm; aperture ≈ 0.532 × 0.380 m. Front face Y k
 Invisible cup aperture matches (CELL_CUP_OPEN_*); shallow 4 mm sill, no deep lip pocket.
 Placed under each CELL_SHELLS body (euler Z=180° when open_sign=-1).
 Opaque alliance color; translucent hive skins unchanged.
+
+Un-mirror (2026-10)
+-------------------
+Until 2026-10 the import used (x,y,z)->(x,z,y). det = −1, so that was a reflection:
+the whole sim field was manual Fig. 9-2 / Guide Fig. 6-2 mirrored in Y (audience at +Y with red
+still at −X, so red was on the RIGHT seen from the audience; tile rows had been flipped to match).
+Now: CAD_TO_SIM = (x,y,z)->(x,-z,y) (scripts/convert_field_cad.py), a proper rotation.
+Audience wall = −Y, red alliance wall = −X (red on the left seen from the audience),
+columns A→F = −X→+X, rows 1→6 = −Y→+Y. new = diag(1,−1,1) · old for all CAD-derived content.
+
+Migration (scripts/convert_field_cad.py migrate --legacy), all three mesh copies
+(ftc_sim/assets/meshes, web/public/assets/meshes, web-blocks/public/assets/meshes):
+  world-frame meshes (hive_*, flower_*) × diag(1,−1,1); cell-local meshes (cell_*) ×
+  diag(−1,1,1); faces re-wound because det < 0 (trimesh), so normals stay outward
+  (hull signed volumes unchanged and > 0, e.g. hive_frame_hull +0.7524 m³).
+  flower_pos_y.stl ↔ flower_neg_y.stl swapped names (they swap sides of the field).
+
+Check (convert_field_cad.py check: mean nearest-neighbour distance STL vertices → CAD GLB surface):
+  mesh           CAD_TO_SIM   legacy mirror
+  hive_frame       0.90 mm        3.56 mm   (frame is nearly Y-symmetric)
+  hive_red         2.16 mm      164.22 mm
+  hive_blue        2.12 mm      165.38 mm
+  flower_*       ~1.35 mm      ~99–102 mm
+  (before the migration the numbers were exactly the other way round.)
+
+Key CAD positions in the sim frame (convert_field_cad.py points):
+  red LOADING ZONE tape x −1.781..−1.501, y +0.607..+1.184  → TILE A5 (blue: F2, y −1.18..−0.61)
+  red GARDEN tape y ≈ −1.78..−1.73                          → TILE A1 (blue: F6)
+  FLOWERS: (−1.7285, −0.594) red wall seam 2/3; (0.594, −1.7285) audience wall seam D/E;
+           (−0.594, 1.7285) rear wall seam B/C; (1.7285, 0.594) blue wall seam 4/5
+  AprilTag plate centroids: Red Scoring (−0.324, 0.290, 0.905), Red Audience (−0.324, −0.327, 1.262),
+           Blue Audience (0.324, −0.290, 0.905), Blue Scoring (0.324, 0.327, 1.262)
+  Upward CELLs at start (Guide §11.1): red audience (−Y), blue scoring (+Y).
+
+AprilTag layout = FTC SDK 12 AprilTagGameDatabase.getBioBuzzTagLibrary() (Vision-12.0.0.aar):
+  clusters RED SCORING 30–33, RED AUDIENCE 34–37, BLUE AUDIENCE 38–41, BLUE SCORING 42–45;
+  tag 3.25 in; member k at positionInClusterPlane (−6.5 / −2.75 / 2.75 / 6.5, 7.1874, −5.622) in,
+  cluster frame = AprilTag frame (X right, Y down, Z into the tag).
+  Sim tag site frame: +X printed right, +Y printed up (towards the CELL opening), +Z out of the face.
+  Resulting SDK origin p_k − R_c·m_k lies 2.7 cm from the CELL opening centre for all four clusters
+  (ftc-docs: origin = CELL opening centre).
+  Textures: the 16 PNGs were OpenCV-generated and 180° rotated vs the official AprilRobotics
+  tag36h11 images / BIOBUZZAprilTagProduction.pdf; now rotated to the official orientation (corner 0
+  bottom-left when upright). Visual plate = 10/8 × 3.25 in so the black square is 3.25 in.
+  Check: native MuJoCo render (texuniform=false copy) + pupil_apriltags + solvePnP on the SDK object
+  points recovers every cluster origin within 2.7–2.9 mm of the expected SDK origin.

@@ -48,24 +48,24 @@ export class AutoRunner {
     };
 
     try {
+      // Start (G304): TILE A6 tegen de rode muur (−X), neus +X. Rode GARDEN = A1 tegen de
+      // publieksmuur (−Y), het andere eind van de rode muur (manual Fig. 9-2).
       this.onTelemetry('LEAVE: vooruit van de muur');
       drive.setPower(0.35, 0.35);
       await this.sleep(400);
       drive.stop();
 
-      await drive.forward(1.2, 0.45);
+      await drive.forward(0.4, 0.45);
 
-      this.onTelemetry('Draai richting rode GARDEN');
-      await drive.turn(-35, 0.35);
+      // turn() is tijd-gebaseerd en draait in MuJoCo minder dan opgegeven: −175 ≈ kwartslag rechtsom.
+      this.onTelemetry('Draai rechtsom richting rode GARDEN (publiekszijde)');
+      await drive.turn(-175, 0.35);
 
-      this.onTelemetry('Rijd richting garden-pollen');
-      await drive.forward(1.5, 0.4);
-
-      await drive.turn(-20, 0.3);
-      await drive.forward(0.8, 0.35);
+      this.onTelemetry('Rijd langs de rode muur naar de GARDEN');
+      await drive.forward(6.2, 0.4);
 
       drive.stop();
-      this.onTelemetry('Auto klaar');
+      this.onTelemetry('Auto klaar: vóór de rode GARDEN');
     } finally {
       setTankPower(this.getData(), 0, 0);
       this.running = false;

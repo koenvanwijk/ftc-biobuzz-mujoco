@@ -129,7 +129,8 @@ def build_mjcf() -> str:
     ET.SubElement(asset, "material", name="intake_mat", rgba="0.3 0.3 0.35 1")
     ET.SubElement(asset, "material", name="shooter_mat", rgba="0.55 0.35 0.1 1")
 
-    # CAD meshes (STL already Z-up, meters, field-centered)
+    # CAD meshes (STL already Z-up, meters, field-centered; CAD_TO_SIM rotation, see
+    # scripts/convert_field_cad.py — not mirrored)
     cad_meshes = [
         ("hive_frame", "hive_mat"),
         ("hive_red", "red_mat"),
@@ -477,10 +478,10 @@ def _add_hive(world: ET.Element) -> None:
                 material="hive_mat",
             )
         tip = C.HIVE_TIP_ANGLE_DEG
-        _add_cell(hive_red, "red_cell_audience_shell", color="red_mat", pos=(-0.22, 0.28, pivot_z - 0.15), tip_x_deg=-tip)
-        _add_cell(hive_red, "red_cell_scoring_shell", color="red_mat", pos=(-0.22, -0.28, pivot_z - 0.55), tip_x_deg=-tip)
-        _add_cell(hive_blue, "blue_cell_scoring_shell", color="blue_mat", pos=(0.22, -0.28, pivot_z - 0.15), tip_x_deg=tip)
-        _add_cell(hive_blue, "blue_cell_audience_shell", color="blue_mat", pos=(0.22, 0.28, pivot_z - 0.55), tip_x_deg=tip)
+        _add_cell(hive_red, "red_cell_audience_shell", color="red_mat", pos=(-0.22, -0.28, pivot_z - 0.15), tip_x_deg=tip)
+        _add_cell(hive_red, "red_cell_scoring_shell", color="red_mat", pos=(-0.22, 0.28, pivot_z - 0.55), tip_x_deg=tip)
+        _add_cell(hive_blue, "blue_cell_scoring_shell", color="blue_mat", pos=(0.22, 0.28, pivot_z - 0.15), tip_x_deg=-tip)
+        _add_cell(hive_blue, "blue_cell_audience_shell", color="blue_mat", pos=(0.22, -0.28, pivot_z - 0.55), tip_x_deg=-tip)
 
     # AprilTags rigidly parented under each CELL underside body
     _add_apriltags_on_cells(hive_parents)
@@ -839,22 +840,37 @@ def _add_apriltags(world: ET.Element) -> None:
     return
 
 
+def apriltag_layout(cell_name: str) -> tuple[float, list[tuple[int, float]]]:
+    """
+    FTC SDK 12.0 BIOBUZZ cluster layout for one CELL, in the CELL-underside body frame.
+
+    Returns (yaw_deg, [(tag_id, local_x), ...]): every tag body is rotated ``yaw_deg`` (0 or 180)
+    about the plate normal (local +Z, toward the TILES) so that its local +Y is the printed "up"
+    (toward the CELL's outer end = opening; manual §9.9: bottom edge toward the FIELD centre) and its
+    local +X is "right" as seen from below. Member k (ID first+k) sits at x_k = −6.5/−2.75/2.75/6.5 in
+    along that "right" (SDK positionInClusterPlane).
+    """
+    spec = C.APRILTAG_CELLS[cell_name]
+    tip = math.radians(float(spec["tip_euler_x"]))
+    # CELL-local +Y in world = Rx(tip)·ŷ; the CELL's outer end lies at sign(pos_y) in world Y.
+    local_y_world_y = math.cos(tip)
+    outer = 1.0 if spec["pos"][1] > 0 else -1.0
+    up_sign = 1.0 if local_y_world_y * outer > 0 else -1.0
+    yaw = 0.0 if up_sign > 0 else 180.0
+    return yaw, [
+        (tid, up_sign * x_in * C.INCH) for tid, x_in in zip(spec["ids"], C.APRILTAG_CLUSTER_MEMBER_X_IN)
+    ]
+
+
 def _add_apriltags_on_cells(hive_parents: dict[str, ET.Element]) -> None:
     """
     Glue 36h11 AprilTags to each CELL underside (facing tiles).
     Parent under hive_red / hive_blue so sites track tip.
-    CAD tip_euler_x: red −150°, blue +150° (plate tip 30°; +Z toward tiles).
-    Strip: 4 tags, 3.25 in, bottom edge toward field center (manual §9.9).
+    CAD tip_euler_x: red +150°, blue −150° (plate tip 30°; +Z toward tiles).
+    Layout and ID order per FTC SDK 12.0 getBioBuzzTagLibrary() (see apriltag_layout).
+    Tag body / site frame: +X = printed right, +Y = printed up, +Z = out of the printed face.
     """
-    half = C.APRILTAG_SIZE / 2
-    pair_pitch = C.APRILTAG_SIZE * 1.12
-    pair_gap = C.APRILTAG_SIZE * 0.55
-    offsets_x = [
-        -1.5 * pair_pitch - pair_gap / 2,
-        -0.5 * pair_pitch - pair_gap / 2,
-        0.5 * pair_pitch + pair_gap / 2,
-        1.5 * pair_pitch + pair_gap / 2,
-    ]
+    half = C.APRILTAG_IMAGE_SIZE / 2  # black square = APRILTAG_SIZE (3.25 in), plus the white border
 
     for cell_name, spec in C.APRILTAG_CELLS.items():
         parent = hive_parents[spec["hive"]]
@@ -867,12 +883,10 @@ def _add_apriltags_on_cells(hive_parents: dict[str, ET.Element]) -> None:
             pos=_pos(cx, cy, cz),
             euler=f"{tip_x:.4f} 0 0",
         )
-        # Strip along ±X; flip so production left→right reads with bottom toward field center
-        x_sign = 1.0 if cx < 0 else -1.0
-        for i, tid in enumerate(spec["ids"]):
-            ox = x_sign * offsets_x[i]
+        yaw, members = apriltag_layout(cell_name)
+        for tid, ox in members:
             # Slight lift along local +Z (toward tiles) so plate sits on outer skin
-            gbody = _add_body(cell, f"apriltag_body_{tid}", pos=_pos(ox, 0.0, 0.004))
+            gbody = _add_body(cell, f"apriltag_body_{tid}", pos=_pos(ox, 0.0, 0.004), euler=f"0 0 {yaw:.1f}")
             _add_geom(
                 gbody,
                 name=f"apriltag_geom_{tid}",
@@ -883,17 +897,6 @@ def _add_apriltags_on_cells(hive_parents: dict[str, ET.Element]) -> None:
                 conaffinity="0",
                 group="1",
             )
-            # Site on same body: local +Z toward tiles; +X toward field center when possible
-            # After body euler, local +Z is face normal toward tiles. Build xyaxes in CELL frame:
-            # x along strip toward center projection onto plate, y = z × x
-            # In cell-local coords: z=(0,0,1), prefer x toward center.
-            # World center direction projected: for red (cx<0) center is +X → local +X.
-            x_sign = 1.0 if cx < 0 else -1.0
-            xx, xy, xz = x_sign, 0.0, 0.0
-            # y = z × x = (0,0,1)×(x_sign,0,0) = (0,1,0)*x_sign? → (0, x_sign, 0) wait
-            # z×x = (z_y*xz - z_z*xy, z_z*xx - z_x*xz, z_x*xy - z_y*xx) = (0, xx, 0) with z=(0,0,1)
-            yx, yy, yz = 0.0, xx, 0.0
-            xyaxes = f"{xx:.5f} {xy:.5f} {xz:.5f} {yx:.5f} {yy:.5f} {yz:.5f}"
             ET.SubElement(
                 gbody,
                 "site",
@@ -901,7 +904,6 @@ def _add_apriltags_on_cells(hive_parents: dict[str, ET.Element]) -> None:
                 pos="0 0 0",
                 size="0.01",
                 rgba="0 1 0 0",
-                xyaxes=xyaxes,
             )
 
 
@@ -1001,15 +1003,15 @@ def compute_pollen_positions() -> list[tuple[float, float, float]]:
             positions.append((fx, fy, flower_z0 + k * C.POLLEN_DIA * 0.98))
 
     # GARDEN POLLEN (§10.3.1): a line from the corner closest to the ALLIANCE AREA, against the
-    # audience (red, +Y) or rear (blue, −Y) wall.
+    # audience (red, −Y, TILE A1) or rear (blue, +Y, TILE F6) wall.
     for i in range(4):
         x = -(C.HALF - C.POLLEN_R - 0.01) + i * spacing
-        y = C.HALF - C.POLLEN_R - 0.01
+        y = -(C.HALF - C.POLLEN_R - 0.01)
         positions.append((x, y, z0))
 
     for i in range(4):
         x = (C.HALF - C.POLLEN_R - 0.01) - i * spacing
-        y = -(C.HALF - C.POLLEN_R - 0.01)
+        y = C.HALF - C.POLLEN_R - 0.01
         positions.append((x, y, z0))
 
     rx, ry, _ = robot_start_pose()
@@ -1019,7 +1021,7 @@ def compute_pollen_positions() -> list[tuple[float, float, float]]:
         positions.append(
             (
                 rx + 0.05 + (i % 2) * spacing,
-                ry - 0.08 + (i // 2) * spacing,
+                ry + 0.08 - (i // 2) * spacing,
                 z0,
             )
         )
@@ -1027,9 +1029,9 @@ def compute_pollen_positions() -> list[tuple[float, float, float]]:
     # Pre-loads of the other three ROBOTS, at G304-legal starts (on their alliance wall, not in a
     # LOADING ZONE or GARDEN, clear of the FLOWERS); field is point-symmetric about the centre.
     other_starts = [
-        (-(C.HALF - 0.25), C.HALF - 0.6),  # red #2, audience end of the red wall
-        (C.HALF - 0.25, -(C.HALF - 0.6)),  # blue #2 (mirror of red #2)
-        (C.HALF - 0.25, -ry),  # blue #1 (mirror of our start)
+        (-(C.HALF - 0.25), -(C.HALF - 0.6)),  # red #2, audience end of the red wall (TILE A1/A2)
+        (C.HALF - 0.25, C.HALF - 0.6),  # blue #2 (point mirror of red #2, TILE F6/F5)
+        (C.HALF - 0.25, -ry),  # blue #1 (point mirror of our start, TILE F1)
     ]
     for sx, sy in other_starts:
         for i in range(4):
@@ -1047,11 +1049,11 @@ def compute_pollen_positions() -> list[tuple[float, float, float]]:
 
 def robot_start_pose() -> tuple[float, float, float]:
     """Red start per G304: on the red wall (−X), rear intake exactly touching it (no penetration),
-    facing +X, at the rear end of the red wall (TILE A6, −Y) — clear of the red LOADING ZONE (A5),
+    facing +X, at the rear end of the red wall (TILE A6, +Y) — clear of the red LOADING ZONE (A5),
     the GARDEN (A1) and the red-wall FLOWER (seam A2/A3)."""
     x = -C.HALF + C.ROBOT_REAR_EXTENT
-    _x0, _x1, zone_y0, _zone_y1 = C.loading_zone_rect("red")
-    y = zone_y0 - C.ROBOT_HALF_WIDTH_BUMPER - 0.08  # 8 cm gap to the LOADING ZONE tape
+    _x0, _x1, _zone_y0, zone_y1 = C.loading_zone_rect("red")
+    y = zone_y1 + C.ROBOT_HALF_WIDTH_BUMPER + 0.08  # 8 cm gap to the LOADING ZONE tape
     yaw = 0.0
     return x, y, yaw
 

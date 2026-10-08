@@ -37,27 +37,31 @@ before(async () => {
   mujoco.FS.writeFile('/scene/biobuzz_scene.xml', fs.readFileSync(path.join(assets, 'biobuzz_scene.xml'), 'utf8'));
 });
 
-function world(mount, pollenAheadM = 0.9) {
+// Robot op (1,2, +1,4) (blauwe helft, achterzijde), kijkt −125° (naar de BLUE SCORING-CELL, omhoog bij start).
+const BLUE_POSE = { x: 1.2, y: 1.4, yawDeg: -125 };
+// Puntgespiegeld (180° om het veldmidden): rode helft, publiekszijde, kijkt naar de RED AUDIENCE-CELL.
+const RED_POSE = { x: -1.2, y: -1.4, yawDeg: 55 };
+
+function world(mount, pollenAheadM = 0.9, pose = BLUE_POSE) {
   const model = mujoco.MjModel.mj_loadXML('/scene/biobuzz_scene.xml');
   const data = new mujoco.MjData(model);
   mujoco.mj_resetDataKeyframe(model, data, 0);
   if (mount) assert.equal(applyCameraMount(mujoco, model, data, mount), true);
   const JNT = mujoco.mjtObj.mjOBJ_JOINT.value;
   const q = (name) => model.jnt_qposadr[mujoco.mj_name2id(model, JNT, name)];
-  // Robot op (1,2, −1,4), kijkt 125° (naar de BLUE SCORING-CELL, omhoog bij start).
-  const yaw = (125 * Math.PI) / 180;
+  const yaw = (pose.yawDeg * Math.PI) / 180;
   const r = q('robot_free');
-  data.qpos.set([1.2, -1.4, 0.059, Math.cos(yaw / 2), 0, 0, Math.sin(yaw / 2)], r);
+  data.qpos.set([pose.x, pose.y, 0.059, Math.cos(yaw / 2), 0, 0, Math.sin(yaw / 2)], r);
   // Eén POLLEN op de vloer, recht voor het robotmidden.
   const p = q('pollen_fj_00');
   const a = pollenAheadM;
-  data.qpos.set([1.2 + a * Math.cos(yaw), -1.4 + a * Math.sin(yaw), 0.0506, 1, 0, 0, 0], p);
+  data.qpos.set([pose.x + a * Math.cos(yaw), pose.y + a * Math.sin(yaw), 0.0506, 1, 0, 0, 0], p);
   mujoco.mj_forward(model, data);
   return { model, data };
 }
 
-function detect(mount, pollenAheadM) {
-  const { model, data } = world(mount, pollenAheadM);
+function detect(mount, pollenAheadM, pose) {
+  const { model, data } = world(mount, pollenAheadM, pose);
   const fov = cameraFov(resolveCameraConfig(null), { dfovDeg: 90, rollDeg: mount?.rollDeg ?? 0 });
   const opts = { cameraSiteName: 'robot_up_cam', hfovDeg: fov.hfovDeg, vfovDeg: fov.vfovDeg };
   const tags = computeAprilTagDetections(mujoco, model, data, { ...opts, maxRangeM: 2.5, minFacingDot: 0.55 }).detections;
@@ -117,5 +121,19 @@ describe('Camera-montage in de echte scène', () => {
       0,
       r.pollen.json,
     );
+  });
+
+  it('omhoog-CELLs (Guide §11.1): RED AUDIENCE vanaf de rode publiekskant en BLUE SCORING vanaf blauw achter, beide rechtop (|roll| < 90°)', () => {
+    // Liggende camera: roll is in het camerabeeld; een portretcamera draait die 90° mee.
+    const mount = { ...resolveCameraConfig(SIM_CAMERA).mount, rollDeg: 0 };
+    for (const [pose, name] of [[RED_POSE, 'RED AUDIENCE'], [BLUE_POSE, 'BLUE SCORING']]) {
+      const r = detect(mount, 1.1, pose);
+      const det = r.tags.find((d) => d.metadata.name === name);
+      assert.ok(det, `${name} in beeld: ${JSON.stringify(r.tags.map((d) => d.metadata.name))}`);
+      assert.ok(Math.abs(det.ftcPose.roll) < 90, `${name} roll ${det.ftcPose.roll.toFixed(1)}° (omhoog = scorebaar)`);
+      for (const d of r.tags.filter((t) => /RED SCORING|BLUE AUDIENCE/.test(t.metadata.name))) {
+        assert.ok(Math.abs(d.ftcPose.roll) > 90, `${d.metadata.name} hangt omlaag: roll ${d.ftcPose.roll.toFixed(1)}°`);
+      }
+    }
   });
 });

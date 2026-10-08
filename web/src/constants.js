@@ -50,16 +50,16 @@ export const CELL_CUP_LIP_T = 0.004;
 export const CELL_CUP_LIP_H = 0.010;
 export const HIVE_TIP_TRAVEL_DEG = 60.0;
 export const HIVE_PIVOT_Z = 1.1165;
-export const HIVE_TIP_JOINT_SIGN = { red: -1.0, blue: 1.0 };
+export const HIVE_TIP_JOINT_SIGN = { red: 1.0, blue: -1.0 };
 export const HIVE_UPWARD_CELL = {
   red: { 0: 'red_audience', 1: 'red_scoring' },
   blue: { 0: 'blue_scoring', 1: 'blue_audience' },
 };
 export const CELL_SHELLS = {
-  red_scoring: { open_sign: 1.0 },
-  red_audience: { open_sign: -1.0 },
-  blue_audience: { open_sign: -1.0 },
-  blue_scoring: { open_sign: 1.0 },
+  red_scoring: { open_sign: -1.0 },
+  red_audience: { open_sign: 1.0 },
+  blue_audience: { open_sign: 1.0 },
+  blue_scoring: { open_sign: -1.0 },
 };
 /** HIVE kantelt bij 8 POLLEN, of 3 NECTAR + 3 POLLEN (Event Field Setup Guide §12.3; telling). */
 export const TIP_NECTAR_REQUIRED = 3;
@@ -71,8 +71,8 @@ export const POLLEN_R = 0.07112 / 2;
 export const NECTAR_R = 0.09144 / 2;
 /** G427: extra NECTAR komt via de LOADING ZONE (rood A5, blauw F2) het veld op; zie ftc_sim/constants.py. */
 export const EXTRA_NECTAR_SPAWN = {
-  red: [-1.5988, -0.9144, 0.08072],
-  blue: [1.5988, 0.9144, 0.08072],
+  red: [-1.5988, 0.9144, 0.08072],
+  blue: [1.5988, -0.9144, 0.08072],
 };
 /** Raster (2 × 3, > NECTAR-diameter) voor opeenvolgende vrijgaves binnen de LOADING ZONE. */
 export const EXTRA_NECTAR_GRID_STEP = 0.1;
@@ -83,10 +83,10 @@ export const NECTAR_EXTRA_POOL = 5;
 
 /** Flower place (mirrored from ftc_sim/constants.py) */
 export const FLOWER_CAD_XY = [
-  [0.59417, 1.72826],
-  [-0.59417, -1.72826],
-  [-1.72826, 0.59417],
-  [1.72826, -0.59417],
+  [-0.59417, 1.72826], // achtermuur (+Y), naad B/C
+  [0.59417, -1.72826], // publieksmuur (−Y), naad D/E
+  [-1.72826, -0.59417], // rode muur (−X), naad 2/3
+  [1.72826, 0.59417], // blauwe muur (+X), naad 4/5
 ];
 export const FLOWER_FLOOR_H = 0.006;
 export const FLOWER_COLLAR_INNER_R = NECTAR_R + 0.002;
