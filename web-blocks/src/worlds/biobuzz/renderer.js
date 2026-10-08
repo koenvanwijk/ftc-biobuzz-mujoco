@@ -2,6 +2,7 @@ import { publicUrl } from '../../publicUrl.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DEFAULT_ROBOT_CAMERA_FOV } from '../../mujoco/robotCamera.js';
+import { pipLabelCss, renderWithPip, viewerPixelRatio } from './pipViewport.js';
 
 /**
  * Three.js MuJoCo geom viewer (zalo-style): build meshes from model geoms,
@@ -22,7 +23,7 @@ export class MujocoThreeViewer {
       alpha: false,
       powerPreference: 'high-performance',
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setPixelRatio(viewerPixelRatio(window.devicePixelRatio));
     this.renderer.setClearColor(0x1a1f2a, 1);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -383,26 +384,36 @@ export class MujocoThreeViewer {
     // Lange zijde 140–280 px; portret (aspect < 1) wordt smal en hoog.
     const base = Math.min(280, Math.max(140, Math.floor(cw * 0.24)));
     const aspect = pipAspect(this._camFov);
-    const pipW = aspect >= 1 ? base : Math.floor(base * aspect);
-    const pipH = aspect >= 1 ? Math.floor(base / aspect) : base;
-    return { cw, ch, margin, rightInset, pipW, pipH };
+    let pipW = aspect >= 1 ? base : Math.floor(base * aspect);
+    let pipH = aspect >= 1 ? Math.floor(base / aspect) : base;
+    // Laag paneel: PiP (met rand) past altijd in de hoogte.
+    const maxH = Math.max(40, ch - 2 * margin - 4);
+    if (pipH > maxH) {
+      pipW = Math.max(1, Math.floor((pipW * maxH) / pipH));
+      pipH = maxH;
+    }
+    return { cw, ch, margin, rightInset, pipW, pipH, corner: 'top-right' };
   }
 
   _layoutPipLabel() {
     const label = this._pipLabel || document.getElementById('pip-label');
     if (!label) return;
     this._pipLabel = label;
-    const { margin, rightInset, pipW, pipH } = this._pipCssBox();
-    label.style.right = `${rightInset}px`;
-    label.style.top = `${margin + pipH}px`;
-    label.style.bottom = 'auto';
-    label.style.width = `${pipW}px`;
+    // Zelfde CSS-pixel-rechthoeken als render(): label sluit aan op de cyaan rand.
+    const pos = pipLabelCss(this._pipCssBox());
+    label.style.right = `${pos.right}px`;
+    label.style.top = pos.top != null ? `${pos.top}px` : 'auto';
+    label.style.bottom = pos.bottom != null ? `${pos.bottom}px` : 'auto';
+    label.style.width = `${pos.width}px`;
     label.style.textAlign = 'center';
     label.style.boxSizing = 'border-box';
     label.hidden = false;
   }
 
   resize() {
+    // devicePixelRatio verandert bij browser-zoom of een ander scherm: volg het (begrensd op 2).
+    const ratio = viewerPixelRatio(window.devicePixelRatio);
+    if (this.renderer.getPixelRatio() !== ratio) this.renderer.setPixelRatio(ratio);
     const { cw, ch } = this._pipCssBox();
     this.renderer.setSize(cw, ch, false);
     // Keep CSS box = panel slot so the buffer never paints past overflow:hidden.
@@ -419,63 +430,34 @@ export class MujocoThreeViewer {
   render() {
     this.controls.update();
     const dpr = this.renderer.getPixelRatio();
-    const { cw, ch, margin: marginCss, rightInset: rightInsetCss, pipW: pipWcss, pipH: pipHcss } = this._pipCssBox();
-    // Always derive buffer size from current CSS box (ignore stale canvas.width).
-    const w = Math.max(1, Math.floor(cw * dpr));
-    const h = Math.max(1, Math.floor(ch * dpr));
-    if (this.canvas.width !== w || this.canvas.height !== h) {
-      this.renderer.setSize(cw, ch, false);
+    const box = this._pipCssBox();
+    // Buffer = CSS-box × pixelratio (three.js: canvas.width = floor(cw · dpr)); stale maat herstellen.
+    if (this.canvas.width !== Math.floor(box.cw * dpr) || this.canvas.height !== Math.floor(box.ch * dpr)) {
+      this.renderer.setSize(box.cw, box.ch, false);
+      this.camera.aspect = box.cw / Math.max(box.ch, 1);
+      this.camera.updateProjectionMatrix();
     }
-    const pipW = Math.max(1, Math.round(pipWcss * dpr));
-    const pipH = Math.max(1, Math.round(pipHcss * dpr));
-    const margin = Math.round(marginCss * dpr);
-    const rightInset = Math.round(rightInsetCss * dpr);
-    const border = Math.max(2, Math.round(2 * dpr));
-    // Keep full cyan border inside the visible canvas (rightInset + border).
-    const x = Math.max(margin, w - pipW - rightInset - border);
-    // WebGL y is measured from the bottom: put the PiP in the top-right corner.
-    const y = Math.max(margin, h - pipH - margin - border);
-
-    // Main orbit view
-    this.renderer.setScissorTest(false);
-    this.renderer.setViewport(0, 0, w, h);
-    this.renderer.setClearColor(0x1a1f2a, 1);
-    this.renderer.autoClear = true;
-    this.renderer.render(this.scene, this.camera);
-
-    // PiP frame: cyan border via oversized clear, then inset clear + render
-    const bx = Math.max(0, x - border);
-    const by = Math.max(0, y - border);
-    const bw = Math.min(w - bx, pipW + border * 2);
-    const bh = Math.min(h - by, pipH + border * 2);
-
-    this.renderer.setScissorTest(true);
-    this.renderer.autoClear = false;
-
-    this.renderer.setClearColor(0x33ddff, 1);
-    this.renderer.setViewport(bx, by, bw, bh);
-    this.renderer.setScissor(bx, by, bw, bh);
-    this.renderer.clear(true, true, true);
-
-    // Distinct inset clear so empty sky still reads as a real inset
-    this.renderer.setClearColor(0x0a1624, 1);
-    this.renderer.setViewport(x, y, pipW, pipH);
-    this.renderer.setScissor(x, y, pipW, pipH);
-    this.renderer.clear(true, true, true);
-
-    // Hide frustum helper in PiP (it would sit on the lens); drop fog so tip stays readable
+    // Viewport/scissor in CSS-pixels: three.js vermenigvuldigt zelf met de pixelratio.
     const helper = this._frustumHelper;
     const fog = this.scene.fog;
-    if (helper) helper.visible = false;
-    this.scene.fog = null;
-    this.renderer.render(this.scene, this.robotCam);
-    this.scene.fog = fog;
-    if (helper) helper.visible = true;
-
-    this.renderer.autoClear = true;
-    this.renderer.setClearColor(0x1a1f2a, 1);
-    this.renderer.setScissorTest(false);
-    this.renderer.setViewport(0, 0, w, h);
+    renderWithPip(this.renderer, {
+      scene: this.scene,
+      camera: this.camera,
+      robotCam: this.robotCam,
+      box,
+      clearColor: 0x1a1f2a,
+      frameColor: 0x33ddff,
+      insetColor: 0x0a1624,
+      // Kijkpiramide niet in de PiP (zit op de lens); geen mist zodat de tip leesbaar blijft.
+      beforePip: () => {
+        if (helper) helper.visible = false;
+        this.scene.fog = null;
+      },
+      afterPip: () => {
+        this.scene.fog = fog;
+        if (helper) helper.visible = true;
+      },
+    });
   }
 
   dispose() {
