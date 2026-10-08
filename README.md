@@ -129,16 +129,18 @@ voor CELL-openingen, robot chassis. Perimeter-panels/tegels uit STEP zijn bewust
 (te zwaar; vloer blijft simpele checker).
 
 Conversie: `cascadio` (STEP→GLB) + `trimesh` + `pyfqmr` (decimate). Eenheden in STEP = **meter**
-(SI). Onshape Y-up → MuJoCo Z-up via assen-swap `(x,y,z)→(x,z,y)`.
+(SI). Onshape Y-up → MuJoCo Z-up via de rotatie `(x,y,z)→(x,−z,y)` (+90° om X, det +1, geen spiegeling; `scripts/convert_field_cad.py`).
 
 Rapport: `cad/meshes/import_report.txt`.
 
 ## AprilTags (§9.9 + production PDF)
 
 - Familie **36h11**, **3.25 in (0.08255 m)** vierkant
-- Op de **onderkant** van elke CELL, kijkend naar de tegels; site `zaxis` = naar beneden,
-  `xaxis` = richting veldcentrum (onderkant tag)
-- Cluster van **4 tags per CELL** (horizontale strip)
+- Op de **onderkant** van elke CELL, kijkend naar de tegels, onderrand richting veldcentrum (§9.9)
+- Site-frame = de gedrukte tag: `+X` = rechts, `+Y` = boven (richting de CELL-opening), `+Z` = uit het
+  tagvlak (naar de tegels)
+- Cluster van **4 tags per CELL** (horizontale strip), op x = −6,5 / −2,75 / 2,75 / 6,5 in langs
+  gedrukt-rechts, zoals FTC SDK 12 `AprilTagGameDatabase.getBioBuzzTagLibrary()`
 
 | CELL | IDs (L→R) |
 |------|-----------|
@@ -147,25 +149,27 @@ Rapport: `cad/meshes/import_report.txt`.
 | Blue Audience | 38, 39, 40, 41 |
 | Blue Scoring | 42, 43, 44, 45 |
 
-De browser Blocks-simulator volgt voor deze IDs de SDK 12 cluster-semantiek: één zichtbare member is genoeg voor één `AprilTagClusterDetection`; members verschijnen niet als losse detections. De gerapporteerde pose wijst naar het midden van de bewegende CELL-opening en `percentClusterFound` is 25/50/75/100.
+De browser Blocks-simulator volgt voor deze IDs de SDK 12 cluster-semantiek: één zichtbare member is genoeg voor één `AprilTagClusterDetection`; members verschijnen niet als losse detections. De cluster-pose is de SDK-multitag-oplossing met de ledenposities uit de SDK-library (oorsprong ≈ midden van de bewegende CELL-opening, ±2,7 cm) en `percentClusterFound` is 25/50/75/100. Vanaf de tegels gezien lopen de IDs links→rechts; een omhoog-CELL geeft |roll| < 90°, een omlaag-CELL |roll| > 90°.
 
 Sites: `apriltag_<id>` · textures: `ftc_sim/assets/textures/apriltag_XX.png`
-(gegenereerd met OpenCV `DICT_APRILTAG_36h11`).
+(de officiële AprilRobotics tag36h11-afbeeldingen, rechtop zoals de productie-PDF: hoek 0 linksonder; tot 2026-10 stonden ze 180° gedraaid). Het zichtbare tagvlak is 10/8 × 3,25 in, zodat het zwarte vierkant precies 3,25 in is.
 
 ## Veld & staging (handboek §9 / §10.3.1)
 
 | Element | Specificatie (SI) |
 |---------|-------------------|
 | Veld | 3.6576 × 3.6576 m (144×144 in) |
-| FLOWERS | CAD-centra o.a. (±0.594, ±1.728) / (±1.728, ±0.594) |
+| FLOWERS | CAD-centra (−0.594, 1.728) achter B/C, (0.594, −1.728) publiek D/E, (−1.728, −0.594) rode muur 2/3, (1.728, 0.594) blauwe muur 4/5 |
 | POLLEN | 40× Ø 0.07112 m |
 | LOADING ZONE | rood TILE **A5**, blauw **F2**; 0,584 × 0,2795 m tegen de alliantiemuur (Guide §8.3, §9.3) |
 | GARDEN | rood **A1** (publieksmuur), blauw **F6** (achtermuur); 0,584 × 0,051 m (Guide §8.4) |
-| Robot-start | rood, tegen de −X-muur zonder penetratie, op A6, buiten de LOADING ZONE (G304) |
+| Robot-start | rood, tegen de −X-muur zonder penetratie, op A6 (−1,569; +1,476), buiten de LOADING ZONE (G304) |
 
 **POLLEN-telling:** 16 in FLOWERS + 4 rode GARDEN + 4 blauwe GARDEN + 4 preload (hopper) + 12 overige starts = **40**.
 
-**TILE-raster en spiegeling:** de CAD is ingelezen met (x,y,z)→(x,z,y), en dat is een spiegeling (`cad/meshes/import_report.txt`). Het sim-veld is daardoor in Y gespiegeld t.o.v. Fig. 6-2 / 9-5. Kolommen A→F = −X→+X (rood op −X). Rijen 1→6 = **+Y (publiek) → −Y**. GARDENS en LOADING ZONES volgen die spiegeling, zodat ze t.o.v. HIVE en FLOWERS goed liggen (`C.tile_center()`, `C.loading_zone_rect()`, `C.garden_rect()`).
+**TILE-raster (niet gespiegeld):** het sim-veld ligt zoals het echte veld (manual Fig. 9-2, Guide Fig. 6-2). Gezien vanaf het publiek (−Y) zit de rode alliantiemuur links (−X). Kolommen A→F = −X→+X, rijen 1→6 = **−Y (publiek) → +Y (achter)**. Rode GARDEN A1 (publieksmuur), rode LOADING ZONE A5, blauwe LOADING ZONE F2, blauwe GARDEN F6 (`C.tile_center()`, `C.loading_zone_rect()`, `C.garden_rect()`). FTC-veldcoördinaten (rode muur links, zoals bij DECODE): `C.sim_to_ftc_field(x, y) = (−y, x)`.
+
+Tot 2026-10 werd de CAD ingelezen met `(x,y,z)→(x,z,y)`. Dat is een spiegeling (det −1): het hele sim-veld was Fig. 9-2 in Y gespiegeld, en de tegels waren daarop aangepast. De import is nu een echte rotatie. De meshes zijn gemigreerd (`scripts/convert_field_cad.py migrate --legacy`, faces opnieuw gewonden) en `convert_field_cad.py check` meet ze tegen de CAD-GLB: ≈ 1–2 mm met de nieuwe transform, ≈ 100–165 mm met de oude.
 
 ## Projectstructuur
 

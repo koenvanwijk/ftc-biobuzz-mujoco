@@ -33,7 +33,7 @@ Synthetic `ftcPose` follows the FTC SDK camera frame: **X right, Y forward, Z up
 
 ## Known gaps (simulated)
 
-- BIOBUZZ cluster members 30–45 are grouped into the four official CELL clusters; one visible member yields one cluster detection, and cluster pose targets the moving CELL opening center.
+- BIOBUZZ cluster members 30–45 are grouped into the four official CELL clusters; one visible member yields one cluster detection, and the cluster pose is the SDK multi-tag solve (`origin = p_k − R_c·m_k` with the SDK 12 `positionInClusterPlane` offsets), which lands ≈ at the moving CELL opening centre. Tag sites follow the printed tag: +X = printed right, +Y = printed up (towards the CELL opening), +Z = out of the tag face (towards the tiles); IDs increase along printed-right.
 - No real image CV / lens intrinsics / distortion.
 - FOV is a **rectangular frustum** from the Logitech Brio 4K presets (diagonal 65°/78°/90°, 16:9 sensor; default 90° at 640×480 → H 66.3° × V 52.2°, 4:3 crop keeps vertical), plus max range 2.5 m. Config: `simulation.json` → `webcam.camera`; math in `src/mujoco/robotCamera.js`. UI selector *Camera-zichtveld*; `setCameraResolution` (e.g. 1280×720) switches to 16:9. No lens distortion / calibrated intrinsics.
 - Tag “facing camera” uses site ±Z · direction-to-camera threshold (approx.).

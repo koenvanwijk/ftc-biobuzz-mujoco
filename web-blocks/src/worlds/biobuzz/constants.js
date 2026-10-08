@@ -54,16 +54,16 @@ export const CELL_CUP_LIP_T = 0.004;
 export const CELL_CUP_LIP_H = 0.010;
 export const HIVE_TIP_TRAVEL_DEG = 60.0;
 export const HIVE_PIVOT_Z = 1.1165;
-export const HIVE_TIP_JOINT_SIGN = { red: -1.0, blue: 1.0 };
+export const HIVE_TIP_JOINT_SIGN = { red: 1.0, blue: -1.0 };
 export const HIVE_UPWARD_CELL = {
   red: { 0: 'red_audience', 1: 'red_scoring' },
   blue: { 0: 'blue_scoring', 1: 'blue_audience' },
 };
 export const CELL_SHELLS = {
-  red_scoring: { open_sign: 1.0 },
-  red_audience: { open_sign: -1.0 },
-  blue_audience: { open_sign: -1.0 },
-  blue_scoring: { open_sign: 1.0 },
+  red_scoring: { open_sign: -1.0 },
+  red_audience: { open_sign: 1.0 },
+  blue_audience: { open_sign: 1.0 },
+  blue_scoring: { open_sign: -1.0 },
 };
 /**
  * HIVE kantelt (Event Field Setup Guide §12.3, HIVE-kalibratie): bij 8 POLLEN, of bij
@@ -77,15 +77,15 @@ export const TILE_THICKNESS = 0.015;
 export const POLLEN_R = 0.07112 / 2;
 export const NECTAR_R = 0.09144 / 2;
 /**
- * TILE-raster (Event Field Setup Guide §6 Fig. 6-2 = manual §9.4 Fig. 9-5), gespiegeld zoals de
- * CAD-import (zie ftc_sim/constants.py): kolommen A→F = −X→+X (rode muur −X), rijen 1→6 = +Y→−Y
- * (publiekszijde +Y). Gespiegeld uit ftc_sim/constants.py.
+ * TILE-raster (Event Field Setup Guide §6 Fig. 6-2 = manual §9.4 Fig. 9-5), zoals het echte veld
+ * (CAD-import is een rotatie, zie ftc_sim/constants.py): kolommen A→F = −X→+X (rode muur −X),
+ * rijen 1→6 = −Y→+Y (publiekszijde −Y). Overgenomen uit ftc_sim/constants.py.
  */
 export const TILE_SIZE = 0.6096;
 export function tileCenter(tile) {
   const col = 'ABCDEF'.indexOf(tile[0].toUpperCase());
   const row = Number(tile.slice(1));
-  return [-HALF + (col + 0.5) * TILE_SIZE, HALF - (row - 0.5) * TILE_SIZE];
+  return [-HALF + (col + 0.5) * TILE_SIZE, -HALF + (row - 0.5) * TILE_SIZE];
 }
 export const LOADING_W = 0.584; // 23 in, tussen de TILE-naden
 export const LOADING_D = 0.2795; // 11 in vanaf de alliantiemuur
@@ -94,15 +94,15 @@ export const LOADING_ZONE_RECT = {
   red: { x0: -HALF, x1: -HALF + LOADING_D, y0: tileCenter('A5')[1] - LOADING_W / 2, y1: tileCenter('A5')[1] + LOADING_W / 2 },
   blue: { x0: HALF - LOADING_D, x1: HALF, y0: tileCenter('F2')[1] - LOADING_W / 2, y1: tileCenter('F2')[1] + LOADING_W / 2 },
 };
-/** GARDEN (Guide §8.4: rood A1 tegen de publieksmuur +Y, blauw F6 tegen de achtermuur −Y). */
+/** GARDEN (Guide §8.4: rood A1 tegen de publieksmuur −Y, blauw F6 tegen de achtermuur +Y). */
 export const GARDEN_RECT = {
-  red: { x0: -HALF, x1: -HALF + 0.584, y0: HALF - 0.051, y1: HALF },
-  blue: { x0: HALF - 0.584, x1: HALF, y0: -HALF, y1: -HALF + 0.051 },
+  red: { x0: -HALF, x1: -HALF + 0.584, y0: -HALF, y1: -HALF + 0.051 },
+  blue: { x0: HALF - 0.584, x1: HALF, y0: HALF - 0.051, y1: HALF },
 };
 /** G427: extra NECTAR komt via de LOADING ZONE (rood A5, blauw F2) het veld op; zie ftc_sim/constants.py. */
 export const EXTRA_NECTAR_SPAWN = {
-  red: [-1.5988, -0.9144, 0.08072],
-  blue: [1.5988, 0.9144, 0.08072],
+  red: [-1.5988, 0.9144, 0.08072],
+  blue: [1.5988, -0.9144, 0.08072],
 };
 /** Raster (2 × 3, > NECTAR-diameter) voor opeenvolgende vrijgaves binnen de LOADING ZONE. */
 export const EXTRA_NECTAR_GRID_STEP = 0.1;
@@ -113,10 +113,10 @@ export const NECTAR_EXTRA_POOL = 5;
 
 /** Flower place (mirrored from ftc_sim/constants.py) */
 export const FLOWER_CAD_XY = [
-  [0.59417, 1.72826],
-  [-0.59417, -1.72826],
-  [-1.72826, 0.59417],
-  [1.72826, -0.59417],
+  [-0.59417, 1.72826], // achtermuur (+Y), naad B/C
+  [0.59417, -1.72826], // publieksmuur (−Y), naad D/E
+  [-1.72826, -0.59417], // rode muur (−X), naad 2/3
+  [1.72826, 0.59417], // blauwe muur (+X), naad 4/5
 ];
 export const FLOWER_FLOOR_H = 0.006;
 export const FLOWER_COLLAR_INNER_R = NECTAR_R + 0.002;

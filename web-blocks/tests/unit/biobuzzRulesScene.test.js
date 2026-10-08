@@ -210,13 +210,13 @@ describe('Score uit de veldtoestand (TU03 §10.5)', () => {
 
   it('LEAVE vergrendelt zodra de robot los van de muur is; PARK = nu in de LOADING ZONE', () => {
     const s = sim();
-    s.placeRobot(-1.0, -0.6, 0);
+    s.placeRobot(-1.0, 0.6, 0);
     s.fwd();
     s.tick();
     let sc = s.ad.getScore();
     assert.equal(sc.red.leave.pts, 3);
     assert.equal(sc.red.park.pts, 0);
-    s.placeRobot(-1.35, -0.91, 0); // achterkant over de rand van de rode LOADING ZONE (A5)
+    s.placeRobot(-1.35, 0.91, 0); // achterkant over de rand van de rode LOADING ZONE (A5)
     s.fwd();
     sc = s.ad.getScore();
     assert.equal(sc.red.leave.pts, 3, 'LEAVE blijft staan');
@@ -229,8 +229,8 @@ describe('Score uit de veldtoestand (TU03 §10.5)', () => {
 
   it('GARDEN telt alleen in rust; CELL-element van de andere kleur telt voor de HIVE-eigenaar', () => {
     const s = sim();
-    s.place('pollen_30', -1.40, 1.79, TILE_THICKNESS + 0.0356); // rode GARDEN (A1, publieksmuur +Y)
-    s.place('pollen_31', -1.30, 1.79, TILE_THICKNESS + 0.0356, [0.5, 0, 0]); // rolt nog
+    s.place('pollen_30', -1.40, -1.79, TILE_THICKNESS + 0.0356); // rode GARDEN (A1, publieksmuur −Y)
+    s.place('pollen_31', -1.30, -1.79, TILE_THICKNESS + 0.0356, [0.5, 0, 0]); // rolt nog
     s.place('nectar_blue_0', ...s.inCell(s.ad.hiveTip.upwardCellKey('red'), 0.18, 0.03, 0.0));
     s.fwd();
     const sc = s.ad.getScore();
@@ -258,11 +258,11 @@ describe('Score uit de veldtoestand (TU03 §10.5)', () => {
 
 describe('LOADING ZONE, GARDEN en startpose (Guide §8.3/§8.4, manual §9.3/§9.4, G304)', () => {
   const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
-  it('TILE-raster: A1 = rode hoek aan de publiekszijde (+Y), F6 = blauwe hoek achter (−Y)', () => {
-    assert.deepEqual(tileCenter('A1').map((v) => +v.toFixed(4)), [-1.524, 1.524]);
-    assert.deepEqual(tileCenter('F6').map((v) => +v.toFixed(4)), [1.524, -1.524]);
-    assert.ok(near(tileCenter('A5')[1], -0.9144));
-    assert.ok(near(tileCenter('F2')[1], 0.9144));
+  it('TILE-raster: A1 = rode hoek aan de publiekszijde (−Y), F6 = blauwe hoek achter (+Y)', () => {
+    assert.deepEqual(tileCenter('A1').map((v) => +v.toFixed(4)), [-1.524, -1.524]);
+    assert.deepEqual(tileCenter('F6').map((v) => +v.toFixed(4)), [1.524, 1.524]);
+    assert.ok(near(tileCenter('A5')[1], 0.9144));
+    assert.ok(near(tileCenter('F2')[1], -0.9144));
   });
 
   it('scène-geoms: rode LOADING ZONE op A5, blauwe op F2 (23 × 11 in, tegen de alliantiemuur)', () => {
@@ -323,22 +323,20 @@ describe('LOADING ZONE, GARDEN en startpose (Guide §8.3/§8.4, manual §9.3/§9
     s.tick(1000); // 2 s
     const [x1, y1] = s.ad.scorer._robotPose();
     assert.ok(Math.hypot(x1 - x0, y1 - y0) < 0.002, `robot schuift niet (${(x1 - x0).toFixed(4)}, ${(y1 - y0).toFixed(4)})`);
+    // Kleinste afstand tussen de rode muur en alle botsende robot-geoms (mj_geomDistance):
+    // 0 = raakt; negatief = zit erin.
     const G = mujoco.mjtObj.mjOBJ_GEOM.value;
     const wall = mujoco.mj_name2id(s.model, G, 'wall_neg_x');
-    let touching = false;
-    let deepest = 0;
-    for (let i = 0; i < s.data.ncon; i++) {
-      const c = s.data.contact.get ? s.data.contact.get(i) : s.data.contact[i];
-      if (c.geom1 !== wall && c.geom2 !== wall) continue;
-      const other = c.geom1 === wall ? c.geom2 : c.geom1;
-      let b = s.model.geom_bodyid[other];
+    let gap = Infinity;
+    for (let g = 0; g < s.model.ngeom; g++) {
+      if (!s.model.geom_contype[g] && !s.model.geom_conaffinity[g]) continue;
+      let b = s.model.geom_bodyid[g];
       while (b > 0 && b !== s.bid('robot')) b = s.model.body_parentid[b];
       if (b !== s.bid('robot')) continue;
-      touching = true;
-      deepest = Math.min(deepest, c.dist);
+      gap = Math.min(gap, mujoco.mj_geomDistance(s.model, s.data, wall, g, 0.05, null));
     }
-    assert.ok(touching, 'robot raakt de rode muur (G304.C)');
-    assert.ok(deepest > -0.002, `geen penetratie (${deepest})`);
+    assert.ok(gap < 0.0005, `robot raakt de rode muur (G304.C): spleet ${(gap * 1000).toFixed(3)} mm`);
+    assert.ok(gap > -0.002, `geen penetratie (${(gap * 1000).toFixed(3)} mm)`);
     const sc = s.ad.getScore();
     assert.equal(sc.red.leave.pts, 0);
     assert.equal(sc.red.park.pts, 0);

@@ -12,11 +12,11 @@ WALL_THICKNESS = 0.05
 
 # --- TILE grid (Event Field Setup Guide §6 Fig. 6-2 = Competition Manual §9.4 Fig. 9-5) ---
 # Columns A–F run left→right and rows 1–6 run audience→rear, seen from the audience; the red
-# ALLIANCE AREA is on the left (manual §9.5). In this sim the CAD was imported with
-# (x,y,z)->(x,z,y) (a mirror, cad/meshes/import_report.txt), so the whole field is mirrored in Y:
-# columns A→F = −X→+X (red wall at −X), rows 1→6 = +Y→−Y (audience wall at +Y). That matches the
-# CAD content: red_audience CELL (AprilTags 34–37, "audience side", §9.9) and the FLOWERS
-# (audience-wall FLOWER at seam D/E, red-wall FLOWER at seam 2/3) all sit as in Fig. 6-2 mirrored in Y.
+# ALLIANCE AREA is on the left (manual §9.5). The CAD is imported with a proper rotation
+# (x,y,z)->(x,-z,y) (scripts/convert_field_cad.py), so the sim field is the real field, not a mirror:
+# columns A→F = −X→+X (red wall at −X), rows 1→6 = −Y→+Y (audience wall at −Y).
+# FTC Field Coordinate System (ftc-docs, Red Wall on the left from the audience, like DECODE):
+# x_ftc = −y_sim (toward the audience), y_ftc = x_sim (away from the Red Wall) — a 90° rotation.
 TILE_COLUMNS = "ABCDEF"
 
 
@@ -24,7 +24,12 @@ def tile_center(tile: str) -> tuple[float, float]:
     """Sim XY of a TILE centre, e.g. tile_center("A5") (see TILE grid note above)."""
     col = TILE_COLUMNS.index(tile[0].upper())
     row = int(tile[1:])
-    return (-HALF + (col + 0.5) * TILE_SIZE, HALF - (row - 0.5) * TILE_SIZE)
+    return (-HALF + (col + 0.5) * TILE_SIZE, -HALF + (row - 0.5) * TILE_SIZE)
+
+
+def sim_to_ftc_field(x: float, y: float) -> tuple[float, float]:
+    """Sim XY (m) → FTC Field Coordinate System XY (m), see TILE grid note above."""
+    return (-y, x)
 
 
 # --- Gardens (tape zones; Guide §8.4: red on TILE A1, blue on F6, against the audience/rear wall) ---
@@ -50,11 +55,11 @@ def loading_zone_rect(color: str) -> tuple[float, float, float, float]:
 
 
 def garden_rect(color: str) -> tuple[float, float, float, float]:
-    """(x0, x1, y0, y1) of the alliance GARDEN: red along the audience wall (+Y) from the red
-    corner, blue along the rear wall (−Y) from the blue corner."""
+    """(x0, x1, y0, y1) of the alliance GARDEN: red along the audience wall (−Y) from the red
+    corner (TILE A1), blue along the rear wall (+Y) from the blue corner (TILE F6)."""
     if color == "red":
-        return (-HALF, -HALF + GARDEN_LEN, HALF - GARDEN_WIDTH, HALF)
-    return (HALF - GARDEN_LEN, HALF, -HALF, -HALF + GARDEN_WIDTH)
+        return (-HALF, -HALF + GARDEN_LEN, -HALF, -HALF + GARDEN_WIDTH)
+    return (HALF - GARDEN_LEN, HALF, HALF - GARDEN_WIDTH, HALF)
 
 # --- HIVE frame ---
 HIVE_FRAME_W = 1.2565  # 49.46 in
@@ -77,13 +82,13 @@ HIVE_TIP_ANGLE_DEG = 30.0  # cell axis from horizontal (CAD measured 30.08°)
 # Bottom-face (AprilTag plate) tip from horizontal equals cell-axis tip (30°):
 # the plate contains the cell axis, so plane tip = 30°, not 60°.
 # Rx maps geom +Z → outward underside normal (toward tiles):
-#   red:  euler_x = -150° → n = (0, +0.5, -0.866)
-#   blue: euler_x = +150° → n = (0, -0.5, -0.866)
+#   red:  euler_x = +150° → n = (0, -0.5, -0.866)
+#   blue: euler_x = -150° → n = (0, +0.5, -0.866)
 # (±120° is 90° off those normals and makes tags look like vertical fins.)
 HIVE_TAG_FACE_TIP_DEG = 30.0
 
 # --- FLOWER (official CAD Layer-C centroids, Z-up, field center origin) ---
-# Extracted from Field CAD STEP v26-27.2 via cascadio (Y-up → Z-up swap).
+# Extracted from Field CAD STEP v26-27.2 via cascadio, CAD_TO_SIM = (x,y,z)->(x,-z,y).
 FLOWER_TOP_DIA = 0.1015  # 4 in
 FLOWER_TOP_Z = 0.546  # 21.5 in above tiles
 FLOWER_BOTTOM_ID = 0.071  # 2.79 in
@@ -92,10 +97,10 @@ FLOWER_RETRIEVAL_H = 0.09
 FLOWER_OFFSET_FROM_WALL = 0.08  # legacy mid-wall approx (prefer FLOWER_CAD_XY)
 # Official CAD positions (meters): (name, x, y, yaw_deg facing inward)
 FLOWER_CAD_XY = [
-    ("flower_pos_y", 0.59417, 1.72826, 180.0),   # +Y wall, offset +X
-    ("flower_neg_y", -0.59417, -1.72826, 0.0),  # -Y wall, offset -X
-    ("flower_neg_x", -1.72826, 0.59417, 90.0),  # -X wall, offset +Y
-    ("flower_pos_x", 1.72826, -0.59417, -90.0),  # +X wall, offset -Y
+    ("flower_pos_y", -0.59417, 1.72826, 180.0),  # rear wall (+Y), seam B/C
+    ("flower_neg_y", 0.59417, -1.72826, 0.0),  # audience wall (−Y), seam D/E
+    ("flower_neg_x", -1.72826, -0.59417, 90.0),  # red wall (−X), seam 2/3
+    ("flower_pos_x", 1.72826, 0.59417, -90.0),  # blue wall (+X), seam 4/5
 ]
 
 # --- POLLEN / NECTAR ---
@@ -158,7 +163,7 @@ SHOOT_ELEVATION_DEG = 75.0  # elevation from horizontal; aim along robot +X (for
 
 # --- HIVE tipping (bi-stable about ±X through pivot) ---
 HIVE_TIP_TRAVEL_DEG = 60.0  # CAD pose → other stable pose
-HIVE_TIP_JOINT_SIGN = {"hive_red": -1.0, "hive_blue": 1.0}
+HIVE_TIP_JOINT_SIGN = {"hive_red": 1.0, "hive_blue": -1.0}
 # Upward CELL per tip state (0 = CAD start, 1 = after tip)
 HIVE_UPWARD_CELL = {
     "red": {0: "red_audience", 1: "red_scoring"},
@@ -196,40 +201,52 @@ HOPPER_LOCAL_SLOTS = [  # robot-frame stash positions inside hopper volume
     (0.0, 0.0, 0.22),
 ]
 
-# --- AprilTags (Competition Manual §9.9 + BIOBUZZAprilTagProduction.pdf) ---
-APRILTAG_SIZE = 0.08255  # 3.25 in square
+# --- AprilTags (Competition Manual §9.9 + BIOBUZZAprilTagProduction.pdf + FTC SDK 12.0) ---
+APRILTAG_SIZE = 0.08255  # 3.25 in square = the black 8 × 8-cell square (AprilTag/SDK "tag size")
+# The textures are the official AprilRobotics tag36h11 images (10 × 10 cells incl. a 1-cell white
+# border, upright = corner 0 bottom-left), so the visual plate is 10/8 × the tag size (4.0625 in).
+APRILTAG_IMAGE_SIZE = APRILTAG_SIZE * 10.0 / 8.0
 APRILTAG_FAMILY = "36h11"
-# CAD plate centroids (Z-up) from field_coarse.glb AprilTag solids; tags are parented
-# under the matching CELL body so xpos follows if the HIVE tips later.
-# tip_euler_x: geom +Z faces tiles along the tipped bottom (Rx maps +Z → face normal).
-# CAD AprilTag plate centroids (Z-up) from field_coarse.glb am-5888-* solids.
+INCH = 0.0254
+# FTC SDK 12.0 AprilTagGameDatabase.getBioBuzzTagLibrary(): four clusters ("RED SCORING" 30–33,
+# "RED AUDIENCE" 34–37, "BLUE AUDIENCE" 38–41, "BLUE SCORING" 42–45). Member k (ID = first + k) sits
+# at positionInClusterPlane = (x_k, 7.1874, −5.622) in, 3.25 in tags. The cluster plane frame is the
+# AprilTag object frame: +X right and +Y down as printed, +Z into the tag. Origin ≈ CELL opening
+# centre (SDK 12.0 release notes). Manual §9.9: the cluster faces the TILES with its bottom edge
+# toward the centre of the FIELD, so the printed "up" points to the CELL's outer end / opening.
+APRILTAG_CLUSTER_MEMBER_X_IN = (-6.5, -2.75, 2.75, 6.5)
+APRILTAG_CLUSTER_MEMBER_Y_IN = 7.1874
+APRILTAG_CLUSTER_MEMBER_Z_IN = -5.622
+# CAD plate centroids (Z-up, CAD_TO_SIM) of the am-5888 "<Color> Goal April Tag (<Side>)" solids
+# in field_coarse.glb; tags are parented under the matching CELL body so xpos follows a HIVE tip.
 # tip_euler_x: Rx so geom +Z = underside outward normal (toward tiles).
+# "Audience" = CELL on the audience side (−Y); "scoring" = CELL on the side opposite the audience (+Y).
 APRILTAG_CELLS = {
     "red_scoring": {
         "ids": (30, 31, 32, 33),
-        "pos": (-0.32364, -0.28955, 0.90536),
-        "tip_euler_x": -150.0,  # red underside n=(0,+0.5,-0.866)
+        "pos": (-0.32364, 0.28955, 0.90536),
+        "tip_euler_x": 150.0,  # red underside n=(0,-0.5,-0.866)
         "hive": "hive_red",
         "cell": "red_cell_scoring",
     },
     "red_audience": {
         "ids": (34, 35, 36, 37),
-        "pos": (-0.32364, 0.32747, 1.26160),
-        "tip_euler_x": -150.0,
+        "pos": (-0.32364, -0.32747, 1.26160),
+        "tip_euler_x": 150.0,
         "hive": "hive_red",
         "cell": "red_cell_audience",
     },
     "blue_audience": {
         "ids": (38, 39, 40, 41),
-        "pos": (0.32406, 0.28955, 0.90536),
-        "tip_euler_x": 150.0,  # blue underside n=(0,-0.5,-0.866)
+        "pos": (0.32406, -0.28955, 0.90536),
+        "tip_euler_x": -150.0,  # blue underside n=(0,+0.5,-0.866)
         "hive": "hive_blue",
         "cell": "blue_cell_audience",
     },
     "blue_scoring": {
         "ids": (42, 43, 44, 45),
-        "pos": (0.32406, -0.32747, 1.26160),
-        "tip_euler_x": 150.0,
+        "pos": (0.32406, 0.32747, 1.26160),
+        "tip_euler_x": -150.0,
         "hive": "hive_blue",
         "cell": "blue_cell_scoring",
     },
@@ -238,49 +255,49 @@ APRILTAG_CELLS = {
 # CELL cavity centers (midpoint of CAD top/bottom skins) + tip — used for
 # NECTAR staging / invisible cell frames (no opaque box shells).
 CELL_SHELLS = {
-    # open_sign: local +Y is opening when +1; audience cells face the opposite way on the tipped hive
+    # open_sign: CELL-local +Y is the opening when +1, −Y when −1 (each CELL opens to its outer end)
     "red_scoring": {
-        "pos": (-0.3236, -0.40465, 1.02855),
-        "tip_euler_x": -150.0,
-        "open_sign": 1.0,
+        "pos": (-0.3236, 0.40465, 1.02855),
+        "tip_euler_x": 150.0,
+        "open_sign": -1.0,
         "hive": "hive_red",
         "color": "red",
     },
     "red_audience": {
-        "pos": (-0.3236, 0.27815, 1.42300),
-        "tip_euler_x": -150.0,
-        "open_sign": -1.0,
+        "pos": (-0.3236, -0.27815, 1.42300),
+        "tip_euler_x": 150.0,
+        "open_sign": 1.0,
         "hive": "hive_red",
         "color": "red",
     },
     "blue_audience": {
-        "pos": (0.3241, 0.40465, 1.02855),
-        "tip_euler_x": 150.0,
-        "open_sign": -1.0,
+        "pos": (0.3241, -0.40465, 1.02855),
+        "tip_euler_x": -150.0,
+        "open_sign": 1.0,
         "hive": "hive_blue",
         "color": "blue",
     },
     "blue_scoring": {
-        "pos": (0.3241, -0.27815, 1.42300),
-        "tip_euler_x": 150.0,
-        "open_sign": 1.0,
+        "pos": (0.3241, 0.27815, 1.42300),
+        "tip_euler_x": -150.0,
+        "open_sign": -1.0,
         "hive": "hive_blue",
         "color": "blue",
     },
 }
 
-# Pre-staged NECTAR inside upward-facing CELLs (Competition Manual §10.3.1).
+# Pre-staged NECTAR inside upward-facing CELLs (Competition Manual §10.3.1, Guide §11.1).
 # CAD centroids from field_coarse.glb am-5852 Red/Blue Nectar (hive instances).
-# Red → red audience CELL; blue → blue scoring CELL; line against back wall.
+# Red → red audience CELL (−Y); blue → blue scoring CELL (+Y); line against the back wall.
 NECTAR_RED_POS = [
-    (-0.5332, 0.2414, 1.2685),
-    (-0.4412, 0.2414, 1.2685),
-    (-0.3493, 0.2414, 1.2685),
+    (-0.5332, -0.2414, 1.2685),
+    (-0.4412, -0.2414, 1.2685),
+    (-0.3493, -0.2414, 1.2685),
 ]
 NECTAR_BLUE_POS = [
-    (0.3497, -0.2414, 1.2685),
-    (0.4417, -0.2414, 1.2685),
-    (0.5336, -0.2414, 1.2685),
+    (0.3497, 0.2414, 1.2685),
+    (0.4417, 0.2414, 1.2685),
+    (0.5336, 0.2414, 1.2685),
 ]
 
 # Colors (RGBA 0–1)

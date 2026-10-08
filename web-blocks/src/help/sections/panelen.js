@@ -43,7 +43,7 @@ export default {
   <li><strong>HIVE kantelt</strong> bij <strong>8 POLLEN</strong> of <strong>3 NECTAR + 3 POLLEN</strong> in de omhoog-CELL (Event Field Setup Guide §12.3). Bij de start liggen er al 3 NECTAR in, dus 3 POLLEN erin schieten kantelt de HIVE.</li>
   <li><strong>G407:</strong> de robot mag maximaal <strong>4</strong> elementen tegelijk hebben (voorhopper + achtercompartiment samen). Hij start met 4 preload-POLLEN, dus eerst schieten voordat de intake iets nieuws oppakt. HUD: <em>Robot x&nbsp;/&nbsp;4</em> (oranje = vol).</li>
   <li>Je robot hoort bij <strong>rood</strong>. Hij start tegen de rode muur, buiten de LOADING ZONE, met 4 POLLEN (G304). Beginscore: rood 10 en blauw 10 (de 3 NECTAR in de omhoog-CELL en de 4 POLLEN in de GARDEN).</li>
-  <li><strong>Veldindeling:</strong> de rode LOADING ZONE (lichtrood vak tegen de rode muur) ligt op TILE A5, de blauwe op F2. De GARDENS (smalle strook in de hoek) liggen op A1 en F6. Extra NECTAR na een TIP komt in de eigen LOADING ZONE het veld op. Let op: het sim-veld is gespiegeld t.o.v. de figuren in het handboek. De publiekszijde is de muur bij de rode GARDEN; zie README.</li>
+  <li><strong>Veldindeling:</strong> de rode LOADING ZONE (lichtrood vak tegen de rode muur) ligt op TILE A5, de blauwe op F2. De GARDENS (smalle strook in de hoek) liggen op A1 en F6. Extra NECTAR na een TIP komt in de eigen LOADING ZONE het veld op. Het sim-veld ligt zoals de figuren in het handboek: vanaf het publiek gezien zit rood links. De rode GARDEN ligt aan de publiekszijde, de robot start achterin (A6).</li>
 </ul>
 
 <h3>Robotcamera en Camera-zichtveld</h3>
