@@ -159,8 +159,13 @@ Sites: `apriltag_<id>` · textures: `ftc_sim/assets/textures/apriltag_XX.png`
 | Veld | 3.6576 × 3.6576 m (144×144 in) |
 | FLOWERS | CAD-centra o.a. (±0.594, ±1.728) / (±1.728, ±0.594) |
 | POLLEN | 40× Ø 0.07112 m |
+| LOADING ZONE | rood TILE **A5**, blauw **F2**; 0,584 × 0,2795 m tegen de alliantiemuur (Guide §8.3, §9.3) |
+| GARDEN | rood **A1** (publieksmuur), blauw **F6** (achtermuur); 0,584 × 0,051 m (Guide §8.4) |
+| Robot-start | rood, tegen de −X-muur zonder penetratie, op A6, buiten de LOADING ZONE (G304) |
 
 **POLLEN-telling:** 16 in FLOWERS + 4 rode GARDEN + 4 blauwe GARDEN + 4 preload (hopper) + 12 overige starts = **40**.
+
+**TILE-raster en spiegeling:** de CAD is ingelezen met (x,y,z)→(x,z,y), en dat is een spiegeling (`cad/meshes/import_report.txt`). Het sim-veld is daardoor in Y gespiegeld t.o.v. Fig. 6-2 / 9-5. Kolommen A→F = −X→+X (rood op −X). Rijen 1→6 = **+Y (publiek) → −Y**. GARDENS en LOADING ZONES volgen die spiegeling, zodat ze t.o.v. HIVE en FLOWERS goed liggen (`C.tile_center()`, `C.loading_zone_rect()`, `C.garden_rect()`).
 
 ## Projectstructuur
 

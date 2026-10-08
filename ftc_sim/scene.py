@@ -293,52 +293,32 @@ def _add_walls(world: ET.Element) -> None:
         )
 
 
+def _rect_geom(world: ET.Element, name: str, rect: tuple[float, float, float, float], z: float, hz: float, rgba: str) -> None:
+    x0, x1, y0, y1 = rect
+    _add_geom(
+        world,
+        name=name,
+        type="box",
+        pos=_pos((x0 + x1) / 2, (y0 + y1) / 2, z),
+        size=_pos((x1 - x0) / 2, (y1 - y0) / 2, hz),
+        rgba=rgba,
+        contype="0",
+        conaffinity="0",
+    )
+
+
 def _add_gardens(world: ET.Element) -> None:
+    """GARDENS on TILE A1 (red) / F6 (blue), Guide §8.4 — see C.garden_rect."""
     z = C.TILE_THICKNESS + 0.002
-    _add_geom(
-        world,
-        name="garden_red",
-        type="box",
-        pos=_pos(-(C.HALF - C.GARDEN_LEN / 2), -(C.HALF - C.GARDEN_WIDTH / 2), z),
-        size=_pos(C.GARDEN_LEN / 2, C.GARDEN_WIDTH / 2, 0.002),
-        rgba=_rgba((*C.RED[:3], 0.7)),
-        contype="0",
-        conaffinity="0",
-    )
-    _add_geom(
-        world,
-        name="garden_blue",
-        type="box",
-        pos=_pos(C.HALF - C.GARDEN_LEN / 2, C.HALF - C.GARDEN_WIDTH / 2, z),
-        size=_pos(C.GARDEN_LEN / 2, C.GARDEN_WIDTH / 2, 0.002),
-        rgba=_rgba((*C.BLUE[:3], 0.7)),
-        contype="0",
-        conaffinity="0",
-    )
+    _rect_geom(world, "garden_red", C.garden_rect("red"), z, 0.002, _rgba((*C.RED[:3], 0.7)))
+    _rect_geom(world, "garden_blue", C.garden_rect("blue"), z, 0.002, _rgba((*C.BLUE[:3], 0.7)))
 
 
 def _add_loading_zones(world: ET.Element) -> None:
+    """LOADING ZONES on TILE A5 (red) / F2 (blue), Guide §8.3 / manual §9.3 — see C.loading_zone_rect."""
     z = C.TILE_THICKNESS + 0.0015
-    _add_geom(
-        world,
-        name="loading_red",
-        type="box",
-        pos=_pos(-(C.HALF - C.LOADING_D / 2), -(C.HALF - C.LOADING_W / 2 - 0.15), z),
-        size=_pos(C.LOADING_D / 2, C.LOADING_W / 2, 0.0015),
-        rgba=_rgba((*C.RED[:3], 0.35)),
-        contype="0",
-        conaffinity="0",
-    )
-    _add_geom(
-        world,
-        name="loading_blue",
-        type="box",
-        pos=_pos(C.HALF - C.LOADING_D / 2, C.HALF - C.LOADING_W / 2 - 0.15, z),
-        size=_pos(C.LOADING_D / 2, C.LOADING_W / 2, 0.0015),
-        rgba=_rgba((*C.BLUE[:3], 0.35)),
-        contype="0",
-        conaffinity="0",
-    )
+    _rect_geom(world, "loading_red", C.loading_zone_rect("red"), z, 0.0015, _rgba((*C.RED[:3], 0.35)))
+    _rect_geom(world, "loading_blue", C.loading_zone_rect("blue"), z, 0.0015, _rgba((*C.BLUE[:3], 0.35)))
 
 
 def _add_hive(world: ET.Element) -> None:
@@ -1020,14 +1000,16 @@ def compute_pollen_positions() -> list[tuple[float, float, float]]:
         for k in range(4):
             positions.append((fx, fy, flower_z0 + k * C.POLLEN_DIA * 0.98))
 
+    # GARDEN POLLEN (§10.3.1): a line from the corner closest to the ALLIANCE AREA, against the
+    # audience (red, +Y) or rear (blue, −Y) wall.
     for i in range(4):
         x = -(C.HALF - C.POLLEN_R - 0.01) + i * spacing
-        y = -(C.HALF - C.POLLEN_R - 0.01)
+        y = C.HALF - C.POLLEN_R - 0.01
         positions.append((x, y, z0))
 
     for i in range(4):
         x = (C.HALF - C.POLLEN_R - 0.01) - i * spacing
-        y = C.HALF - C.POLLEN_R - 0.01
+        y = -(C.HALF - C.POLLEN_R - 0.01)
         positions.append((x, y, z0))
 
     rx, ry, _ = robot_start_pose()
@@ -1042,10 +1024,12 @@ def compute_pollen_positions() -> list[tuple[float, float, float]]:
             )
         )
 
+    # Pre-loads of the other three ROBOTS, at G304-legal starts (on their alliance wall, not in a
+    # LOADING ZONE or GARDEN, clear of the FLOWERS); field is point-symmetric about the centre.
     other_starts = [
-        (-(C.HALF - 0.25), C.HALF - 0.6),
-        (C.HALF - 0.25, -(C.HALF - 0.6)),
-        (C.HALF - 0.25, C.HALF - 0.6),
+        (-(C.HALF - 0.25), C.HALF - 0.6),  # red #2, audience end of the red wall
+        (C.HALF - 0.25, -(C.HALF - 0.6)),  # blue #2 (mirror of red #2)
+        (C.HALF - 0.25, -ry),  # blue #1 (mirror of our start)
     ]
     for sx, sy in other_starts:
         for i in range(4):
@@ -1062,8 +1046,12 @@ def compute_pollen_positions() -> list[tuple[float, float, float]]:
 
 
 def robot_start_pose() -> tuple[float, float, float]:
-    x = -(C.HALF - C.ROBOT_L / 2 - 0.02)
-    y = -(C.HALF - C.LOADING_W / 2 - 0.2)
+    """Red start per G304: on the red wall (−X), rear intake exactly touching it (no penetration),
+    facing +X, at the rear end of the red wall (TILE A6, −Y) — clear of the red LOADING ZONE (A5),
+    the GARDEN (A1) and the red-wall FLOWER (seam A2/A3)."""
+    x = -C.HALF + C.ROBOT_REAR_EXTENT
+    _x0, _x1, zone_y0, _zone_y1 = C.loading_zone_rect("red")
+    y = zone_y0 - C.ROBOT_HALF_WIDTH_BUMPER - 0.08  # 8 cm gap to the LOADING ZONE tape
     yaw = 0.0
     return x, y, yaw
 

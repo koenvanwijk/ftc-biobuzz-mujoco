@@ -19,6 +19,8 @@ import {
   FLOWER_SCORE_R,
   FLOWER_SCORE_Z_MAX,
   FLOWER_SCORE_Z_MIN,
+  GARDEN_RECT,
+  LOADING_ZONE_RECT,
   NECTAR_R,
   POLLEN_R,
   TILE_THICKNESS,
@@ -202,10 +204,13 @@ export class BiobuzzScorer {
       return { x0: px - sx, x1: px + sx, y0: py - sy, y1: py + sy };
     };
     this.garden = {
-      red: rectOf('garden_red', { x0: -HALF, x1: -HALF + 0.584, y0: -HALF, y1: -HALF + 0.051 }),
-      blue: rectOf('garden_blue', { x0: HALF - 0.584, x1: HALF, y0: HALF - 0.051, y1: HALF }),
+      red: rectOf('garden_red', GARDEN_RECT.red),
+      blue: rectOf('garden_blue', GARDEN_RECT.blue),
     };
-    this.loading = { red: rectOf('loading_red', null), blue: rectOf('loading_blue', null) };
+    this.loading = {
+      red: rectOf('loading_red', LOADING_ZONE_RECT.red),
+      blue: rectOf('loading_blue', LOADING_ZONE_RECT.blue),
+    };
 
     /** @type {{bid:number, kind:'pollen'|'nectar', color:string|null, r:number, vadr:number}[]} */
     this.elements = [];

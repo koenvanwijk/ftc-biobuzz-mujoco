@@ -324,8 +324,10 @@ class HiveTipController:
         if idx >= len(pool) or idx >= C.NECTAR_EXTRA_POOL:
             return False
         sx, sy, sz = C.EXTRA_NECTAR_SPAWN[color]
-        sx = sx + (0.05 if color == "blue" else -0.05) * (idx % 3)
-        sy = sy + 0.04 * ((idx // 3) % 3)
+        # 2 × 3 grid inside the LOADING ZONE (G427): column toward the wall, rows 0 / +step / −step.
+        step = C.EXTRA_NECTAR_GRID_STEP
+        sx = sx + (step if color == "blue" else -step) * (idx % 2)
+        sy = sy + (0.0, step, -step)[(idx // 2) % 3]
         sz = max(sz, C.TILE_THICKNESS + C.NECTAR_R + 0.002)
         adr = pool[idx]
         self.data.qpos[adr : adr + 3] = np.array([sx, sy, sz])

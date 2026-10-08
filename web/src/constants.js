@@ -69,10 +69,13 @@ export const TIP_POINTS = 20;
 export const TILE_THICKNESS = 0.015;
 export const POLLEN_R = 0.07112 / 2;
 export const NECTAR_R = 0.09144 / 2;
+/** G427: extra NECTAR komt via de LOADING ZONE (rood A5, blauw F2) het veld op; zie ftc_sim/constants.py. */
 export const EXTRA_NECTAR_SPAWN = {
-  red: [-1.45, -1.25, 0.08072],
-  blue: [1.45, 1.25, 0.08072],
+  red: [-1.5988, -0.9144, 0.08072],
+  blue: [1.5988, 0.9144, 0.08072],
 };
+/** Raster (2 × 3, > NECTAR-diameter) voor opeenvolgende vrijgaves binnen de LOADING ZONE. */
+export const EXTRA_NECTAR_GRID_STEP = 0.1;
 export const EXTRA_NECTAR_PARK_Z = 3.5;
 export const NECTAR_STAGED_PER_ALLIANCE = 3;
 export const NECTAR_MAX_PER_ALLIANCE = 8;

@@ -2,7 +2,8 @@
  * Echte BIOBUZZ-scène (MuJoCo WASM) + BiobuzzHardwareAdapter:
  * - G407: start met 4 preload-POLLEN = vol; intake weigert een 5e (voor én achter); na schieten weer ruimte;
  * - kantelregel: 3 gestagede NECTAR + 3 POLLEN kantelt (+20), + 2 POLLEN houdt; 7 POLLEN houdt, 8 kantelt;
- * - score-rijen uit de veldtoestand: GARDEN, CELL, FLOWER-eigenaar/bonus, LEAVE, PARK, alleen in rust.
+ * - score-rijen uit de veldtoestand: GARDEN, CELL, FLOWER-eigenaar/bonus, LEAVE, PARK, alleen in rust;
+ * - LOADING ZONES op TILE A5/F2 en GARDENS op A1/F6 (Guide §8.3/§8.4), startpose volgens G304.
  */
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
@@ -11,7 +12,17 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import loadMujoco from '@mujoco/mujoco';
 import { BiobuzzHardwareAdapter } from '../../src/mujoco/BiobuzzHardwareAdapter.js';
-import { FLOWER_CAD_XY, TILE_THICKNESS } from '../../src/worlds/biobuzz/constants.js';
+import {
+  EXTRA_NECTAR_GRID_STEP,
+  EXTRA_NECTAR_SPAWN,
+  FLOWER_CAD_XY,
+  LOADING_ZONE_RECT,
+  GARDEN_RECT,
+  NECTAR_R,
+  TILE_SIZE,
+  TILE_THICKNESS,
+  tileCenter,
+} from '../../src/worlds/biobuzz/constants.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const assets = path.resolve(here, '../../public/assets');
@@ -150,6 +161,12 @@ describe('HIVE-kantelregel in de echte scène (Guide §12.3)', () => {
     assert.equal(s.ad.hiveTip.score.red, 20);
     assert.equal(s.ad.getScore().red.tips.pts, 20);
     assert.notEqual(s.ad.hiveTip.upwardCellKey('red'), key);
+    // G427: de extra NECTAR komt in de rode LOADING ZONE (A5) het veld op.
+    assert.equal(s.ad.hiveTip.extrasReleased.red, 1);
+    const b = s.bid('nectar_extra_red_0');
+    const [nx, ny] = [s.data.qpos[s.model.jnt_qposadr[s.model.body_jntadr[b]]], s.data.qpos[s.model.jnt_qposadr[s.model.body_jntadr[b]] + 1]];
+    const z = s.ad.scorer.loading.red;
+    assert.ok(nx > z.x0 && nx < z.x1 && ny > z.y0 && ny < z.y1, `extra NECTAR (${nx.toFixed(3)}, ${ny.toFixed(3)}) in de LOADING ZONE`);
   });
 
   it('zonder NECTAR: 7 POLLEN houdt, 8 kantelt', () => {
@@ -186,6 +203,9 @@ describe('Score uit de veldtoestand (TU03 §10.5)', () => {
     }
     assert.equal(sc.red.leave.pts, 0, 'robot staat tegen de muur');
     assert.equal(sc.blue.leave.pts, 0);
+    assert.equal(sc.red.park.pts, 0, 'G304.E: start niet in de LOADING ZONE');
+    assert.equal(sc.red.total, 10, 'CELL 6 + GARDEN 4');
+    assert.equal(sc.blue.total, 10);
   });
 
   it('LEAVE vergrendelt zodra de robot los van de muur is; PARK = nu in de LOADING ZONE', () => {
@@ -196,7 +216,7 @@ describe('Score uit de veldtoestand (TU03 §10.5)', () => {
     let sc = s.ad.getScore();
     assert.equal(sc.red.leave.pts, 3);
     assert.equal(sc.red.park.pts, 0);
-    s.placeRobot(-1.35, -1.4, 0); // achterkant over de rand van de rode LOADING ZONE
+    s.placeRobot(-1.35, -0.91, 0); // achterkant over de rand van de rode LOADING ZONE (A5)
     s.fwd();
     sc = s.ad.getScore();
     assert.equal(sc.red.leave.pts, 3, 'LEAVE blijft staan');
@@ -209,8 +229,8 @@ describe('Score uit de veldtoestand (TU03 §10.5)', () => {
 
   it('GARDEN telt alleen in rust; CELL-element van de andere kleur telt voor de HIVE-eigenaar', () => {
     const s = sim();
-    s.place('pollen_30', -1.40, -1.79, TILE_THICKNESS + 0.0356);
-    s.place('pollen_31', -1.30, -1.79, TILE_THICKNESS + 0.0356, [0.5, 0, 0]); // rolt nog
+    s.place('pollen_30', -1.40, 1.79, TILE_THICKNESS + 0.0356); // rode GARDEN (A1, publieksmuur +Y)
+    s.place('pollen_31', -1.30, 1.79, TILE_THICKNESS + 0.0356, [0.5, 0, 0]); // rolt nog
     s.place('nectar_blue_0', ...s.inCell(s.ad.hiveTip.upwardCellKey('red'), 0.18, 0.03, 0.0));
     s.fwd();
     const sc = s.ad.getScore();
@@ -233,5 +253,94 @@ describe('Score uit de veldtoestand (TU03 §10.5)', () => {
     assert.equal(sc.red.flower.owned, 1);
     assert.equal(sc.blue.bottomNectar.pts, 5);
     assert.equal(sc.red.bottomNectar.pts, 0);
+  });
+});
+
+describe('LOADING ZONE, GARDEN en startpose (Guide §8.3/§8.4, manual §9.3/§9.4, G304)', () => {
+  const near = (a, b, tol = 1e-3) => Math.abs(a - b) <= tol;
+  it('TILE-raster: A1 = rode hoek aan de publiekszijde (+Y), F6 = blauwe hoek achter (−Y)', () => {
+    assert.deepEqual(tileCenter('A1').map((v) => +v.toFixed(4)), [-1.524, 1.524]);
+    assert.deepEqual(tileCenter('F6').map((v) => +v.toFixed(4)), [1.524, -1.524]);
+    assert.ok(near(tileCenter('A5')[1], -0.9144));
+    assert.ok(near(tileCenter('F2')[1], 0.9144));
+  });
+
+  it('scène-geoms: rode LOADING ZONE op A5, blauwe op F2 (23 × 11 in, tegen de alliantiemuur)', () => {
+    const s = sim();
+    for (const [color, tile] of [['red', 'A5'], ['blue', 'F2']]) {
+      const z = s.ad.scorer.loading[color];
+      const ref = LOADING_ZONE_RECT[color];
+      for (const k of ['x0', 'x1', 'y0', 'y1']) assert.ok(near(z[k], ref[k]), `${color} ${k}`);
+      assert.ok(near(z.x1 - z.x0, 0.2795) && near(z.y1 - z.y0, 0.584), `${color} maat`);
+      const [, cy] = tileCenter(tile);
+      assert.ok(near((z.y0 + z.y1) / 2, cy), `${color} midden op ${tile}`);
+      assert.ok(z.y0 > cy - TILE_SIZE / 2 && z.y1 < cy + TILE_SIZE / 2, `${color} binnen de TILE-naden`);
+      assert.ok(color === 'red' ? near(z.x0, -1.8288) : near(z.x1, 1.8288), `${color} tegen de alliantiemuur`);
+    }
+  });
+
+  it('GARDEN aan de andere kant van de alliantiemuur dan de LOADING ZONE; FLOWERS niet in een zone', () => {
+    const s = sim();
+    for (const color of ['red', 'blue']) {
+      const g = s.ad.scorer.garden[color];
+      const z = s.ad.scorer.loading[color];
+      for (const k of ['x0', 'x1', 'y0', 'y1']) assert.ok(near(g[k], GARDEN_RECT[color][k]), `${color} GARDEN ${k}`);
+      const gy = (g.y0 + g.y1) / 2;
+      const zy = (z.y0 + z.y1) / 2;
+      assert.ok(Math.abs(gy - zy) > 2.4, `${color}: GARDEN (y ${gy.toFixed(2)}) en LOADING ZONE (y ${zy.toFixed(2)}) aan tegenovergestelde uiteinden`);
+      for (const [fx, fy] of FLOWER_CAD_XY) {
+        const dx = Math.max(z.x0 - fx, 0, fx - z.x1);
+        const dy = Math.max(z.y0 - fy, 0, fy - z.y1);
+        assert.ok(Math.hypot(dx, dy) > 0.5, `FLOWER (${fx}, ${fy}) ver van de ${color} LOADING ZONE`);
+      }
+    }
+  });
+
+  it('extra NECTAR-vrijgaves (2 × 3 raster) vallen allemaal binnen de LOADING ZONE en overlappen niet', () => {
+    for (const color of ['red', 'blue']) {
+      const z = LOADING_ZONE_RECT[color];
+      const pts = [];
+      for (let idx = 0; idx < 5; idx++) {
+        const [sx, sy] = EXTRA_NECTAR_SPAWN[color];
+        const x = sx + (color === 'blue' ? 1 : -1) * EXTRA_NECTAR_GRID_STEP * (idx % 2);
+        const y = sy + [0, EXTRA_NECTAR_GRID_STEP, -EXTRA_NECTAR_GRID_STEP][Math.floor(idx / 2) % 3];
+        assert.ok(x - NECTAR_R > z.x0 - 1e-9 && x + NECTAR_R < z.x1 + 0.005 && y - NECTAR_R > z.y0 && y + NECTAR_R < z.y1, `${color} #${idx} in zone`);
+        for (const [px, py] of pts) assert.ok(Math.hypot(x - px, y - py) >= 2 * NECTAR_R, `${color} #${idx} overlapt niet`);
+        pts.push([x, y]);
+      }
+    }
+  });
+
+  it('startpose (G304): raakt de muur zonder erin te zitten, schuift niet weg, niet in de LOADING ZONE, 4 preload', () => {
+    const s = sim();
+    const fp = s.ad.scorer.footprint;
+    const [x0, y0, yaw0] = s.ad.scorer._robotPose();
+    assert.ok(near(x0 + fp.x0, -1.8288, 5e-4), `achterkant ${(x0 + fp.x0).toFixed(4)} op de muur`);
+    assert.ok(Math.abs(yaw0) < 1e-6);
+    assert.equal(s.ad.scorer.parkedNow(), false, 'niet in de LOADING ZONE');
+    assert.ok(x0 < 0, 'rode helft (kolom A–C)');
+    assert.equal(s.ad.mech.controlledCount, 4, 'precies 4 preload-POLLEN');
+    s.tick(1000); // 2 s
+    const [x1, y1] = s.ad.scorer._robotPose();
+    assert.ok(Math.hypot(x1 - x0, y1 - y0) < 0.002, `robot schuift niet (${(x1 - x0).toFixed(4)}, ${(y1 - y0).toFixed(4)})`);
+    const G = mujoco.mjtObj.mjOBJ_GEOM.value;
+    const wall = mujoco.mj_name2id(s.model, G, 'wall_neg_x');
+    let touching = false;
+    let deepest = 0;
+    for (let i = 0; i < s.data.ncon; i++) {
+      const c = s.data.contact.get ? s.data.contact.get(i) : s.data.contact[i];
+      if (c.geom1 !== wall && c.geom2 !== wall) continue;
+      const other = c.geom1 === wall ? c.geom2 : c.geom1;
+      let b = s.model.geom_bodyid[other];
+      while (b > 0 && b !== s.bid('robot')) b = s.model.body_parentid[b];
+      if (b !== s.bid('robot')) continue;
+      touching = true;
+      deepest = Math.min(deepest, c.dist);
+    }
+    assert.ok(touching, 'robot raakt de rode muur (G304.C)');
+    assert.ok(deepest > -0.002, `geen penetratie (${deepest})`);
+    const sc = s.ad.getScore();
+    assert.equal(sc.red.leave.pts, 0);
+    assert.equal(sc.red.park.pts, 0);
   });
 });
