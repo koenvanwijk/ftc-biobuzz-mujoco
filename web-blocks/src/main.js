@@ -5,6 +5,7 @@ import { BiobuzzHardwareAdapter } from './mujoco/BiobuzzHardwareAdapter.js';
 import { OpModeRunner } from './execution/OpModeRunner.js';
 import { BlocksBridge } from './editor/blocksBridge.js';
 import { seedBlkProject } from './editor/seedProject.js';
+import { installEditorHelpers, focusEditor } from './editor/editorFocus.js';
 import { createRuntime } from './ftc-runtime/createRuntime.js';
 import { initSplitLayout } from './ui/splitLayout.js';
 import { initHelpPanel } from './help/helpPanel.js';
@@ -273,6 +274,16 @@ async function boot() {
   bridge = new BlocksBridge($('blocksFrame'));
   // Install alleen na bewuste navigatie (openProjects / openEditorWithProject).
   // Een losse load-handler race't met navigatie en injecteert soms in het oude document.
+  // Lichte focus/klembord/toets-helpers (geen bridge-ping): per document idempotent, dus een load-handler is veilig.
+  const blocksFrame = $('blocksFrame');
+  const installHelpers = () => installEditorHelpers(blocksFrame.contentWindow);
+  blocksFrame.addEventListener('load', installHelpers);
+  installHelpers();
+  // Na INIT/START/STOP de focus terug naar de editor: Ctrl+C/V/Z werken direct; gamepad-toetsen
+  // worden vanuit de iframe doorgestuurd naar deze pagina (zie editorFocus.js).
+  for (const id of ['btnInit', 'btnStart', 'btnStop']) {
+    $(id).addEventListener('click', () => focusEditor(blocksFrame));
+  }
 
   // Read-only hook voor smoke tests / handmatig debuggen in de console.
   window.__ftcSim = {
@@ -704,6 +715,7 @@ function wireUi() {
         $('javaOut').textContent = `(Java-preview: ${e.message})`;
       }
       log(`Voorbeeld geladen: ${name}`);
+      focusEditor($('blocksFrame'));
     } catch (e) {
       log(`Laden mislukt: ${e.message}`);
     }
