@@ -339,6 +339,23 @@ async function boot() {
       mujoco.mj_forward(model, data);
       return true;
     },
+    /** Alleen voor smoke tests: huidige robotpose (x, y m; yawDeg tegen de klok in vanaf +X) + camerapositie. */
+    robotPose() {
+      const { mujoco, model, data } = mujocoBundle || {};
+      const id = mujoco ? mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT.value, 'robot_free') : -1;
+      if (id < 0) return null;
+      const qa = model.jnt_qposadr[id];
+      const [x, y, , w, qx, qy, qz] = data.qpos.slice(qa, qa + 7);
+      const yawDeg = (Math.atan2(2 * (w * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz)) * 180) / Math.PI;
+      const cid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE.value, 'robot_up_cam');
+      const cam = cid >= 0 ? { x: data.site_xpos[cid * 3], y: data.site_xpos[cid * 3 + 1] } : null;
+      return { x, y, yawDeg, cam };
+    },
+    /** Alleen voor smoke tests: AprilTag-detecties (JSON) uit de laatste sensor-uitlezing. */
+    aprilTags() {
+      const s = adapter?.readSensors?.();
+      return s?.aprilTagDetections?.json ?? '[]';
+    },
     /** Aantal AprilTag-detecties en POLLEN-blobs in de laatste sensor-uitlezing. */
     visionCounts() {
       const s = adapter?.readSensors?.();

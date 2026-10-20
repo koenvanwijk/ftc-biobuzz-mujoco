@@ -15,6 +15,7 @@ export default {
   <li>Klik op <strong>STOP</strong>. De motoren gaan uit en je kunt weer vrij rijden met de idle-toetsen (HUD: Control = Teleop). Met <strong>Reset sim</strong> begin je opnieuw.</li>
 </ol>
 <p><strong>Zelf aanpassen?</strong> Verander een blok in de editor, klik op <strong>Code vernieuwen</strong>, en dan weer <strong>INIT</strong> en <strong>START</strong>. Zet eventueel eerst <strong>Debug</strong> aan om blok voor blok mee te kijken.</p>
+<p><strong>Autonoom: ImuHiveAuto.</strong> Dit voorbeeld rijdt zelf van de start (A6, rood) naar de HIVE. Het houdt met de IMU de koers vast op rechte stukken (<code>driveStraight</code>) en draait met de IMU (<code>turnToHeading</code>). Daarna lijnt het uit op de AprilTag-cluster <em>RED SCORING</em> (tags 30–33): recht voor de CELL op 1,20 m horizontale afstand (<code>alignWithHive</code>). Staat de robot meer dan 4° scheef, dan corrigeert <code>squareUpToHive</code> zijwaarts. De camera staat in portret en kijkt 17,5° omhoog. Daarom rekent het programma de horizontale afstand en hoek zelf uit met <code>ftcPose.x/y/z</code>. Gebruik INIT en START; de telemetry laat de fase, de afstand en de scheefstand zien.</p>
 <p class="help-note">Gaat er iets mis? Kijk in de <em>Runtime-log</em> (Code-paneel, onderaan) voor de foutmelding.</p>
 `,
 };
