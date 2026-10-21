@@ -12,6 +12,7 @@ describe('.blk examples', () => {
     'StarterBot_Mechanisms.blk',
     'StarterBot_EncoderAuto.blk',
     'StarterBot_ImuAprilTag.blk',
+    'StarterBot_ImuHiveAuto.blk',
   ]) {
     it(`${name} has Blockly xml + Extra xml and exact config ids`, () => {
       const text = fs.readFileSync(path.join(root, 'examples', name), 'utf8');

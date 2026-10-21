@@ -16,7 +16,7 @@ Open **http://localhost:5174/** (BIOBUZZ-veld).
 
 ### Workflow
 
-1. Voorbeeld (TankDrive / Mechanisms / EncoderAuto / **ImuAprilTag**) → *Open in editor*.
+1. Voorbeeld (TankDrive / Mechanisms / EncoderAuto / **ImuAprilTag** / **ImuHiveAuto**) → *Open in editor*.
 2. *Code vernieuwen* voor JS/Java.
 3. **INIT** → OpMode tot `waitForStart` (sim reset; OpMode owns actuators).
 4. **START** / **STOP** — STOP zerot drive + mechanisms; daarna idle teleop weer actief.
