@@ -16,7 +16,7 @@ function constant(name) {
   return Number(m[1]);
 }
 
-describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE)', () => {
+describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + schieten)', () => {
   it('is an AUTONOMOUS OpMode listed in the dropdown', () => {
     assert.match(blk, /flavor="AUTONOMOUS"/);
     assert.match(fs.readFileSync(path.join(root, 'index.html'), 'utf8'), /value="StarterBot_ImuHiveAuto\.blk"/);
@@ -24,7 +24,7 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE)', (
 
   it('defines every procedure it calls', () => {
     const defs = new Set([...xml.matchAll(/type="procedures_defnoreturn"[^>]*>(?:\s*<mutation>[\s\S]*?<\/mutation>)?\s*<field name="NAME">(\w+)</g)].map((m) => m[1]));
-    for (const p of ['runOpMode', 'readHeading', 'computeError', 'turnToHeading', 'driveStraight', 'alignWithHive', 'squareUpToHive']) {
+    for (const p of ['runOpMode', 'readHeading', 'computeError', 'turnToHeading', 'driveStraight', 'localize', 'goToShootingSpot', 'shootAll']) {
       assert.ok(defs.has(p), p);
     }
     for (const m of xml.matchAll(/<mutation name="(\w+)"/g)) assert.ok(defs.has(m[1]), `call to undefined ${m[1]}`);
@@ -44,9 +44,9 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE)', (
     assert.match(xml, /RUN_USING_ENCODER/);
   });
 
-  it('aligns on the RED SCORING cluster with horizontal (portrait + pitch) geometry', () => {
+  it('localizes on the RED AUDIENCE cluster (red upward CELL) with horizontal (portrait + pitch) geometry', () => {
     assert.match(xml, /isClusterDetection/);
-    assert.match(xml, /<field name="TEXT">RED SCORING<\/field>/);
+    assert.match(xml, /<field name="TEXT">RED AUDIENCE<\/field>/);
     for (const p of ['ftcPose.x', 'ftcPose.y', 'ftcPose.z']) assert.ok(xml.includes(`<field name="PROP">${p}</field>`), p);
     // SDK-range/bearing zijn bij een portretcamera niet horizontaal: het programma gebruikt ze niet.
     assert.ok(!xml.includes('ftcPose.range') && !xml.includes('ftcPose.bearing'));
@@ -57,9 +57,13 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE)', (
     const mount = sim.webcam?.camera?.mount;
     assert.ok(mount, 'webcam.camera.mount');
     assert.equal(constant('CAMERA_PITCH_DEG'), Number(mount.pitchDeg));
-    const r = constant('TARGET_RANGE_M');
-    assert.ok(r >= 1.06 && r <= 1.54, `TARGET_RANGE_M ${r}`);
-    assert.equal(constant('HIVE_HEADING'), 90);
+    assert.equal(constant('CAMERA_FORWARD_M'), Number(mount.x));
+    const r = constant('SHOOT_DISTANCE_M');
+    assert.ok(r >= 1.06 && r <= 1.54, `SHOOT_DISTANCE_M ${r}`);
+    assert.equal(constant('HIVE_HEADING'), 0);
+    // RED AUDIENCE-cluster = opening van de rode omhoog-CELL (na het terugspiegelen van het veld, y < 0).
+    assert.equal(constant('TAG_X'), -0.324);
+    assert.equal(constant('TAG_Y'), -0.416);
   });
 
   it('the horizontal range/bearing formula undoes the camera pitch (portrait frame)', () => {
@@ -71,5 +75,12 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE)', (
     assert.ok(Math.abs(forwardH - h) < 1e-9);
     assert.ok(Math.abs(Math.hypot(forwardH, ftc.z) - Math.hypot(h, left)) < 1e-9);
     assert.ok(Math.abs(Math.atan2(ftc.z, forwardH) - Math.atan2(left, h)) < 1e-9);
+  });
+
+  it('shoots up to 4 elements (G407) with flywheel power edges', () => {
+    assert.match(xml, /<field name="IDENTIFIER">flywheelAsDcMotor<\/field>\s*<field name="PROP">Power<\/field>/);
+    assert.match(xml, /<field name="VAR" id="v_shots">shots<\/field>[\s\S]*?<field name="NUM">4<\/field>/);
+    const sim = JSON.parse(fs.readFileSync(path.join(root, 'public/robots/BIOBUZZ/simulation.json'), 'utf8'));
+    assert.ok(JSON.stringify(sim).includes('flywheelAsDcMotor'));
   });
 });

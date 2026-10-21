@@ -351,6 +351,17 @@ async function boot() {
       const cam = cid >= 0 ? { x: data.site_xpos[cid * 3], y: data.site_xpos[cid * 3 + 1] } : null;
       return { x, y, yawDeg, cam };
     },
+    /** Alleen voor smoke tests: posities (x, y, z m) van alle bodies waarvan de naam met `prefix` begint. */
+    bodyPositions(prefix = 'pollen_') {
+      const { mujoco, model, data } = mujocoBundle || {};
+      if (!mujoco) return {};
+      const out = {};
+      for (let b = 0; b < model.nbody; b++) {
+        const name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY.value, b);
+        if (name && name.startsWith(prefix)) out[name] = [0, 1, 2].map((i) => +data.xpos[b * 3 + i].toFixed(3));
+      }
+      return out;
+    },
     /** Alleen voor smoke tests: AprilTag-detecties (JSON) uit de laatste sensor-uitlezing. */
     aprilTags() {
       const s = adapter?.readSensors?.();
