@@ -83,4 +83,18 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     const sim = JSON.parse(fs.readFileSync(path.join(root, 'public/robots/BIOBUZZ/simulation.json'), 'utf8'));
     assert.ok(JSON.stringify(sim).includes('flywheelAsDcMotor'));
   });
+
+  it('after the TIP: collects yellow POLLEN with the colour-blob processor and shoots at RED SCORING', () => {
+    const defs = [...xml.matchAll(/<field name="NAME">(\w+)<\/field>/g)].map((m) => m[1]);
+    assert.ok(defs.includes('collectYellow'));
+    assert.match(xml, /<field name="CONSTANT">YELLOW<\/field>/);
+    assert.match(xml, /colorBlobLocatorProcessor_getBlobs/);
+    assert.match(xml, /visionPortalBuilder_addProcessor[\s\S]*visionPortalBuilder_addProcessor/);
+    assert.match(xml, /intakeMotorAsDcMotor/);
+    for (const name of ['RED AUDIENCE', 'RED SCORING']) assert.ok(xml.includes(`<field name="TEXT">${name}</field>`), name);
+    assert.equal((xml.match(/<mutation name="shootAll"/g) || []).length, 2);
+    assert.equal((xml.match(/<mutation name="goToShootingSpot"/g) || []).length, 2);
+    assert.equal(constant('TAG_Y') < 0, true); // eerste toekenning: RED AUDIENCE (omhoog vóór de TIP)
+  });
 });
+
