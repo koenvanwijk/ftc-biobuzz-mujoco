@@ -92,9 +92,19 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.match(xml, /visionPortalBuilder_addProcessor[\s\S]*visionPortalBuilder_addProcessor/);
     assert.match(xml, /intakeMotorAsDcMotor/);
     for (const name of ['RED AUDIENCE', 'RED SCORING']) assert.ok(xml.includes(`<field name="TEXT">${name}</field>`), name);
-    assert.equal((xml.match(/<mutation name="shootAll"/g) || []).length, 2);
-    assert.equal((xml.match(/<mutation name="goToShootingSpot"/g) || []).length, 2);
+    assert.equal((xml.match(/<mutation name="shootAll"/g) || []).length, 3); // ronde 1, ronde 2 en shootRound (lus);
+    assert.equal((xml.match(/<mutation name="goToShootingSpot"/g) || []).length, 3);
     assert.equal(constant('TAG_Y') < 0, true); // eerste toekenning: RED AUDIENCE (omhoog vóór de TIP)
+  });
+
+  it('loops: collect yellow POLLEN and shoot again into the current upward CELL until time runs out', () => {
+    const defs = new Set([...xml.matchAll(/type="procedures_defnoreturn"[^>]*>(?:\s*<mutation>[\s\S]*?<\/mutation>)?\s*<field name="NAME">(\w+)</g)].map((m) => m[1]));
+    for (const p of ['scanForYellow', 'collectOdo', 'localizeAny', 'setTargetCell', 'shootRound', 'goTo', 'driveOdo']) assert.ok(defs.has(p), p);
+    assert.equal(constant('TOTAL_TIME_S'), 120);
+    // Beide rode clusters herkennen: welke omhoog staat volgt uit de gemeten hoogte (HIVE kan opnieuw kantelen).
+    assert.match(xml, /<field name="TEXT">RED SCORING<\/field>/);
+    assert.match(xml, /<field name="VAR" id="v_upCell">upCell<\/field>/);
+    assert.match(xml, /<field name="VAR" id="v_tagZ">tagZ<\/field>/);
   });
 });
 
