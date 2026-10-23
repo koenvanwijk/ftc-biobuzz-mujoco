@@ -92,9 +92,34 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.match(xml, /visionPortalBuilder_addProcessor[\s\S]*visionPortalBuilder_addProcessor/);
     assert.match(xml, /intakeMotorAsDcMotor/);
     for (const name of ['RED AUDIENCE', 'RED SCORING']) assert.ok(xml.includes(`<field name="TEXT">${name}</field>`), name);
-    assert.equal((xml.match(/<mutation name="shootAll"/g) || []).length, 2);
-    assert.equal((xml.match(/<mutation name="goToShootingSpot"/g) || []).length, 2);
+    assert.equal((xml.match(/<mutation name="shootAll"/g) || []).length, 3); // ronde 1, ronde 2 en shootRound (lus);
+    assert.equal((xml.match(/<mutation name="goToShootingSpot"/g) || []).length, 4);
     assert.equal(constant('TAG_Y') < 0, true); // eerste toekenning: RED AUDIENCE (omhoog vóór de TIP)
+  });
+
+  it('loops: collect yellow POLLEN and shoot again into the current upward CELL until time runs out', () => {
+    const defs = new Set([...xml.matchAll(/type="procedures_defnoreturn"[^>]*>(?:\s*<mutation>[\s\S]*?<\/mutation>)?\s*<field name="NAME">(\w+)</g)].map((m) => m[1]));
+    for (const p of ['scanForYellow', 'collectOdo', 'localizeAny', 'setTargetCell', 'shootRound', 'goTo', 'driveOdo']) assert.ok(defs.has(p), p);
+    assert.equal(constant('TOTAL_TIME_S'), 120);
+    // Beide rode clusters herkennen: welke omhoog staat volgt uit de gemeten hoogte (HIVE kan opnieuw kantelen).
+    assert.match(xml, /<field name="TEXT">RED SCORING<\/field>/);
+    assert.match(xml, /<field name="VAR" id="v_upCell">upCell<\/field>/);
+    assert.match(xml, /<field name="VAR" id="v_tagZ">tagZ<\/field>/);
+  });
+
+  it('decides the upward CELL robustly (both clusters, several frames, re-check at the spot) and never shoots when unsure', () => {
+    const def = (name) => {
+      const i = xml.indexOf(`<field name="NAME">${name}</field>`);
+      assert.ok(i > 0, name);
+      const j = xml.indexOf('type="procedures_defnoreturn"', i);
+      return xml.slice(i, j < 0 ? undefined : j);
+    };
+    const d = def('decideUpCell');
+    for (const v of ['zAud', 'zSco', 'nAud', 'nSco', 'cellSure', 'frame']) assert.ok(d.includes(`>${v}</field>`), v);
+    const r = def('shootRound');
+    assert.ok((r.match(/<mutation name="decideUpCell"/g) || []).length >= 2, 'midden + schietplek');
+    const iShoot = r.indexOf('<mutation name="shootAll"');
+    assert.ok(iShoot > 0 && r.lastIndexOf('>cellSure</field>', iShoot) > 0, 'shootAll alleen na cellSure');
   });
 });
 

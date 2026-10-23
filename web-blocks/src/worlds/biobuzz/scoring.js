@@ -389,3 +389,16 @@ export class BiobuzzScorer {
     };
   }
 }
+
+/**
+ * Score voor HUD/telemetry: het TU03-totaal uit computeScore/score(). Alleen als dat er
+ * (nog) niet is, terugvallen op de TIP-punten van de HIVE.
+ * @param {any} score  uitvoer van computeScore()/BiobuzzScorer.score(), of null
+ * @param {{red?:number, blue?:number}} [tipScore]
+ */
+export function hudScoreTotals(score, tipScore) {
+  return {
+    scoreRed: score?.red?.total ?? tipScore?.red ?? 0,
+    scoreBlue: score?.blue?.total ?? tipScore?.blue ?? 0,
+  };
+}
