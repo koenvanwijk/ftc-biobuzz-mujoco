@@ -21,7 +21,7 @@ import {
 } from '../worlds/biobuzz/mechanisms.js';
 import { HiveTipController } from '../worlds/biobuzz/hive_tip.js';
 import { FieldBoundsReturn } from '../worlds/biobuzz/field_bounds.js';
-import { BiobuzzScorer } from '../worlds/biobuzz/scoring.js';
+import { BiobuzzScorer, hudScoreTotals } from '../worlds/biobuzz/scoring.js';
 import {
   HOPPER_CAPACITY,
   NECTAR_HOPPER_CAPACITY,
@@ -308,6 +308,7 @@ export class BiobuzzHardwareAdapter {
     this.hiveTip.reset();
     this.mujoco.mj_forward(this.model, this.data);
     this.scorer.reset();
+    this._scoreCache = null;
     this._refreshHud();
   }
 
@@ -319,8 +320,9 @@ export class BiobuzzHardwareAdapter {
       nectarCap: NECTAR_HOPPER_CAPACITY,
       controlled: this.mech.controlledCount,
       controlLimit: ROBOT_CONTROL_LIMIT,
-      scoreRed: this.hiveTip.score?.red ?? 0,
-      scoreBlue: this.hiveTip.score?.blue ?? 0,
+      // TU03-totaal (TIP + CELL + FLOWER + GARDEN + …), hetzelfde als HUD/score-paneel;
+      // hiveTip.score bevat alleen de TIP-punten.
+      ...hudScoreTotals(this._cachedScore(), this.hiveTip.score),
       intake:
         this.mech.intakePower > 0.05
           ? 'AAN'
@@ -345,6 +347,20 @@ export class BiobuzzHardwareAdapter {
    */
   getScore() {
     return this.scorer.score();
+  }
+
+  /** score() hoogstens ±5×/s herberekenen voor de telemetryregel. */
+  _cachedScore() {
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (!this._scoreCache || now - this._scoreCacheT >= 200) {
+      try {
+        this._scoreCache = this.scorer?.score?.() ?? null;
+      } catch {
+        this._scoreCache = null;
+      }
+      this._scoreCacheT = now;
+    }
+    return this._scoreCache;
   }
 
   /** Extra telemetry lines for soft-bridge visibility. */
