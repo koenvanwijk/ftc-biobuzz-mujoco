@@ -107,6 +107,22 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.match(xml, /<field name="VAR" id="v_tagZ">tagZ<\/field>/);
   });
 
+  it('shoots from the tip line: same x as the CELL, facing the opening along y (SHOOT_HEADING +90 / -90)', () => {
+    const i = xml.indexOf('<field name="NAME">goToShootingSpot</field>');
+    const g = xml.slice(i, xml.indexOf('type="procedures_defnoreturn"', i));
+    assert.ok(g.includes('>SHOOT_HEADING</field>'));
+    assert.match(g, /<field name="NUM">90<\/field>/);
+    assert.match(g, /<field name="NUM">-90<\/field>/);
+    assert.ok(g.includes('<mutation name="goTo"'), 'odometrie naar de schietplek');
+  });
+
+  it('only shoots after a real pickup, searches elsewhere before giving up, and keeps clear of the HIVE posts', () => {
+    assert.ok(xml.includes('>grabbed</field>'), 'grabbed');
+    assert.ok(xml.includes('>vantage</field>'), 'vantage');
+    const c = xml.slice(xml.indexOf('<field name="NAME">collectOdo</field>'));
+    assert.match(c.slice(0, c.indexOf('type="procedures_defnoreturn"')), /<field name="NUM">-0.85<\/field>/);
+  });
+
   it('decides the upward CELL robustly (both clusters, several frames, re-check at the spot) and never shoots when unsure', () => {
     const def = (name) => {
       const i = xml.indexOf(`<field name="NAME">${name}</field>`);
