@@ -106,7 +106,7 @@ export class BiobuzzHardwareAdapter {
       };
     }
 
-    this.mech = new IntakeShooter(mujoco, model, data);
+    this.mech = new IntakeShooter(mujoco, model, data, { intakeLayout: simConfig.intakeLayout });
     this.hiveTip = new HiveTipController(mujoco, model, data);
     this.fieldBounds = new FieldBoundsReturn(mujoco, model, data);
     this.mech.resetAndPreload();

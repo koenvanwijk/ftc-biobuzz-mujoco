@@ -35,8 +35,14 @@ import {
  * op (ballen blijven liggen en worden hooguit weggeduwd). Start = 4 preload-POLLEN (G304.G) → vol.
  */
 export class IntakeShooter {
-  constructor(mujoco, model, data) {
+  /**
+   * @param {object} [opts]
+   * @param {'front'|'rearPollen'} [opts.intakeLayout] 'front' (standaard): POLLEN voor, NECTAR+POLLEN
+   *   achter. 'rearPollen': alleen gele POLLEN via de achterintake, direct naar de shooter (voorkant).
+   */
+  constructor(mujoco, model, data, opts = {}) {
     this.mujoco = mujoco;
+    this.intakeLayout = opts.intakeLayout === 'rearPollen' ? 'rearPollen' : 'front';
     this.model = model;
     this.data = data;
     this.stored = []; // front / shooter: pollen only
@@ -139,7 +145,9 @@ export class IntakeShooter {
 
   update() {
     const p = this.intakePower;
-    if (p > 0.05) {
+    if (p > 0.05 && this.intakeLayout === 'rearPollen') {
+      this._tryCapturePollenRearToShooter();
+    } else if (p > 0.05) {
       this._tryCapturePollenFront();
       this._tryCaptureNectarRear();
       this._tryCapturePollenRear();
@@ -229,6 +237,28 @@ export class IntakeShooter {
         this._stowRear(bid);
         busy.add(bid);
         if (this.rearStored.length >= NECTAR_HOPPER_CAPACITY || this.atControlLimit) break;
+      }
+    }
+  }
+
+  /** Layout 'rearPollen': gele POLLEN bij de achterintake gaat direct naar de shooter-hopper. */
+  _tryCapturePollenRearToShooter() {
+    if (this.nectarIntakeSite < 0) return;
+    if (this.stored.length >= HOPPER_CAPACITY || this.atControlLimit) return;
+    const center = this._nectarIntakePos();
+    const r2 = NECTAR_INTAKE_CAPTURE_R * NECTAR_INTAKE_CAPTURE_R;
+    const busy = new Set([...this.stored, ...this.rearStored, ...this.planted]);
+    for (const bid of this.pollenBodyIds) {
+      if (busy.has(bid)) continue;
+      const p = this.data.xpos;
+      const i = bid * 3;
+      const dx = p[i] - center[0];
+      const dy = p[i + 1] - center[1];
+      const dz = p[i + 2] - center[2];
+      if (dx * dx + dy * dy + dz * dz <= r2) {
+        this._stowPollen(bid);
+        busy.add(bid);
+        if (this.stored.length >= HOPPER_CAPACITY || this.atControlLimit) break;
       }
     }
   }

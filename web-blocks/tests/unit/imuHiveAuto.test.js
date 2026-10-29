@@ -44,11 +44,14 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.match(xml, /RUN_USING_ENCODER/);
   });
 
-  it('localizes on the RED AUDIENCE cluster (red upward CELL) with horizontal (portrait + pitch) geometry', () => {
+  it('localizes on the RED AUDIENCE cluster (red upward CELL) with horizontal (landscape + pitch) geometry', () => {
     assert.match(xml, /isClusterDetection/);
     assert.match(xml, /<field name="TEXT">RED AUDIENCE<\/field>/);
     for (const p of ['ftcPose.x', 'ftcPose.y', 'ftcPose.z']) assert.ok(xml.includes(`<field name="PROP">${p}</field>`), p);
-    // SDK-range/bearing zijn bij een portretcamera niet horizontaal: het programma gebruikt ze niet.
+    // Liggend: omhoog = ftcPose.z, links = -ftcPose.x (geen portret-omzetting meer).
+    assert.match(xml, /v_up">up<\/field>\s*<value name="VALUE">\s*<block type="aprilTagDetection2_getProperty_Number"[^>]*>\s*<field name="PROP">ftcPose.z</);
+    assert.match(xml, /v_side">side<\/field>\s*<value name="VALUE">\s*<block type="math_single"[^>]*>\s*<field name="OP">NEG<\/field>\s*<value name="NUM">\s*<block type="aprilTagDetection2_getProperty_Number"[^>]*>\s*<field name="PROP">ftcPose.x</);
+    assert.ok(!/v_up">up<\/field>\s*<value name="VALUE">\s*<block[^>]*>\s*<field name="PROP">ftcPose.x</.test(xml), 'geen portret-mapping');
     assert.ok(!xml.includes('ftcPose.range') && !xml.includes('ftcPose.bearing'));
   });
 
@@ -66,15 +69,16 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.equal(constant('TAG_Y'), -0.416);
   });
 
-  it('the horizontal range/bearing formula undoes the camera pitch (portrait frame)', () => {
-    // Doel 1,0 m vóór de lens, 0,2 m links, 0,8 m hoger; camera 17,5° omhoog, 90° gerold (portret).
-    const P = (17.5 * Math.PI) / 180;
+  it('the horizontal range/bearing formula undoes the camera pitch (landscape frame)', () => {
+    // Doel 1,0 m vóór de lens, 0,2 m links, 0,8 m hoger; camera 35° omhoog, liggend.
+    const P = (35 * Math.PI) / 180;
     const h = 1.0, left = 0.2, v = 0.8;
-    const ftc = { y: h * Math.cos(P) + v * Math.sin(P), x: v * Math.cos(P) - h * Math.sin(P), z: left };
-    const forwardH = ftc.y * Math.cos(P) - ftc.x * Math.sin(P);
+    const ftc = { y: h * Math.cos(P) + v * Math.sin(P), z: v * Math.cos(P) - h * Math.sin(P), x: -left };
+    const up = ftc.z, side = -ftc.x;
+    const forwardH = ftc.y * Math.cos(P) - up * Math.sin(P);
     assert.ok(Math.abs(forwardH - h) < 1e-9);
-    assert.ok(Math.abs(Math.hypot(forwardH, ftc.z) - Math.hypot(h, left)) < 1e-9);
-    assert.ok(Math.abs(Math.atan2(ftc.z, forwardH) - Math.atan2(left, h)) < 1e-9);
+    assert.ok(Math.abs(side - left) < 1e-9);
+    assert.ok(Math.abs(ftc.y * Math.sin(P) + up * Math.cos(P) - v) < 1e-9, 'hoogte boven de lens');
   });
 
   it('shoots up to 4 elements (G407) with flywheel power edges', () => {
@@ -84,25 +88,28 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.ok(JSON.stringify(sim).includes('flywheelAsDcMotor'));
   });
 
-  it('after the TIP: collects yellow POLLEN with the colour-blob processor and shoots at RED SCORING', () => {
-    const defs = [...xml.matchAll(/<field name="NAME">(\w+)<\/field>/g)].map((m) => m[1]);
-    assert.ok(defs.includes('collectYellow'));
-    assert.match(xml, /<field name="CONSTANT">YELLOW<\/field>/);
-    assert.match(xml, /colorBlobLocatorProcessor_getBlobs/);
-    assert.match(xml, /visionPortalBuilder_addProcessor[\s\S]*visionPortalBuilder_addProcessor/);
+  it('no yellow-ball detection: AprilTag-only VisionPortal, POLLEN picked up at known spots with the REAR intake', () => {
+    assert.ok(!/colorBlob|ColorBlob|YELLOW/.test(xml), 'geen ColorBlobLocator / gele kleurdetectie');
+    assert.equal((xml.match(/visionPortalBuilder_addProcessor/g) || []).length, 1);
     assert.match(xml, /intakeMotorAsDcMotor/);
+    const defs = [...xml.matchAll(/<field name="NAME">(\w+)<\/field>/g)].map((m) => m[1]);
+    for (const gone of ['collectYellow', 'scanForYellow', 'collectOdo']) assert.ok(!defs.includes(gone), gone);
+    const i = xml.indexOf('<field name="NAME">collectAt</field>');
+    assert.ok(i > 0, 'collectAt');
+    const c = xml.slice(i, xml.indexOf('type="procedures_defnoreturn"', i));
+    // Achteruit (negatief vermogen) met de intake aan: de intake zit aan de achterkant.
+    assert.match(c, /<mutation name="driveOdo">[\s\S]*?<field name="NUM">-0.25<\/field>/);
+    assert.equal((xml.match(/<mutation name="collectAt"/g) || []).length, 3);
     for (const name of ['RED AUDIENCE', 'RED SCORING']) assert.ok(xml.includes(`<field name="TEXT">${name}</field>`), name);
-    assert.equal((xml.match(/<mutation name="shootAll"/g) || []).length, 3); // ronde 1, ronde 2 en shootRound (lus);
-    assert.equal((xml.match(/<mutation name="goToShootingSpot"/g) || []).length, 4);
+    assert.equal((xml.match(/<mutation name="shootAll"/g) || []).length, 2); // preload + shootRound (lus)
     assert.equal(constant('TAG_Y') < 0, true); // eerste toekenning: RED AUDIENCE (omhoog vóór de TIP)
   });
 
-  it('loops: collect yellow POLLEN and shoot again into the current upward CELL until time runs out', () => {
+  it('loops: collect at the next known spot and shoot again into the current upward CELL until spots or time run out', () => {
     const defs = new Set([...xml.matchAll(/type="procedures_defnoreturn"[^>]*>(?:\s*<mutation>[\s\S]*?<\/mutation>)?\s*<field name="NAME">(\w+)</g)].map((m) => m[1]));
-    for (const p of ['scanForYellow', 'collectOdo', 'localizeAny', 'setTargetCell', 'shootRound', 'goTo', 'driveOdo']) assert.ok(defs.has(p), p);
+    for (const p of ['collectAt', 'leaveHive', 'localizeAny', 'setTargetCell', 'shootRound', 'goTo', 'driveOdo']) assert.ok(defs.has(p), p);
     assert.equal(constant('TOTAL_TIME_S'), 120);
-    // Beide rode clusters herkennen: welke omhoog staat volgt uit de gemeten hoogte (HIVE kan opnieuw kantelen).
-    assert.match(xml, /<field name="TEXT">RED SCORING<\/field>/);
+    assert.match(xml, /<field name="VAR" id="v_spot">spot<\/field>/);
     assert.match(xml, /<field name="VAR" id="v_upCell">upCell<\/field>/);
     assert.match(xml, /<field name="VAR" id="v_tagZ">tagZ<\/field>/);
   });
@@ -116,11 +123,13 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.ok(g.includes('<mutation name="goTo"'), 'odometrie naar de schietplek');
   });
 
-  it('only shoots after a real pickup, searches elsewhere before giving up, and keeps clear of the HIVE posts', () => {
-    assert.ok(xml.includes('>grabbed</field>'), 'grabbed');
-    assert.ok(xml.includes('>vantage</field>'), 'vantage');
-    const c = xml.slice(xml.indexOf('<field name="NAME">collectOdo</field>'));
-    assert.match(c.slice(0, c.indexOf('type="procedures_defnoreturn"')), /<field name="NUM">-0.85<\/field>/);
+  it('keeps clear of the HIVE posts (x = -0.6): routes via the x = -1.0 corridor and y = ±1.2', () => {
+    const i = xml.indexOf('<field name="NAME">leaveHive</field>');
+    const l = xml.slice(i, xml.indexOf('type="procedures_defnoreturn"', i));
+    assert.match(l, /<field name="NUM">-1<\/field>|<field name="NUM">-1.0<\/field>/);
+    assert.match(l, /<field name="NUM">1.2<\/field>/);
+    const g = xml.slice(xml.indexOf('<field name="NAME">goToShootingSpot</field>'));
+    assert.ok(g.slice(0, g.indexOf('type="procedures_defnoreturn"')).includes('<mutation name="leaveHive"'));
   });
 
   it('decides the upward CELL robustly (both clusters, several frames, re-check at the spot) and never shoots when unsure', () => {

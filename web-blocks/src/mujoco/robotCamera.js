@@ -42,7 +42,7 @@ export const LEGACY_CAMERA_MOUNT = Object.freeze({ x: 0.16, y: 0, z: 0.28, pitch
 export const ORIENTATION_ROLL_DEG = Object.freeze({ landscape: 0, portrait: 90 });
 
 /** localStorage-sleutel voor de Portret-schakelaar. */
-export const CAMERA_ORIENTATION_STORAGE_KEY = 'ftc-sim-camera-orientation-v1';
+export const CAMERA_ORIENTATION_STORAGE_KEY = 'ftc-sim-camera-orientation-v2';
 
 /** "portrait" / "landscape" (alles anders → null). */
 export function normalizeOrientation(v) {
