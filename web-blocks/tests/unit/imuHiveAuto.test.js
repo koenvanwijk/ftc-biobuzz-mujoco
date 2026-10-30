@@ -146,5 +146,22 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     const iShoot = r.indexOf('<mutation name="shootAll"');
     assert.ok(iShoot > 0 && r.lastIndexOf('>cellSure</field>', iShoot) > 0, 'shootAll alleen na cellSure');
   });
+  it('only fires the shooter when the last localize saw the HIVE tags (found), otherwise skips the shot', () => {
+    const i = xml.indexOf('<field name="NAME">shootAll</field>');
+    const j = xml.indexOf('type="procedures_defnoreturn"', i);
+    const s = xml.slice(i, j < 0 ? undefined : j);
+    const iIf = s.indexOf('<block type="controls_if"');
+    const iFound = s.indexOf('<field name="VAR" id="v_found">found</field>', iIf);
+    const iFly = s.indexOf('flywheelAsDcMotor');
+    const iElse = s.indexOf('<statement name="ELSE">');
+    assert.ok(iIf > 0 && iFound > iIf, 'if found');
+    assert.ok(iFly > iFound && iFly < iElse, 'flywheel alleen in de DO-tak');
+    assert.ok(!s.slice(iElse).includes('flywheelAsDcMotor'), 'niet schieten zonder tags');
+    assert.match(s.slice(iElse), /niet schieten/);
+    // goToShootingSpot eindigt met localize, en alleen localize zet found.
+    const g = xml.slice(xml.indexOf('<field name="NAME">goToShootingSpot</field>'));
+    assert.ok(g.slice(0, g.indexOf('type="procedures_defnoreturn"')).includes('<mutation name="localize"'));
+  });
 });
+
 
