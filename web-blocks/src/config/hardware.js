@@ -32,6 +32,13 @@ export const HARDWARE = {
     configName: 'Webcam 1',
     simulated: true,
   },
+  /** Simulated extension — tweede camera achter, naar de vloer (`Webcam 2`, ColorBlob / POLLEN). */
+  webcam2: {
+    jsId: 'Webcam2',
+    type: 'WebcamName',
+    configName: 'Webcam 2',
+    simulated: true,
+  },
 };
 
 export const MOTOR_JS_IDS = [

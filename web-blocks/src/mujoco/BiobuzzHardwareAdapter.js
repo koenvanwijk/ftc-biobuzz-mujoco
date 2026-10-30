@@ -29,7 +29,7 @@ import {
 } from '../worlds/biobuzz/constants.js';
 import { mapIntakePower, mapFlywheelEdge, mapPollenServoEdge } from './biobuzzMapping.js';
 import { readImuFromBody, computeAprilTagDetections, computePollenColorBlobs } from './simSensors.js';
-import { DEFAULT_ROBOT_CAMERA_FOV } from './robotCamera.js';
+import { CAMERA_SITES, DEFAULT_ROBOT_CAMERA_FOV, normalizeCameraId } from './robotCamera.js';
 
 export class BiobuzzHardwareAdapter {
   constructor(mujoco, model, data, simConfig) {
@@ -236,6 +236,33 @@ export class BiobuzzHardwareAdapter {
     if (fov && fov.hfovDeg > 0 && fov.vfovDeg > 0) this._cameraFov = { ...fov };
   }
 
+  /** Zichtveld van de achtercamera (Webcam 2, naar de vloer); standaard = dat van de voorcamera. */
+  get rearCameraFov() {
+    return this._rearCameraFov || this.cameraFov;
+  }
+
+  setRearCameraFov(fov) {
+    if (fov && fov.hfovDeg > 0 && fov.vfovDeg > 0) this._rearCameraFov = { ...fov };
+  }
+
+  /** Actieve (getoonde) camera: 'front' | 'rear'. Detectie hangt hier niet van af. */
+  get activeCamera() {
+    return this._activeCamera || 'front';
+  }
+
+  setActiveCamera(id) {
+    this._activeCamera = normalizeCameraId(id) || 'front';
+  }
+
+  /** Site voor de gele-POLLEN-blobs: de achtercamera als die in het model zit, anders de voorcamera. */
+  _blobCameraSite() {
+    if (this._blobSite) return this._blobSite;
+    const SITE = this.mujoco?.mjtObj?.mjOBJ_SITE?.value;
+    const rid = SITE == null ? -1 : this.mujoco.mj_name2id(this.model, SITE, CAMERA_SITES.rear);
+    this._blobSite = rid >= 0 ? { site: CAMERA_SITES.rear, rear: true } : { site: CAMERA_SITES.front, rear: false };
+    return this._blobSite;
+  }
+
   readSensors() {
     const out = Object.create(null);
     for (const jsId of Object.keys(this._motorMeta)) {
@@ -264,19 +291,22 @@ export class BiobuzzHardwareAdapter {
       generation: this._aprilGen || 0,
       count: april.detections.length,
     };
-    // Zelfde camera als AprilTag: zelfde site/montage, preset (H×V) en streamresolutie.
+    // Gele POLLEN (ColorBlob) via de achtercamera "Webcam 2" die naar de vloer kijkt; AprilTags blijven voor.
+    const blobCam = this._blobCameraSite();
+    const blobFov = blobCam.rear ? this.rearCameraFov : this.cameraFov;
     const pollen = computePollenColorBlobs(this.mujoco, this.model, this.data, {
-      cameraSiteName: 'robot_up_cam',
-      hfovDeg: this.cameraFov.hfovDeg,
-      vfovDeg: this.cameraFov.vfovDeg,
-      width: this.cameraFov.width,
-      height: this.cameraFov.height,
+      cameraSiteName: blobCam.site,
+      hfovDeg: blobFov.hfovDeg,
+      vfovDeg: blobFov.vfovDeg,
+      width: blobFov.width,
+      height: blobFov.height,
     });
     out.colorBlobDetections = {
       json: pollen.json,
       count: pollen.blobs.length,
       width: pollen.width,
       height: pollen.height,
+      camera: blobCam.rear ? 'Webcam 2' : 'Webcam 1',
     };
     this._aprilCount = april.detections.length;
     return out;

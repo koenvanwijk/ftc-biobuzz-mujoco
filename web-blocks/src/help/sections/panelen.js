@@ -61,8 +61,15 @@ export default {
   <li>FTC streamt standaard <strong>640×480</strong> (4:3). Dat is een uitsnede uit het 16:9-beeld van de Brio: de hoogte blijft gelijk, de zijkanten vallen weg. Zet je OpMode met <code>setCameraResolution</code> bijvoorbeeld 1280×720, dan wordt het beeld breder (16:9) tot de volgende INIT of Reset sim.</li>
   <li>Een tag telt als <em>gezien</em> als hij binnen de rechthoek van het beeld valt (horizontaal én verticaal binnen het zichtveld), binnen 2,5&nbsp;m, en ongeveer naar de camera gericht is.</li>
   <li>De keuze blijft bewaard in je browser (<code>localStorage</code>, sleutel <code>ftc-sim-camera-dfov-v1</code>).</li>
-  <li>De <strong>POLLEN-detectie</strong> (ColorBlobLocator) gebruikt precies dezelfde camera: zelfde stand, resolutie en positie. Een bal telt als hij (deels) in het beeld valt.</li>
+  <li>De <strong>POLLEN-detectie</strong> (ColorBlobLocator) gebruikt de <strong>achtercamera</strong> (zie hieronder) met dezelfde stand en resolutie. Een bal telt als hij (deels) in het beeld valt.</li>
 </ul>
+<h3>Twee camera's: Voor en Achter</h3>
+<p>De robot heeft twee Brio 4K-camera's:</p>
+<ul>
+  <li><strong>Voor</strong> (<code>Webcam 1</code>, lichtblauw): liggend aan de voorkant, 16,5&nbsp;cm boven de mat, 35° omhoog. Voor de <strong>AprilTags</strong> van de HIVE (schieten).</li>
+  <li><strong>Achter</strong> (<code>Webcam 2</code>, oranje): liggend achterop (x −0,18&nbsp;m), 24,4&nbsp;cm boven de mat, achteruit en <strong>50° omlaag</strong> naar de vloer. Bij stand 90° ziet hij de vloer van ±6&nbsp;cm tot ±55&nbsp;cm achter de lens, precies waar gele POLLEN de achter-intake in gaan. Voor de <strong>POLLEN-detectie</strong> (ColorBlobLocator).</li>
+</ul>
+<p>Met de knoppen <strong>Voor / Achter</strong> in de HUD kies je welke camera het beeld rechtsboven toont. De actieve knop is gekleurd, ernaast staat <em>Actieve camera: …</em>, de rand van het camerabeeld krijgt dezelfde kleur en de kijkpiramide van de actieve camera is fel (de andere vaag). Beide camera's detecteren altijd; de knop kiest alleen de weergave. Bewaard in je browser (<code>ftc-sim-active-camera-v1</code>). Montage achter: <code>simulation.json</code> → <code>webcam.camera.rearMount</code> (met <code>yawDeg: 180</code> = achteruit).</p>
 <h3>Portret: camera 90° gedraaid</h3>
 <p>Standaard ligt de camera (landscape: 66° breed × 52° hoog bij 640×480). Met het vinkje <strong>Portret</strong> zet je hem <strong>op zijn kant</strong> (90° om de lens gedraaid). Het beeld wordt dan smal en hoog: bij 640×480 en stand 90° is het rechtop <strong>52° breed × 66° hoog</strong> (480×640), bij 1280×720 zelfs 52° × 82°. Zo passen de POLLEN op de vloer én de AprilTags van de omhoog-CELL samen in één beeld, ook als de camera wat hoger zit.</p>
 <ul>

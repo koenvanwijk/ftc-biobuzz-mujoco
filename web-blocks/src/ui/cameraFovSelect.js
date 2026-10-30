@@ -3,7 +3,10 @@
  * Los van de DOM testbaar: storage en select-element worden meegegeven.
  */
 import {
+  ACTIVE_CAMERA_STORAGE_KEY,
   CAMERA_DFOV_STORAGE_KEY,
+  activeCameraIndicator,
+  normalizeCameraId,
   CAMERA_ORIENTATION_STORAGE_KEY,
   normalizeOrientation,
   pickDfov,
@@ -125,4 +128,65 @@ export function initCameraFovSelect(selectEl, cfg, { value, onChange, storage } 
       selectEl.value = String(pickDfov(cfg, d));
     },
   };
+}
+
+/** Opgeslagen actieve camera ('front' | 'rear'), standaard voor. */
+export function loadStoredActiveCamera(storage = defaultStorage()) {
+  let raw = null;
+  try {
+    raw = storage?.getItem?.(ACTIVE_CAMERA_STORAGE_KEY) ?? null;
+  } catch {
+    raw = null;
+  }
+  return normalizeCameraId(raw) || 'front';
+}
+
+export function saveActiveCamera(id, storage = defaultStorage()) {
+  try {
+    storage?.setItem?.(ACTIVE_CAMERA_STORAGE_KEY, normalizeCameraId(id) || 'front');
+  } catch {
+    /* alleen voor deze sessie */
+  }
+}
+
+/**
+ * Camerakeuze Voor / Achter: knoppen met `data-camera="front|rear"` in `container`.
+ * De actieve knop krijgt class `is-active` + aria-pressed="true"; `statusEl` toont de tekst.
+ * Klik → setValue + onChange(id) + opslaan. setValue werkt de indicator meteen bij.
+ * @returns {{ setValue: (id: string) => string, value: () => string }}
+ */
+export function initActiveCameraToggle(container, { value, onChange, storage, statusEl } = {}) {
+  let current = normalizeCameraId(value) || 'front';
+  const buttons = () => Array.from(container?.querySelectorAll?.('[data-camera]') || []);
+  const paint = () => {
+    const ind = activeCameraIndicator(current);
+    for (const b of buttons()) {
+      const on = normalizeCameraId(b.dataset?.camera) === current;
+      b.classList?.toggle?.('is-active', on);
+      b.setAttribute?.('aria-pressed', on ? 'true' : 'false');
+    }
+    if (container?.dataset) container.dataset.active = current;
+    if (statusEl) {
+      statusEl.textContent = ind.text;
+      if (statusEl.style) statusEl.style.color = ind.color;
+    }
+  };
+  const api = {
+    setValue(id) {
+      current = normalizeCameraId(id) || 'front';
+      paint();
+      return current;
+    },
+    value: () => current,
+  };
+  for (const b of buttons()) {
+    b.addEventListener?.('click', () => {
+      const id = api.setValue(b.dataset?.camera);
+      saveActiveCamera(id, storage === undefined ? defaultStorage() : storage);
+      b.blur?.();
+      onChange?.(id);
+    });
+  }
+  paint();
+  return api;
 }

@@ -174,10 +174,14 @@ describe('POLLEN-detectie = zelfde camera als AprilTag', () => {
   });
 
   it('adapters geven preset + resolutie door, geen vaste 70°/640×480 meer', () => {
-    for (const p of ['src/mujoco/adapters.js', 'src/mujoco/BiobuzzHardwareAdapter.js']) {
-      const src = read(p);
-      assert.match(src, /computePollenColorBlobs\([^)]*\{[^}]*hfovDeg: this\.cameraFov\.hfovDeg[^}]*width: this\.cameraFov\.width/s, p);
-    }
+    assert.match(
+      read('src/mujoco/adapters.js'),
+      /computePollenColorBlobs\([^)]*\{[^}]*hfovDeg: this\.cameraFov\.hfovDeg[^}]*width: this\.cameraFov\.width/s,
+    );
+    // BIOBUZZ: blobs via de achtercamera (rearCameraFov = zelfde preset/resolutie), terugval op de voorcamera.
+    const bb = read('src/mujoco/BiobuzzHardwareAdapter.js');
+    assert.match(bb, /blobCam\.rear \? this\.rearCameraFov : this\.cameraFov/);
+    assert.match(bb, /computePollenColorBlobs\([^)]*\{[^}]*hfovDeg: blobFov\.hfovDeg[^}]*width: blobFov\.width/s);
     const sim = read('src/mujoco/simSensors.js');
     const fn = sim.slice(sim.indexOf('export function computePollenColorBlobs'), sim.indexOf('export function quatToYawPitchRoll'));
     assert.doesNotMatch(fn, /fovyDeg = 70|width = 640|height = 480/);
