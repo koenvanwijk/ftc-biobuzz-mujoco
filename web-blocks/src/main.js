@@ -16,6 +16,8 @@ import {
   describeFov,
   initCameraPortraitToggle,
   loadStoredPortrait,
+  loadStoredActiveCamera,
+  initActiveCameraToggle,
 } from './ui/cameraFovSelect.js';
 
 const $ = (id) => document.getElementById(id);
@@ -61,12 +63,31 @@ function applyCameraPose() {
     ...cameraCfg.mount,
     rollDeg: cameraRollDeg(),
   });
+  // Achtercamera (Webcam 2, naar de vloer): eigen montage, altijd liggend.
+  if (cameraCfg.rearMount) {
+    applyCameraMount(mujocoBundle.mujoco, mujocoBundle.model, mujocoBundle.data, cameraCfg.rearMount, 'robot_rear_cam');
+  }
+}
+
+/** Actieve (getoonde) robotcamera: 'front' (Webcam 1, tags) of 'rear' (Webcam 2, vloer). */
+let activeCamera = 'front';
+let activeCameraToggle = null;
+function setActiveCamera(id, { quiet = false } = {}) {
+  const shown = viewer?.setActiveCamera?.(id) ?? id;
+  activeCamera = activeCameraToggle?.setValue?.(shown) ?? shown;
+  adapter?.setActiveCamera?.(activeCamera);
+  if (!quiet) log(`Actieve camera: ${activeCamera === 'rear' ? 'achter (Webcam 2, vloer)' : 'voor (Webcam 1, tags)'}`);
+  return activeCamera;
 }
 
 function applyCameraFov() {
   const fov = cameraFov(cameraCfg, { dfovDeg: cameraDfov, ...(opModeCameraRes || {}), rollDeg: cameraRollDeg() });
   adapter?.setCameraFov?.(fov);
   viewer?.setCameraFov?.(fov);
+  // Achtercamera: zelfde preset en resolutie, rol 0 (liggend).
+  const rearFov = cameraFov(cameraCfg, { dfovDeg: cameraDfov, ...(opModeCameraRes || {}), rollDeg: 0 });
+  adapter?.setRearCameraFov?.(rearFov);
+  viewer?.setRearCameraFov?.(rearFov);
   const info = $('camFovInfo');
   if (info) {
     info.textContent =
@@ -209,6 +230,12 @@ async function boot() {
     },
   });
   applyCameraFov();
+  activeCameraToggle = initActiveCameraToggle($('camActiveToggle'), {
+    value: loadStoredActiveCamera(),
+    statusEl: $('camActiveInfo'),
+    onChange: (id) => setActiveCamera(id),
+  });
+  setActiveCamera(activeCameraToggle.value(), { quiet: true });
   teleopInput = new InputHandler();
   $('biobuzzHud').hidden = false;
   scorePanel = initScorePanel({
@@ -366,6 +393,10 @@ async function boot() {
     aprilTags() {
       const s = adapter?.readSensors?.();
       return s?.aprilTagDetections?.json ?? '[]';
+    },
+    /** Alleen voor smoke tests: actieve robotcamera lezen / zetten ('front' | 'rear'). */
+    activeCamera(id) {
+      return id ? setActiveCamera(id, { quiet: true }) : activeCamera;
     },
     /** Aantal AprilTag-detecties en POLLEN-blobs in de laatste sensor-uitlezing. */
     visionCounts() {

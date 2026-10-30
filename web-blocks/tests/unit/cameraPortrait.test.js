@@ -162,9 +162,10 @@ describe('Portret: UI en renderer', () => {
   it('renderer: PiP rechtop (rol terug, aspect/V van het rechtop gezette beeld), kijkpiramide in sensorframe', () => {
     const src = read('src/worlds/biobuzz/renderer.js');
     assert.match(src, /setFromAxisAngle\(new THREE\.Vector3\(0, 0, 1\), -roll\)/);
-    assert.match(src, /this\.robotCam\.fov = pipVfov\(fov\)/);
-    assert.match(src, /this\.robotCam\.aspect = pipAspect\(fov\)/);
+    // Actieve camera (voor of achter) bepaalt PiP-projectie; elke kijkpiramide volgt zijn eigen site.
+    assert.match(src, /this\.robotCam\.fov = pipVfov\(this\._camFov\)/);
+    assert.match(src, /this\.robotCam\.aspect = pipAspect\(this\._camFov\)/);
     assert.match(src, /frustumLinePositions\(fov\)/);
-    assert.match(src, /_frustumHelper\.quaternion\.copy\(quat\)/);
+    assert.match(src, /h\.group\.quaternion\.setFromRotationMatrix/);
   });
 });

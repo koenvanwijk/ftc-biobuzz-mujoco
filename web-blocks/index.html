@@ -23,6 +23,7 @@
             <option value="StarterBot_EncoderAuto.blk">EncoderAuto</option>
             <option value="StarterBot_ImuAprilTag.blk">ImuAprilTag</option>
             <option value="StarterBot_ImuHiveAuto.blk">ImuHiveAuto (autonoom naar de HIVE)</option>
+            <option value="REVStarterBotTeleOp2026.blk">REV Starter Bot TeleOp 2026 (origineel REV-voorbeeld)</option>
             <option value="StarterBot_DebugDemo.blk">DebugDemo (variabelen + procedure)</option>
           </select>
         </label>
@@ -115,6 +116,11 @@
             <input type="checkbox" id="camPortrait" /> Portret
           </label>
           <span id="camFovInfo" class="muted small cam-fov-info"></span>
+          <span class="cam-active-toggle" id="camActiveToggle" role="group" aria-label="Actieve robotcamera" title="Welke robotcamera het beeld rechtsboven toont. Voor = Webcam 1 (AprilTags van de HIVE), Achter = Webcam 2 (naar de vloer, gele POLLEN / ColorBlob). Beide camera's detecteren altijd; dit kiest alleen de weergave.">
+            <button type="button" data-camera="front" class="cam-btn cam-btn-front" aria-pressed="true">Voor</button>
+            <button type="button" data-camera="rear" class="cam-btn cam-btn-rear" aria-pressed="false">Achter</button>
+          </span>
+          <span id="camActiveInfo" class="small cam-active-info" aria-live="polite"></span>
         </div>
         <canvas id="simCanvas"></canvas>
         <div id="scorePanel" class="score-panel" hidden aria-label="Score per alliantie">

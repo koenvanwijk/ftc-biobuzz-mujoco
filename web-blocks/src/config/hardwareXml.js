@@ -139,5 +139,6 @@ export const SYNTHETIC_HARDWARE_XML = `<?xml version='1.0' encoding='UTF-8' stan
     </LynxModule>
   </LynxUsbDevice>
   <Webcam name="Webcam 1" />
+  <Webcam name="Webcam 2" />
 </Robot>
 `;

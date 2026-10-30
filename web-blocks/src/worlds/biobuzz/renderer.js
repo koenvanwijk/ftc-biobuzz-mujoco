@@ -1,7 +1,7 @@
 import { publicUrl } from '../../publicUrl.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { DEFAULT_ROBOT_CAMERA_FOV } from '../../mujoco/robotCamera.js';
+import { CAMERA_SITES, DEFAULT_ROBOT_CAMERA_FOV, activeCameraIndicator, normalizeCameraId } from '../../mujoco/robotCamera.js';
 import { pipLabelCss, renderWithPip, viewerPixelRatio } from './pipViewport.js';
 
 /**
@@ -74,6 +74,11 @@ export class MujocoThreeViewer {
     this._robotCamSiteId = -1;
     this._frustumHelper = null;
     this._frustumLines = null;
+    // Twee robotcamera's: voor (AprilTags) en achter (vloer, POLLEN). De PiP toont de actieve.
+    this._activeCam = 'front';
+    this._fovs = { front: { ...DEFAULT_ROBOT_CAMERA_FOV }, rear: { ...DEFAULT_ROBOT_CAMERA_FOV, rollDeg: 0 } };
+    this._siteIds = { front: -1, rear: -1 };
+    this._helpers = {};
 
     this._onResize = () => this.resize();
     window.addEventListener('resize', this._onResize);
@@ -89,25 +94,28 @@ export class MujocoThreeViewer {
     await this._preloadAprilTagTextures();
     this._buildGeoms();
     const SITE = this.mujoco.mjtObj.mjOBJ_SITE.value;
-    this._robotCamSiteId = this.mujoco.mj_name2id(this.model, SITE, 'robot_up_cam');
-    if (this._robotCamSiteId < 0) {
-      console.warn('[PiP] site robot_up_cam not found — upward cam will stay at default pose');
-    } else {
-      console.info(`[PiP] robot_up_cam site id=${this._robotCamSiteId}`);
+    for (const id of ['front', 'rear']) {
+      this._siteIds[id] = this.mujoco.mj_name2id(this.model, SITE, CAMERA_SITES[id]);
+      if (this._siteIds[id] < 0) console.warn(`[PiP] site ${CAMERA_SITES[id]} not found`);
     }
+    this._robotCamSiteId = this._siteIds.front;
     this._pipLabel = document.getElementById('pip-label');
-    this._addRobotCamFrustumHelper();
+    this._helpers.front = this._addRobotCamFrustumHelper(0x33ddff, this._fovs.front);
+    if (this._siteIds.rear >= 0) this._helpers.rear = this._addRobotCamFrustumHelper(0xffaa33, this._fovs.rear);
+    this._frustumHelper = this._helpers.front.group;
+    this._frustumLines = this._helpers.front.lines;
+    this._applyActiveCam();
     this.sync();
     this._layoutPipLabel();
   }
 
-  _addRobotCamFrustumHelper() {
+  _addRobotCamFrustumHelper(color = 0x33ddff, fov = this._camFov) {
     // Simple axis helper at camera site (updated each sync)
     const group = new THREE.Group();
-    group.name = 'robot_up_cam_helper';
+    group.name = color === 0x33ddff ? 'robot_up_cam_helper' : 'robot_rear_cam_helper';
     const origin = new THREE.Mesh(
       new THREE.SphereGeometry(0.015, 10, 10),
-      new THREE.MeshBasicMaterial({ color: 0x33ddff }),
+      new THREE.MeshBasicMaterial({ color }),
     );
     group.add(origin);
     // Look ray
@@ -115,19 +123,67 @@ export class MujocoThreeViewer {
       new THREE.Vector3(0, 0, 0),
       new THREE.Vector3(0, 0, -0.45),
     ]);
-    const dirLine = new THREE.Line(dirGeom, new THREE.LineBasicMaterial({ color: 0x33ddff }));
+    const dirLine = new THREE.Line(dirGeom, new THREE.LineBasicMaterial({ color }));
     group.add(dirLine);
     // Frustum pyramid: rectangular, same H/V field of view as the PiP + detection.
     const fGeom = new THREE.BufferGeometry();
-    fGeom.setAttribute('position', new THREE.Float32BufferAttribute(frustumLinePositions(this._camFov), 3));
+    fGeom.setAttribute('position', new THREE.Float32BufferAttribute(frustumLinePositions(fov), 3));
     const frustum = new THREE.LineSegments(
       fGeom,
-      new THREE.LineBasicMaterial({ color: 0x33ddff, transparent: true, opacity: 0.55 }),
+      new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.55 }),
     );
-    this._frustumLines = frustum;
     group.add(frustum);
     this.scene.add(group);
-    this._frustumHelper = group;
+    return { group, lines: frustum };
+  }
+
+  _setHelperFov(id, fov) {
+    const lines = this._helpers[id]?.lines;
+    if (!lines) return;
+    lines.geometry.setAttribute('position', new THREE.Float32BufferAttribute(frustumLinePositions(fov), 3));
+    lines.geometry.attributes.position.needsUpdate = true;
+    lines.geometry.computeBoundingSphere();
+  }
+
+  /** PiP-projectie, kijkpiramide-nadruk en label voor de actieve camera. */
+  _applyActiveCam() {
+    const id = this._activeCam;
+    this._camFov = { ...this._fovs[id] };
+    this._robotCamSiteId = this._siteIds[id];
+    this.robotCam.fov = pipVfov(this._camFov);
+    this.robotCam.aspect = pipAspect(this._camFov);
+    this.robotCam.updateProjectionMatrix();
+    for (const [hid, h] of Object.entries(this._helpers)) {
+      if (h?.lines?.material) h.lines.material.opacity = hid === id ? 0.9 : 0.25;
+    }
+    const label = this._pipLabel || document.getElementById('pip-label');
+    if (label) {
+      const ind = activeCameraIndicator(id);
+      label.textContent = `● ${ind.label}`;
+      label.style.color = ind.color;
+      label.dataset.camera = id;
+    }
+    this._layoutPipLabel?.();
+  }
+
+  /** Wissel de actieve robotcamera ('front' | 'rear'): PiP volgt meteen. */
+  setActiveCamera(id) {
+    const n = normalizeCameraId(id) || 'front';
+    this._activeCam = n === 'rear' && this._siteIds.rear < 0 ? 'front' : n;
+    this._applyActiveCam();
+    return this._activeCam;
+  }
+
+  get activeCamera() {
+    return this._activeCam;
+  }
+
+  /** Zichtveld van de achtercamera (zelfde Brio-preset, altijd liggend). */
+  setRearCameraFov(fov) {
+    if (!fov || !(fov.vfovDeg > 0) || !(fov.aspect > 0)) return;
+    this._fovs.rear = { ...fov };
+    this._setHelperFov('rear', fov);
+    if (this._activeCam === 'rear') this._applyActiveCam();
   }
 
   /**
@@ -137,17 +193,10 @@ export class MujocoThreeViewer {
    */
   setCameraFov(fov) {
     if (!fov || !(fov.vfovDeg > 0) || !(fov.aspect > 0)) return;
-    this._camFov = { ...fov };
-    // PiP = rechtop gezet beeld: bij portret (rol 90°) H/V en aspect verwisseld, smal en hoog.
-    this.robotCam.fov = pipVfov(fov);
-    this.robotCam.aspect = pipAspect(fov);
-    this.robotCam.updateProjectionMatrix();
-    if (this._frustumLines) {
-      const geom = this._frustumLines.geometry;
-      geom.setAttribute('position', new THREE.Float32BufferAttribute(frustumLinePositions(fov), 3));
-      geom.attributes.position.needsUpdate = true;
-      geom.computeBoundingSphere();
-    }
+    // Voorcamera. PiP = rechtop gezet beeld: bij portret (rol 90°) H/V en aspect verwisseld.
+    this._fovs.front = { ...fov };
+    this._setHelperFov('front', fov);
+    if (this._activeCam === 'front') this._applyActiveCam();
     // MuJoCo camera (not used for the PiP — that is the Three.js robotCam — but keep in sync).
     try {
       const CAM = this.mujoco.mjtObj?.mjOBJ_CAMERA?.value;
@@ -360,9 +409,18 @@ export class MujocoThreeViewer {
     const unroll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -roll);
     this.robotCam.quaternion.copy(quat).multiply(unroll);
     this.robotCam.up.set(0, 0, 1);
-    if (this._frustumHelper) {
-      this._frustumHelper.position.copy(pos);
-      this._frustumHelper.quaternion.copy(quat);
+    for (const [id, h] of Object.entries(this._helpers)) {
+      const hs = this._siteIds[id];
+      if (!h?.group || hs < 0) continue;
+      const ho = hs * 3;
+      const hm = hs * 9;
+      h.group.position.set(xpos[ho], xpos[ho + 1], xpos[ho + 2]);
+      h.group.quaternion.setFromRotationMatrix(new THREE.Matrix4().set(
+        xmat[hm + 0], xmat[hm + 1], xmat[hm + 2], 0,
+        xmat[hm + 3], xmat[hm + 4], xmat[hm + 5], 0,
+        xmat[hm + 6], xmat[hm + 7], xmat[hm + 8], 0,
+        0, 0, 0, 1,
+      ));
     }
   }
 
@@ -438,7 +496,7 @@ export class MujocoThreeViewer {
       this.camera.updateProjectionMatrix();
     }
     // Viewport/scissor in CSS-pixels: three.js vermenigvuldigt zelf met de pixelratio.
-    const helper = this._frustumHelper;
+    const helpers = Object.values(this._helpers).map((h) => h.group);
     const fog = this.scene.fog;
     renderWithPip(this.renderer, {
       scene: this.scene,
@@ -446,16 +504,16 @@ export class MujocoThreeViewer {
       robotCam: this.robotCam,
       box,
       clearColor: 0x1a1f2a,
-      frameColor: 0x33ddff,
+      frameColor: this._activeCam === 'rear' ? 0xffaa33 : 0x33ddff,
       insetColor: 0x0a1624,
       // Kijkpiramide niet in de PiP (zit op de lens); geen mist zodat de tip leesbaar blijft.
       beforePip: () => {
-        if (helper) helper.visible = false;
+        for (const h of helpers) h.visible = false;
         this.scene.fog = null;
       },
       afterPip: () => {
         this.scene.fog = fog;
-        if (helper) helper.visible = true;
+        for (const h of helpers) h.visible = true;
       },
     });
   }

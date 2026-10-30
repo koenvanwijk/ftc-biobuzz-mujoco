@@ -6,7 +6,10 @@
  *   intakeMotor → IntakeShooter.intakePower (|p|>0.05; sign: +intake / −rear spit)
  *   flywheel    → edge-trigger IntakeShooter.fire when |power| rises above 0.3
  *   pollenServo → edge-trigger tryPlaceNectar when position01 rises above 0.7
- *   crServo     → while |power|>0.3 force reverse eject (overrides intakeMotor)
+ *   crServo     → while |power|>0.3 force reverse eject (overrides intakeMotor), BEHALVE als de
+ *                 flywheel draait en crServo > +0.3: dan is het de feeder (REV Starter Bot) en schiet hij
+ *                 elke FEED_INTERVAL_S een element zolang de flywheel op snelheid is.
+ *   flywheel    → gesimuleerde snelheid (ticks/s, 1e orde, tau 0,25 s) voor getVelocity/setVelocity.
  *
  * Encoders: drive joints only; soft devices report 0 ticks (telemetry shows cmds).
  */
@@ -29,7 +32,7 @@ import {
 } from '../worlds/biobuzz/constants.js';
 import { mapIntakePower, mapFlywheelEdge, mapPollenServoEdge } from './biobuzzMapping.js';
 import { readImuFromBody, computeAprilTagDetections, computePollenColorBlobs } from './simSensors.js';
-import { DEFAULT_ROBOT_CAMERA_FOV } from './robotCamera.js';
+import { CAMERA_SITES, DEFAULT_ROBOT_CAMERA_FOV, normalizeCameraId } from './robotCamera.js';
 
 export class BiobuzzHardwareAdapter {
   constructor(mujoco, model, data, simConfig) {
@@ -43,6 +46,9 @@ export class BiobuzzHardwareAdapter {
     this._placeArmed = false;
     this._lastPlaceResult = '';
     this._lastShootOk = false;
+    /** Gesimuleerde flywheelsnelheid (ticks/s) en feeder-timer (REV Starter Bot TeleOp). */
+    this._flyVel = 0;
+    this._feedT = 0;
     this._hud = { hopper: 0, nectar: 0, scoreRed: 0, scoreBlue: 0, intake: 'uit' };
 
     const thr = simConfig.thresholds || {};
@@ -157,14 +163,19 @@ export class BiobuzzHardwareAdapter {
     const flyCmd = this._lastCmds.flywheelAsDcMotor;
     const servoCmd = this._lastCmds.pollenServoAsServo;
 
+    const crPower = crCmd?.type === 'crServo' ? crCmd.power || 0 : 0;
+    // Feeder (crServo vooruit) terwijl de flywheel draait: geen eject, maar invoeren (physicsTick schiet).
+    this._feeding = crPower > (this._thr?.crServoEject ?? 0.3) && Math.abs(flywheelTarget(flyCmd)) >= FLY_MIN_SPIN;
     const intakePower = mapIntakePower(
       intakeCmd?.type === 'motor' ? intakeCmd.power || 0 : 0,
-      crCmd?.type === 'crServo' ? crCmd.power || 0 : 0,
+      this._feeding ? 0 : crPower,
       this._thr,
     );
+    this._flyTarget = flywheelTarget(flyCmd);
     this.mech.setIntakePower(intakePower);
 
-    const fly = mapFlywheelEdge(flyCmd?.power || 0, this._flyArmed, this._thr);
+    // Flank-schot alleen in vermogensmodus en vooruit (setVelocity / achteruit-draaien schiet niet zelf).
+    const fly = mapFlywheelEdge(flyCmd?.velocityMode ? 0 : Math.max(0, flyCmd?.power || 0), this._flyArmed, this._thr);
     this._flyArmed = fly.armed;
     if (fly.fire) this._lastShootOk = this.mech.fire();
 
@@ -197,6 +208,18 @@ export class BiobuzzHardwareAdapter {
 
   /** Call once per physics substep (before mj_step). */
   physicsTick(dt) {
+    const target = this._flyTarget || 0;
+    const a = Math.min(1, (dt || 0) / FLY_TAU_S);
+    this._flyVel += (target - this._flyVel) * a;
+    if (this._feeding && flywheelAtSpeed(this._flyVel, target)) {
+      this._feedT -= dt || 0;
+      if (this._feedT <= 0) {
+        this._lastShootOk = this.mech.fire();
+        this._feedT = FEED_INTERVAL_S;
+      }
+    } else {
+      this._feedT = 0;
+    }
     this.mech.update();
     this.fieldBounds.setProtected(this.mech.protectedBodyIds());
     this.hiveTip.update();
@@ -236,6 +259,33 @@ export class BiobuzzHardwareAdapter {
     if (fov && fov.hfovDeg > 0 && fov.vfovDeg > 0) this._cameraFov = { ...fov };
   }
 
+  /** Zichtveld van de achtercamera (Webcam 2, naar de vloer); standaard = dat van de voorcamera. */
+  get rearCameraFov() {
+    return this._rearCameraFov || this.cameraFov;
+  }
+
+  setRearCameraFov(fov) {
+    if (fov && fov.hfovDeg > 0 && fov.vfovDeg > 0) this._rearCameraFov = { ...fov };
+  }
+
+  /** Actieve (getoonde) camera: 'front' | 'rear'. Detectie hangt hier niet van af. */
+  get activeCamera() {
+    return this._activeCamera || 'front';
+  }
+
+  setActiveCamera(id) {
+    this._activeCamera = normalizeCameraId(id) || 'front';
+  }
+
+  /** Site voor de gele-POLLEN-blobs: de achtercamera als die in het model zit, anders de voorcamera. */
+  _blobCameraSite() {
+    if (this._blobSite) return this._blobSite;
+    const SITE = this.mujoco?.mjtObj?.mjOBJ_SITE?.value;
+    const rid = SITE == null ? -1 : this.mujoco.mj_name2id(this.model, SITE, CAMERA_SITES.rear);
+    this._blobSite = rid >= 0 ? { site: CAMERA_SITES.rear, rear: true } : { site: CAMERA_SITES.front, rear: false };
+    return this._blobSite;
+  }
+
   readSensors() {
     const out = Object.create(null);
     for (const jsId of Object.keys(this._motorMeta)) {
@@ -264,19 +314,22 @@ export class BiobuzzHardwareAdapter {
       generation: this._aprilGen || 0,
       count: april.detections.length,
     };
-    // Zelfde camera als AprilTag: zelfde site/montage, preset (H×V) en streamresolutie.
+    // Gele POLLEN (ColorBlob) via de achtercamera "Webcam 2" die naar de vloer kijkt; AprilTags blijven voor.
+    const blobCam = this._blobCameraSite();
+    const blobFov = blobCam.rear ? this.rearCameraFov : this.cameraFov;
     const pollen = computePollenColorBlobs(this.mujoco, this.model, this.data, {
-      cameraSiteName: 'robot_up_cam',
-      hfovDeg: this.cameraFov.hfovDeg,
-      vfovDeg: this.cameraFov.vfovDeg,
-      width: this.cameraFov.width,
-      height: this.cameraFov.height,
+      cameraSiteName: blobCam.site,
+      hfovDeg: blobFov.hfovDeg,
+      vfovDeg: blobFov.vfovDeg,
+      width: blobFov.width,
+      height: blobFov.height,
     });
     out.colorBlobDetections = {
       json: pollen.json,
       count: pollen.blobs.length,
       width: pollen.width,
       height: pollen.height,
+      camera: blobCam.rear ? 'Webcam 2' : 'Webcam 1',
     };
     this._aprilCount = april.detections.length;
     return out;
@@ -284,6 +337,9 @@ export class BiobuzzHardwareAdapter {
 
   _motorSensor(jsId) {
     const meta = this._motorMeta[jsId];
+    if (jsId === 'flywheelAsDcMotor' && (!meta || meta.kind === 'soft' || meta.qposAdr < 0)) {
+      return { positionTicks: 0, velocityTicksPerSec: this._flyVel || 0, busy: false };
+    }
     if (!meta || meta.kind === 'soft' || meta.qposAdr < 0) {
       return { positionTicks: 0, velocityTicksPerSec: 0, busy: false };
     }
@@ -391,3 +447,22 @@ function rtpDriving(cmd) {
   if (cmd.enabled === false) return false;
   return cmd.velocityMode ? (cmd.velocityTicksPerSec || 0) !== 0 : (cmd.power || 0) !== 0;
 }
+
+/** Max. flywheelsnelheid bij vermogen 1 (HD Hex, 28 ticks/omw, ~6000 rpm). */
+export const FLY_MAX_TICKS_PER_S = 2800;
+export const FLY_TAU_S = 0.25;
+export const FLY_MIN_SPIN = 200;
+export const FEED_INTERVAL_S = 0.35;
+
+/** Doelsnelheid (ticks/s) uit het flywheel-commando: setVelocity of vermogen × max. */
+export function flywheelTarget(cmd) {
+  if (!cmd) return 0;
+  if (cmd.velocityMode) return Number(cmd.velocityTicksPerSec) || 0;
+  return (Number(cmd.power) || 0) * FLY_MAX_TICKS_PER_S;
+}
+
+/** Op snelheid: binnen 5 % (min. 30 ticks/s) van een doel vooruit. */
+export function flywheelAtSpeed(vel, target) {
+  return target >= FLY_MIN_SPIN && Math.abs(vel - target) <= Math.max(30, 0.05 * target);
+}
+

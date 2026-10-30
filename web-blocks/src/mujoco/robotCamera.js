@@ -35,6 +35,49 @@ export const BRIO_4K_CAMERA = Object.freeze({
  */
 export const DEFAULT_CAMERA_MOUNT = Object.freeze({ x: 0.24, y: 0, z: 0.121, pitchDeg: 17.5, rollDeg: 90 });
 
+/**
+ * Tweede camera: ACHTER op de robot, liggend, schuin omlaag naar de vloer achter de robot
+ * (site/camera `robot_rear_cam`, "Webcam 2"). yawDeg 180 = kijkt achteruit, pitchDeg −50 = 50° onder
+ * horizontaal. Lens 24,4 cm boven de mat, x −0,18 (net vóór de achter-intake). Met 90° (52° verticaal)
+ * ziet hij de vloer van ±6 cm tot ±55 cm achter de lens: precies waar gele POLLEN de achter-intake in gaan.
+ */
+export const REAR_CAMERA_MOUNT = Object.freeze({ x: -0.18, y: 0, z: 0.2, pitchDeg: -50, rollDeg: 0, yawDeg: 180 });
+
+/** Camera-id's en namen (FTC-configuratienaam = WebcamName). */
+export const CAMERA_IDS = Object.freeze(['front', 'rear']);
+export const CAMERA_SITES = Object.freeze({ front: 'robot_up_cam', rear: 'robot_rear_cam' });
+export const CAMERA_CONFIG_NAMES = Object.freeze({ front: 'Webcam 1', rear: 'Webcam 2' });
+export const CAMERA_LABELS = Object.freeze({ front: 'Voor (tags)', rear: 'Achter (vloer)' });
+/** localStorage-sleutel voor de actieve (getoonde) camera. */
+export const ACTIVE_CAMERA_STORAGE_KEY = 'ftc-sim-active-camera-v1';
+
+/** 'front' / 'rear' uit id, NL/EN-label of WebcamName ("Webcam 2", "achter", "rear"); anders null. */
+export function normalizeCameraId(v) {
+  const s = String(v ?? '').trim().toLowerCase();
+  if (!s) return null;
+  if (s === 'front' || s === 'voor' || s === 'webcam 1' || s === 'webcam1' || s === CAMERA_SITES.front) return 'front';
+  if (s === 'rear' || s === 'achter' || s === 'back' || s === 'webcam 2' || s === 'webcam2' || s === CAMERA_SITES.rear) return 'rear';
+  return null;
+}
+
+/** Andere camera (wisselknop). */
+export function otherCameraId(id) {
+  return normalizeCameraId(id) === 'rear' ? 'front' : 'rear';
+}
+
+/** Indicatortekst/-status voor de actieve camera. */
+export function activeCameraIndicator(id) {
+  const a = normalizeCameraId(id) || 'front';
+  return {
+    id: a,
+    site: CAMERA_SITES[a],
+    configName: CAMERA_CONFIG_NAMES[a],
+    label: CAMERA_LABELS[a],
+    text: `Actieve camera: ${CAMERA_LABELS[a]} · ${CAMERA_CONFIG_NAMES[a]}`,
+    color: a === 'rear' ? '#ffaa33' : '#33ddff',
+  };
+}
+
 /** Oude MJCF-pose van vóór de portretmontage (32,4 cm boven de mat, +39,7°, liggend). */
 export const LEGACY_CAMERA_MOUNT = Object.freeze({ x: 0.16, y: 0, z: 0.28, pitchDeg: 39.73, rollDeg: 0 });
 
@@ -127,6 +170,8 @@ export function resolveCameraMount(raw, { rollDeg } = {}) {
     z: num(raw.z, d.z, -0.1, 1.0),
     pitchDeg: num(raw.pitchDeg, d.pitchDeg, -89, 89),
     rollDeg: num(raw.rollDeg, rollDef, -180, 180),
+    // yawDeg (om robot-z; 180 = achteruit) alleen als opgegeven, anders vooruit (0).
+    ...(raw.yawDeg != null && Number.isFinite(Number(raw.yawDeg)) ? { yawDeg: num(raw.yawDeg, 0, -180, 180) } : {}),
   };
 }
 
@@ -138,7 +183,7 @@ export function resolveCameraMount(raw, { rollDeg } = {}) {
  * Rotatie = Ry(−p) · R0 · Rz(rol), met R0 (p = 0, rol = 0) = quaternion (0.5, 0.5, −0.5, −0.5).
  * Rol +90°: beeld-X wijst omhoog, beeld-boven wijst naar links (portret).
  */
-export function mountQuat(pitchDeg, rollDeg = 0) {
+export function mountQuat(pitchDeg, rollDeg = 0, yawDeg = 0) {
   const mul = (a, b) => [
     a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
     a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
@@ -147,7 +192,12 @@ export function mountQuat(pitchDeg, rollDeg = 0) {
   ];
   const h = (-(Number(pitchDeg) || 0) * DEG) / 2;
   const r = ((Number(rollDeg) || 0) * DEG) / 2;
-  const q = mul(mul([Math.cos(h), 0, Math.sin(h), 0], [0.5, 0.5, -0.5, -0.5]), [Math.cos(r), 0, 0, Math.sin(r)]);
+  const y = ((Number(yawDeg) || 0) * DEG) / 2;
+  // yaw (om robot-z, 180 = achteruit) als laatste, in het robotframe.
+  const q = mul(
+    [Math.cos(y), 0, 0, Math.sin(y)],
+    mul(mul([Math.cos(h), 0, Math.sin(h), 0], [0.5, 0.5, -0.5, -0.5]), [Math.cos(r), 0, 0, Math.sin(r)]),
+  );
   const n = Math.hypot(...q) || 1;
   return q.map((v) => v / n);
 }
@@ -162,7 +212,7 @@ export function applyCameraMount(mujoco, model, data, mount, name = 'robot_up_ca
   if (!m || !mujoco || !model) return false;
   const SITE = mujoco.mjtObj?.mjOBJ_SITE?.value;
   const CAM = mujoco.mjtObj?.mjOBJ_CAMERA?.value;
-  const q = mountQuat(m.pitchDeg, m.rollDeg);
+  const q = mountQuat(m.pitchDeg, m.rollDeg, m.yawDeg);
   const pos = [m.x, m.y, m.z];
   let ok = false;
   const write = (posArr, quatArr, id) => {
@@ -221,6 +271,7 @@ export function resolveCameraConfig(raw) {
     orientation,
     portraitRollDeg,
     mount: resolveCameraMount(r.mount || {}, { rollDeg: orientation === 'portrait' ? portraitRollDeg : 0 }),
+    rearMount: r.rearMount === false ? null : resolveCameraMount({ ...REAR_CAMERA_MOUNT, ...(r.rearMount || {}) }),
   };
 }
 
