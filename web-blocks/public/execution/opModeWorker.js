@@ -773,6 +773,39 @@ function createGamepadPseudo(interp, which) {
       interp.createNativeFunction(() => read(p)),
     );
   }
+  // PlayStation-namen (REV Starter Bot-voorbeelden) = dezelfde knoppen als Xbox A/B/X/Y.
+  const ALIAS = { Cross: 'A', Circle: 'B', Square: 'X', Triangle: 'Y', Options: 'Start', Share: 'Back' };
+  const button = (p) => !!read(ALIAS[p] || p);
+  for (const p of Object.keys(ALIAS)) {
+    interp.setProperty(obj, `get${p}`, interp.createNativeFunction(() => button(p)));
+  }
+  // Trigger als knop (FTC Gamepad.right_trigger_pressed).
+  for (const t of ['Left', 'Right']) {
+    interp.setProperty(
+      obj,
+      `get${t}TriggerPressed`,
+      interp.createNativeFunction(() => Number(read(`${t}Trigger`)) > 0.5),
+    );
+  }
+  // xWasPressed / xWasReleased: true één keer per indrukken / loslaten (sinds de vorige vraag).
+  const BUTTONS = ['A', 'B', 'X', 'Y', 'LeftBumper', 'RightBumper', 'DpadUp', 'DpadDown', 'DpadLeft', 'DpadRight',
+    'Back', 'Start', ...Object.keys(ALIAS)];
+  const lastPressed = Object.create(null);
+  const lastReleased = Object.create(null);
+  for (const p of BUTTONS) {
+    interp.setProperty(obj, `get${p}WasPressed`, interp.createNativeFunction(() => {
+      const now = button(p);
+      const was = !!lastPressed[p];
+      lastPressed[p] = now;
+      return now && !was;
+    }));
+    interp.setProperty(obj, `get${p}WasReleased`, interp.createNativeFunction(() => {
+      const now = button(p);
+      const was = lastReleased[p] === undefined ? false : lastReleased[p];
+      lastReleased[p] = now;
+      return !now && was;
+    }));
+  }
   return obj;
 }
 

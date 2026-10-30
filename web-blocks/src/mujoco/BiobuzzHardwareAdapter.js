@@ -6,7 +6,10 @@
  *   intakeMotor → IntakeShooter.intakePower (|p|>0.05; sign: +intake / −rear spit)
  *   flywheel    → edge-trigger IntakeShooter.fire when |power| rises above 0.3
  *   pollenServo → edge-trigger tryPlaceNectar when position01 rises above 0.7
- *   crServo     → while |power|>0.3 force reverse eject (overrides intakeMotor)
+ *   crServo     → while |power|>0.3 force reverse eject (overrides intakeMotor), BEHALVE als de
+ *                 flywheel draait en crServo > +0.3: dan is het de feeder (REV Starter Bot) en schiet hij
+ *                 elke FEED_INTERVAL_S een element zolang de flywheel op snelheid is.
+ *   flywheel    → gesimuleerde snelheid (ticks/s, 1e orde, tau 0,25 s) voor getVelocity/setVelocity.
  *
  * Encoders: drive joints only; soft devices report 0 ticks (telemetry shows cmds).
  */
@@ -43,6 +46,9 @@ export class BiobuzzHardwareAdapter {
     this._placeArmed = false;
     this._lastPlaceResult = '';
     this._lastShootOk = false;
+    /** Gesimuleerde flywheelsnelheid (ticks/s) en feeder-timer (REV Starter Bot TeleOp). */
+    this._flyVel = 0;
+    this._feedT = 0;
     this._hud = { hopper: 0, nectar: 0, scoreRed: 0, scoreBlue: 0, intake: 'uit' };
 
     const thr = simConfig.thresholds || {};
@@ -157,14 +163,19 @@ export class BiobuzzHardwareAdapter {
     const flyCmd = this._lastCmds.flywheelAsDcMotor;
     const servoCmd = this._lastCmds.pollenServoAsServo;
 
+    const crPower = crCmd?.type === 'crServo' ? crCmd.power || 0 : 0;
+    // Feeder (crServo vooruit) terwijl de flywheel draait: geen eject, maar invoeren (physicsTick schiet).
+    this._feeding = crPower > (this._thr?.crServoEject ?? 0.3) && Math.abs(flywheelTarget(flyCmd)) >= FLY_MIN_SPIN;
     const intakePower = mapIntakePower(
       intakeCmd?.type === 'motor' ? intakeCmd.power || 0 : 0,
-      crCmd?.type === 'crServo' ? crCmd.power || 0 : 0,
+      this._feeding ? 0 : crPower,
       this._thr,
     );
+    this._flyTarget = flywheelTarget(flyCmd);
     this.mech.setIntakePower(intakePower);
 
-    const fly = mapFlywheelEdge(flyCmd?.power || 0, this._flyArmed, this._thr);
+    // Flank-schot alleen in vermogensmodus en vooruit (setVelocity / achteruit-draaien schiet niet zelf).
+    const fly = mapFlywheelEdge(flyCmd?.velocityMode ? 0 : Math.max(0, flyCmd?.power || 0), this._flyArmed, this._thr);
     this._flyArmed = fly.armed;
     if (fly.fire) this._lastShootOk = this.mech.fire();
 
@@ -197,6 +208,18 @@ export class BiobuzzHardwareAdapter {
 
   /** Call once per physics substep (before mj_step). */
   physicsTick(dt) {
+    const target = this._flyTarget || 0;
+    const a = Math.min(1, (dt || 0) / FLY_TAU_S);
+    this._flyVel += (target - this._flyVel) * a;
+    if (this._feeding && flywheelAtSpeed(this._flyVel, target)) {
+      this._feedT -= dt || 0;
+      if (this._feedT <= 0) {
+        this._lastShootOk = this.mech.fire();
+        this._feedT = FEED_INTERVAL_S;
+      }
+    } else {
+      this._feedT = 0;
+    }
     this.mech.update();
     this.fieldBounds.setProtected(this.mech.protectedBodyIds());
     this.hiveTip.update();
@@ -314,6 +337,9 @@ export class BiobuzzHardwareAdapter {
 
   _motorSensor(jsId) {
     const meta = this._motorMeta[jsId];
+    if (jsId === 'flywheelAsDcMotor' && (!meta || meta.kind === 'soft' || meta.qposAdr < 0)) {
+      return { positionTicks: 0, velocityTicksPerSec: this._flyVel || 0, busy: false };
+    }
     if (!meta || meta.kind === 'soft' || meta.qposAdr < 0) {
       return { positionTicks: 0, velocityTicksPerSec: 0, busy: false };
     }
@@ -421,3 +447,22 @@ function rtpDriving(cmd) {
   if (cmd.enabled === false) return false;
   return cmd.velocityMode ? (cmd.velocityTicksPerSec || 0) !== 0 : (cmd.power || 0) !== 0;
 }
+
+/** Max. flywheelsnelheid bij vermogen 1 (HD Hex, 28 ticks/omw, ~6000 rpm). */
+export const FLY_MAX_TICKS_PER_S = 2800;
+export const FLY_TAU_S = 0.25;
+export const FLY_MIN_SPIN = 200;
+export const FEED_INTERVAL_S = 0.35;
+
+/** Doelsnelheid (ticks/s) uit het flywheel-commando: setVelocity of vermogen × max. */
+export function flywheelTarget(cmd) {
+  if (!cmd) return 0;
+  if (cmd.velocityMode) return Number(cmd.velocityTicksPerSec) || 0;
+  return (Number(cmd.power) || 0) * FLY_MAX_TICKS_PER_S;
+}
+
+/** Op snelheid: binnen 5 % (min. 30 ticks/s) van een doel vooruit. */
+export function flywheelAtSpeed(vel, target) {
+  return target >= FLY_MIN_SPIN && Math.abs(vel - target) <= Math.max(30, 0.05 * target);
+}
+
