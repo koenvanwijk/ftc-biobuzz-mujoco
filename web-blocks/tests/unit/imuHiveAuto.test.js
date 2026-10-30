@@ -88,17 +88,27 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.ok(JSON.stringify(sim).includes('flywheelAsDcMotor'));
   });
 
-  it('no yellow-ball detection: AprilTag-only VisionPortal, POLLEN picked up at known spots with the REAR intake', () => {
-    assert.ok(!/colorBlob|ColorBlob|YELLOW/.test(xml), 'geen ColorBlobLocator / gele kleurdetectie');
-    assert.equal((xml.match(/visionPortalBuilder_addProcessor/g) || []).length, 1);
+  it('yellow POLLEN via the REAR camera (Webcam 2 + ColorBlob), AprilTags on Webcam 1, known spots as fallback', () => {
+    // Twee portals: Webcam 1 = AprilTag, Webcam 2 = gele ColorBlob.
+    assert.equal((xml.match(/visionPortalBuilder_addProcessor/g) || []).length, 2);
+    assert.match(xml, /<field name="WEBCAM_NAME">Webcam 1<\/field>[\s\S]*?myAprilTagProcessor/);
+    assert.match(xml, /<field name="WEBCAM_NAME">Webcam 2<\/field>[\s\S]*?myRearBlobProcessor/);
+    assert.match(xml, /<field name="CONSTANT">YELLOW<\/field>/);
+    const r = xml.indexOf('<field name="NAME">rearCollect</field>');
+    assert.ok(r > 0, 'rearCollect');
+    const rc = xml.slice(r, xml.indexOf('type="procedures_defnoreturn"', r));
+    assert.match(rc, /colorBlobLocatorProcessor_getBlobs[\s\S]*?myRearBlobProcessor/);
+    assert.ok(!rc.includes('myAprilTagProcessor'), 'achtercamera alleen voor geel');
+    // Stuurt achteruit op beeld-X (bal links achter = X > 320 → linkerwiel minder achteruit).
+    assert.match(rc, /<field name="NUM">-0.25<\/field>[\s\S]*?steer/);
+    assert.match(rc, /v_fallbackM">fallbackM<\/field>\s*<value name="VALUE">\s*<block type="math_number"[^>]*>\s*<field name="NUM">0</);
+    for (const gone of ['collectYellow', 'scanForYellow', 'collectOdo']) assert.ok(!xml.includes(`<field name="NAME">${gone}</field>`), gone);
     assert.match(xml, /intakeMotorAsDcMotor/);
-    const defs = [...xml.matchAll(/<field name="NAME">(\w+)<\/field>/g)].map((m) => m[1]);
-    for (const gone of ['collectYellow', 'scanForYellow', 'collectOdo']) assert.ok(!defs.includes(gone), gone);
     const i = xml.indexOf('<field name="NAME">collectAt</field>');
     assert.ok(i > 0, 'collectAt');
     const c = xml.slice(i, xml.indexOf('type="procedures_defnoreturn"', i));
-    // Achteruit (negatief vermogen) met de intake aan: de intake zit aan de achterkant.
-    assert.match(c, /<mutation name="driveOdo">[\s\S]*?<field name="NUM">-0.25<\/field>/);
+    // Eerst de achtercamera, dan (zonder geel: fallbackM = backM) achteruit naar de bekende plek.
+    assert.match(c, /<mutation name="rearCollect">[\s\S]*?<mutation name="driveOdo">[\s\S]*?v_fallbackM[\s\S]*?<field name="NUM">-0.25<\/field>/);
     assert.equal((xml.match(/<mutation name="collectAt"/g) || []).length, 3);
     for (const name of ['RED AUDIENCE', 'RED SCORING']) assert.ok(xml.includes(`<field name="TEXT">${name}</field>`), name);
     assert.equal((xml.match(/<mutation name="shootAll"/g) || []).length, 2); // preload + shootRound (lus)
@@ -162,6 +172,16 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     const g = xml.slice(xml.indexOf('<field name="NAME">goToShootingSpot</field>'));
     assert.ok(g.slice(0, g.indexOf('type="procedures_defnoreturn"')).includes('<mutation name="localize"'));
   });
+
+  it('keeps time since START: startT after waitForStart, shown in telemetry, used for the time limit', () => {
+    assert.match(xml, /linearOpMode_waitForStart[\s\S]*?v_startT">startT<\/field>\s*<value name="VALUE">\s*<block type="linearOpMode_getRuntime_Number"/);
+    const i = xml.indexOf('<field name="NAME">showTime</field>');
+    assert.ok(i > 0, 'showTime');
+    assert.ok(xml.slice(i).includes('<field name="TEXT">Tijd sinds start (s)</field>'));
+    // Elke telemetry.update na START krijgt de tijd erbij.
+    const updates = (xml.match(/type="telemetry_update"/g) || []).length;
+    const shows = (xml.match(/<mutation name="showTime">/g) || []).length;
+    assert.equal(shows, updates - 1, `${shows} showTime / ${updates} updates (alleen niet vóór START)`);
+    assert.match(xml, /<field name="OP">MINUS<\/field>\s*<value name="A">\s*<block type="linearOpMode_getRuntime_Number"[^>]*\/>\s*<\/value>\s*<value name="B">\s*<block type="variables_get"[^>]*>\s*<field name="VAR" id="v_startT">/);
+  });
 });
-
-

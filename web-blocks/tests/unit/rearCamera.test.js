@@ -96,7 +96,7 @@ describe('Achtercamera in de echte scène', () => {
     mujoco.FS.writeFile('/scene/biobuzz_scene.xml', fs.readFileSync(path.join(assets, 'biobuzz_scene.xml'), 'utf8'));
   });
 
-  function blobs(behindM, site) {
+  function blobs(behindM, site, leftM = 0) {
     const model = mujoco.MjModel.mj_loadXML('/scene/biobuzz_scene.xml');
     const data = new mujoco.MjData(model);
     mujoco.mj_resetDataKeyframe(model, data, 0);
@@ -113,7 +113,7 @@ describe('Achtercamera in de echte scène', () => {
       if (id < 0) continue;
       data.qpos.set([5 + i * 0.2, 5, 0.0506, 1, 0, 0, 0], model.jnt_qposadr[id]);
     }
-    data.qpos.set([pose.x - behindM, pose.y, 0.0506, 1, 0, 0, 0], q('pollen_fj_00'));
+    data.qpos.set([pose.x - behindM, pose.y + leftM, 0.0506, 1, 0, 0, 0], q('pollen_fj_00'));
     mujoco.mj_forward(model, data);
     const fov = cameraFov(cfg, { dfovDeg: 90, rollDeg: 0 });
     return computePollenColorBlobs(mujoco, model, data, {
@@ -126,6 +126,13 @@ describe('Achtercamera in de echte scène', () => {
     assert.equal(rear.length, 1, JSON.stringify(rear));
     assert.ok(Math.abs(rear[0].Circle.X - 320) < 20, `midden: ${rear[0].Circle.X}`);
     assert.equal(blobs(0.5, CAMERA_SITES.front).length, 0);
+  });
+
+  it('beeld-X: bal links achter (robot +y) → X > 320 (ImuHiveAuto stuurt daarop)', () => {
+    const l = blobs(0.5, CAMERA_SITES.rear, 0.15);
+    const r = blobs(0.5, CAMERA_SITES.rear, -0.15);
+    assert.ok(l.length === 1 && l[0].Circle.X > 360, JSON.stringify(l));
+    assert.ok(r.length === 1 && r[0].Circle.X < 280, JSON.stringify(r));
   });
 
   it('POLLEN 1,5 m achter de robot valt buiten de vloerstrook', () => {
