@@ -93,7 +93,11 @@ describe('Cameraconfiguratie (simulation.json → webcam.camera)', () => {
     assert.equal(cfg.defaultDfovDeg, 90);
     assert.deepEqual(cfg.resolution, { width: 640, height: 480 });
     near(cfg.nativeAspect, 16 / 9, 1e-9, 'aspect');
-    assert.deepEqual(cameraFov(cfg), DEFAULT_ROBOT_CAMERA_FOV);
+    // simulation.json: liggend (landscape) → 66° × 52° (H × V); de code-standaard blijft portret.
+    assert.equal(cfg.orientation, 'landscape');
+    assert.deepEqual(cameraFov(cfg, { rollDeg: 90 }).hfovDeg, DEFAULT_ROBOT_CAMERA_FOV.hfovDeg);
+    near(cameraFov(cfg).hfovDeg, 66.3, 0.1, 'H');
+    near(cameraFov(cfg).vfovDeg, 52.2, 0.1, 'V');
   });
 
   it('MuJoCo-XML robot_up_cam fovy = verticaal zichtveld bij 90°', () => {

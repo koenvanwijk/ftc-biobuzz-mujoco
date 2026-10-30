@@ -49,7 +49,7 @@ export default {
   <thead><tr><th>Blok-apparaat</th><th>Effect in de sim</th></tr></thead>
   <tbody>
     <tr><td><code>leftDrive</code>, <code>rightDrive</code></td><td>Aandrijving. Positieve power = vooruit op beide wielen (zoals op de echte robot; links staat standaard op REVERSE).</td></tr>
-    <tr><td><code>intakeMotor</code></td><td>Power &gt; 0,05 = intake aan; &lt; −0,05 = achterste FIFO uitspugen.</td></tr>
+    <tr><td><code>intakeMotor</code></td><td>Power &gt; 0,05 = intake aan. De robot heeft de shooter aan de voorkant en de intake aan de achterkant: die pakt alleen gele POLLEN en geeft ze direct door aan de shooter (<code>intakeLayout: "rearPollen"</code> in <code>simulation.json</code>). &lt; −0,05 = achterste FIFO uitspugen.</td></tr>
     <tr><td><code>flywheel</code></td><td>Stijgende flank van |power| &gt; 0,3 = één schot.</td></tr>
     <tr><td><code>pollenServo</code></td><td>Stijgende flank van positie &gt; 0,7 = nectar plaatsen.</td></tr>
     <tr><td><code>crServo</code></td><td>|power| &gt; 0,3 = achterste FIFO uitwerpen zolang het aanstaat.</td></tr>

@@ -41,11 +41,11 @@ before(async () => {
   mujoco.FS.writeFile('/scene/biobuzz_scene.xml', fs.readFileSync(path.join(assets, 'biobuzz_scene.xml'), 'utf8'));
 });
 
-function sim() {
+function sim(cfg = simCfg) {
   const model = mujoco.MjModel.mj_loadXML('/scene/biobuzz_scene.xml');
   const data = new mujoco.MjData(model);
   mujoco.mj_resetDataKeyframe(model, data, 0);
-  const ad = new BiobuzzHardwareAdapter(mujoco, model, data, simCfg);
+  const ad = new BiobuzzHardwareAdapter(mujoco, model, data, cfg);
   ad.resetPose();
   const BODY = mujoco.mjtObj.mjOBJ_BODY.value;
   const SITE = mujoco.mjtObj.mjOBJ_SITE.value;
@@ -84,9 +84,42 @@ function sim() {
   return { model, data, ad, place, site, placeRobot, inCell, tick, fwd, bid };
 }
 
+/** Oude indeling (POLLEN voor, NECTAR+POLLEN achter) voor de G407-regels per compartiment. */
+const frontCfg = { ...simCfg, intakeLayout: 'front' };
+
+describe('Robotindeling simulation.json: shooter voor, alleen gele POLLEN achter', () => {
+  it('intakeLayout = rearPollen in beide kopieën', () => {
+    const pub = JSON.parse(fs.readFileSync(path.resolve(here, '../../public/robots/BIOBUZZ/simulation.json'), 'utf8'));
+    assert.equal(simCfg.intakeLayout, 'rearPollen');
+    assert.equal(pub.intakeLayout, 'rearPollen');
+  });
+
+  it('achterintake pakt POLLEN (naar de shooter), geen NECTAR; voorkant pakt niets; schot gaat naar voren', () => {
+    const s = sim();
+    for (let k = 0; k < 4; k++) {
+      assert.equal(s.ad.mech.fire(), true);
+      s.tick();
+    }
+    assert.equal(s.ad.mech.controlledCount, 0);
+    s.ad.mech.setIntakePower(1);
+    const [fx, fy, fz] = s.site('intake_site');
+    s.place('pollen_00', fx, fy, fz);
+    const [rx, ry, rz] = s.site('nectar_intake_site');
+    s.place('pollen_01', rx, ry, rz);
+    s.place('nectar_blue_0', rx, ry + 0.02, rz);
+    s.fwd();
+    s.tick();
+    assert.equal(s.ad.mech.stored.includes(s.bid('pollen_01')), true, 'achter-POLLEN in de shooter-hopper');
+    assert.equal(s.ad.mech.stored.includes(s.bid('pollen_00')), false, 'geen voor-intake');
+    assert.equal(s.ad.mech.rearStored.length, 0, 'geen NECTAR achter');
+    assert.equal(s.ad.mech.controlledCount, 1);
+    assert.equal(s.ad.mech.fire(), true, 'de opgepakte POLLEN kan voor geschoten worden');
+  });
+});
+
 describe('G407 in de echte scène', () => {
   it('start = 4 preload-POLLEN (G304.G) = vol; intake weigert een 5e POLLEN en NECTAR', () => {
-    const s = sim();
+    const s = sim(frontCfg);
     assert.equal(s.ad.mech.controlledCount, 4);
     assert.equal(s.ad.mech.atControlLimit, true);
     assert.equal(s.ad.getHud().controlled, 4);
@@ -104,7 +137,7 @@ describe('G407 in de echte scène', () => {
   });
 
   it('na één schot (gelanceerd telt niet meer) pakt de intake er weer precies één op', () => {
-    const s = sim();
+    const s = sim(frontCfg);
     assert.equal(s.ad.mech.fire(), true);
     s.tick();
     assert.equal(s.ad.mech.controlledCount, 3);
@@ -119,7 +152,7 @@ describe('G407 in de echte scène', () => {
   });
 
   it('achter-intake (NECTAR) telt mee in dezelfde 4', () => {
-    const s = sim();
+    const s = sim(frontCfg);
     s.ad.mech.fire();
     s.tick();
     s.ad.mech.fire();

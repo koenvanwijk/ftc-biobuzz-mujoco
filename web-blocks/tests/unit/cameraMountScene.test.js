@@ -1,6 +1,6 @@
 /**
  * Echte BIOBUZZ-scène (MuJoCo WASM):
- * - standaard = portret (90° gedraaid), lens 16,5 cm boven de mat, +17,5°: vanaf ±1,2 m tegelijk een
+ * - standaard (simulation.json) = liggend aan de voorkant, 16,5 cm, +35°: HIVE-tags vanaf de schietplekken en vanuit het midden;
  *   POLLEN op de vloer en de tags van de omhoog-CELL; liggend op dezelfde plek niet;
  * - lage liggende montage (6,5 cm, +22,5°) kan het ook; de oude MJCF-pose (32 cm, +39,7°) alleen de tags.
  */
@@ -89,26 +89,27 @@ describe('Camera-montage in de echte scène', () => {
     assert.ok(Math.abs(legacy.camZ - 0.339) < 0.005, 'LEGACY_CAMERA_MOUNT = MJCF-pose');
   });
 
-  it('standaard uit simulation.json (portret, 16,5 cm, +17,5°): vloer-POLLEN én omhoog-CELL-tags in één beeld', () => {
+  it('standaard uit simulation.json (liggend aan de voorkant, 16,5 cm, +35°): HIVE-tags vanaf de schietplekken en vanuit het midden', () => {
     const mount = resolveCameraConfig(SIM_CAMERA).mount;
-    assert.equal(mount.rollDeg, 90);
-    const r = detect(mount, 1.1);
-    assert.ok(Math.abs(r.camZ - 0.18) < 0.005, `lens op ±18 cm wereld-z (16,5 cm boven de mat): ${r.camZ}`);
-    // Sensorframe draait mee: beeld-X (640 px) wijst omhoog (rechtop gezet beeld = 480×640).
-    assert.ok(r.xmat[6] > 0.9, `beeld-X wijst omhoog: ${r.xmat}`);
-    assert.equal(r.fov.viewWidth, 480);
-    assert.equal(r.fov.viewHeight, 640);
-    assert.ok(r.tags.some((d) => d.metadata.name === 'BLUE SCORING'), JSON.stringify(r.tags.map((d) => d.metadata.name)));
-    // POLLEN recht vooruit op de vloer: onderaan in de wereld = kleine X in het sensorbeeld, Y ≈ midden.
-    const floorBlob = r.pollen.blobs.find((b) => b.Circle.X < 200 && Math.abs(b.Circle.Y - 240) < 3);
-    assert.ok(floorBlob, `POLLEN onderin het (rechtop gezette) beeld: ${r.pollen.json}`);
-    // Nabije bal ±0,75 m vóór het robotmidden (= ±0,51 m vóór de lens): in beeld na de tweak
-    // (vóór #22-tweeak: pas vanaf ±0,79 m vóór de lens ≈ ±1,0 m vóór het robotmidden).
-    const near = detect(mount, 0.75);
-    assert.ok(
-      near.pollen.blobs.some((b) => b.Circle.X < 120 && Math.abs(b.Circle.Y - 240) < 5),
-      `nabije POLLEN in beeld: ${near.pollen.json}`,
-    );
+    assert.equal(mount.rollDeg, 0);
+    assert.equal(mount.pitchDeg, 35);
+    const names = (pose, tipDeg) => {
+      const { model, data } = world(mount, 3, pose);
+      const JNT = mujoco.mjtObj.mjOBJ_JOINT.value;
+      data.qpos[model.jnt_qposadr[mujoco.mj_name2id(model, JNT, 'hive_red_tip')]] = (tipDeg * Math.PI) / 180;
+      mujoco.mj_forward(model, data);
+      const fov = cameraFov(resolveCameraConfig(null), { dfovDeg: 90, rollDeg: 0 });
+      const opts = { cameraSiteName: 'robot_up_cam', hfovDeg: fov.hfovDeg, vfovDeg: fov.vfovDeg, maxRangeM: 2.5, minFacingDot: 0.55 };
+      return computeAprilTagDetections(mujoco, model, data, opts).detections.filter((d) => d.isClusterDetection).map((d) => d.metadata.name);
+    };
+    // Schietplekken in het verlengde van de wip (1,1 m voor de omhoog-CELL, voorkant naar de opening).
+    assert.ok(names({ x: -0.324, y: -1.516, yawDeg: 90 }, 0).includes('RED AUDIENCE'));
+    assert.ok(names({ x: -0.324, y: 1.53, yawDeg: -90 }, 60).includes('RED SCORING'));
+    // Midden-controle (-1,45, 0) richting HIVE: beide rode clusters, in beide standen van de HIVE.
+    for (const tip of [0, 60]) {
+      const n = names({ x: -1.45, y: 0, yawDeg: 0 }, tip);
+      assert.ok(n.includes('RED AUDIENCE') && n.includes('RED SCORING'), `tip ${tip}: ${n}`);
+    }
   });
 
   it('zelfde montage liggend (zonder Portret): nabije POLLEN (±0,75 m) valt onder het beeld (portret wel)', () => {

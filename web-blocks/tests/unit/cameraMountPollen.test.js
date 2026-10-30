@@ -94,22 +94,24 @@ describe('Camera-montage (webcam.camera.mount)', () => {
     assert.equal(applyCameraMount(mujoco, model, {}, null), false);
   });
 
-  it('beide simulation.json-kopieën: portret, mount = standaard (16,5 cm boven de mat, +17,5°, vóór de intake)', () => {
+  it('beide simulation.json-kopieën: liggend aan de voorkant (16,5 cm boven de mat, +35°) voor de HIVE-tags', () => {
     for (const p of ['robots/BIOBUZZ/simulation.json', 'public/robots/BIOBUZZ/simulation.json']) {
       const cam = JSON.parse(read(p)).webcam.camera;
       assert.ok(cam.mount, `${p} heeft webcam.camera.mount`);
-      assert.equal(cam.orientation, 'portrait');
-      assert.deepEqual(resolveCameraMount(cam.mount), { ...DEFAULT_CAMERA_MOUNT });
-      assert.deepEqual(resolveCameraConfig(cam).mount, { ...DEFAULT_CAMERA_MOUNT });
+      assert.equal(cam.orientation, 'landscape');
+      const m = resolveCameraConfig(cam).mount;
+      assert.deepEqual(m, { x: 0.24, y: 0, z: 0.121, pitchDeg: 35, rollDeg: 0 });
+      near(mountHeightAboveFloor(m), 0.165, 0.002, 'lenshoogte boven de mat');
       assert.deepEqual(resolveCameraConfig(cam).resolution, { width: 640, height: 480 });
       assert.equal(resolveCameraConfig(cam).defaultDfovDeg, 90);
     }
-    near(mountHeightAboveFloor(DEFAULT_CAMERA_MOUNT), 0.165, 0.002, 'lenshoogte boven de mat');
+    // De portret-standaard in de code blijft bestaan (Portret-vinkje / configs zonder mount).
     assert.deepEqual(
       { x: DEFAULT_CAMERA_MOUNT.x, pitchDeg: DEFAULT_CAMERA_MOUNT.pitchDeg, rollDeg: DEFAULT_CAMERA_MOUNT.rollDeg },
       { x: 0.24, pitchDeg: 17.5, rollDeg: 90 },
     );
   });
+
 });
 
 /** Nep-wereld: camera in de oorsprong kijkt langs wereld +X (rechts = −Y, boven = +Z). */
