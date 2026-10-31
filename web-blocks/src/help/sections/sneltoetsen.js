@@ -26,10 +26,10 @@ export const OPMODE_KEYS = [
 
 /** Toetsen in idle teleop (geen OpMode actief, spiegelt InputHandler in controls.js). */
 export const IDLE_KEYS = [
-  { keys: ['W', 'S'], action: 'Linkerwiel vooruit / achteruit (tankbesturing)' },
-  { keys: ['I', 'K', '↑', '↓'], action: 'Rechterwiel vooruit / achteruit (tankbesturing; I en ↑ = vooruit, K en ↓ = achteruit)' },
-  { keys: ['A', 'D', '←', '→'], action: 'Bocht links / rechts. Zodra je een van deze vasthoudt schakelt de besturing tijdelijk naar <em>arcade</em>: W/↑ = gas, S/↓ = achteruit, A/← en D/→ = sturen' },
-  { keys: ['T'], action: 'Schakelt arcade aan/uit (blijvend). In arcade werken I/K niet meer voor het rechterwiel' },
+  { keys: ['W', 'S', '↑', '↓'], action: 'Vooruit / achteruit. Standaard <em>arcade</em>, net als <code>arcadeDrive</code> in de REV Starter Bot TeleOp (linkerstick: Y = gas, X = sturen)' },
+  { keys: ['A', 'D', '←', '→'], action: 'Bocht links / rechts (arcade)' },
+  { keys: ['T'], action: 'Wissel naar tankbesturing en terug' },
+  { keys: ['I', 'K'], action: 'Alleen in tank (na T): rechterwiel vooruit / achteruit (dan ook ↑/↓; W/S = linkerwiel, A/D/←/→ sturen tijdelijk arcade)' },
   { keys: ['E'], action: 'Intake aan/uit (begint <em>aan</em>)' },
   { keys: ['C'], action: 'Vasthouden: achterste FIFO uitspugen (intake omgekeerd)' },
   { keys: ['Space', 'F'], action: 'Schieten (één schot per toetsaanslag)' },

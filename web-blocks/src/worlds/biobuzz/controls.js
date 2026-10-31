@@ -2,8 +2,10 @@
  * Idle BIOBUZZ teleop: keyboard + gamepad tank/arcade (port of ftc_sim/controls.py).
  * Only active when no Blocks OpMode owns the robot (see main.js opModeOwns).
  *
- * Idle keys: W/S left, I/K or ↑/↓ right (tank); A/D or ←/→ force arcade turn;
- * T toggles arcade; E intake; C reverse; Space/F shoot; X place; R reset.
+ * Default = arcade, same as REV Starter Bot TeleOp arcadeDrive (left stick:
+ * Y = throttle, X = turn; left = y + x, right = y - x).
+ * Idle keys (arcade): W/S or ↑/↓ throttle, A/D or ←/→ turn.
+ * T toggles to tank (W/S left, I/K or ↑/↓ right) and back; E intake; C reverse; Space/F shoot; X place; R reset.
  *
  * OpMode keyboard → gamepad1 overrides live in main.js applyKeys
  * (W/S → leftStickY, I/K·↑/↓ → rightStickY, ←/→ → leftStickX;
@@ -15,7 +17,7 @@
  */
 export class InputHandler {
   constructor() {
-    this.arcade = false;
+    this.arcade = true; // arcade from the start, like REV Starter Bot arcadeDrive
     this.keys = new Set();
     this.shootEdge = false;
     this.resetEdge = false;
@@ -98,12 +100,18 @@ export class InputHandler {
       let ly = -axis(pad, 1);
       let ry = -axis(pad, 3);
       let rx = axis(pad, 2);
+      let lx = axis(pad, 0);
       if (Math.abs(ry) < 0.05 && pad.axes.length > 4) ry = -axis(pad, 4);
       ly = Math.abs(ly) < dead ? 0 : ly;
       ry = Math.abs(ry) < dead ? 0 : ry;
       rx = Math.abs(rx) < dead ? 0 : rx;
+      lx = Math.abs(lx) < dead ? 0 : lx;
 
-      if (this.arcade || (Math.abs(ry) < dead && Math.abs(rx) > dead)) {
+      if (this.arcade) {
+        // REV Starter arcadeDrive: x = leftStickX, y = -leftStickY
+        left = ly + lx;
+        right = ly - lx;
+      } else if (Math.abs(ry) < dead && Math.abs(rx) > dead) {
         left = ly + rx;
         right = ly - rx;
       } else {
