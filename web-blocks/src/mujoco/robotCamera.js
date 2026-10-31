@@ -37,11 +37,11 @@ export const DEFAULT_CAMERA_MOUNT = Object.freeze({ x: 0.24, y: 0, z: 0.121, pit
 
 /**
  * Tweede camera: ACHTER op de robot, liggend, schuin omlaag naar de vloer achter de robot
- * (site/camera `robot_rear_cam`, "Webcam 2"). yawDeg 180 = kijkt achteruit, pitchDeg −50 = 50° onder
- * horizontaal. Lens 24,4 cm boven de mat, x −0,18 (net vóór de achter-intake). Met 90° (52° verticaal)
- * ziet hij de vloer van ±6 cm tot ±55 cm achter de lens: precies waar gele POLLEN de achter-intake in gaan.
+ * (site/camera `robot_rear_cam`, "Webcam 2"). yawDeg 180 = kijkt achteruit, pitchDeg −32 = 32° onder
+ * horizontaal (omhoog gezet om verder te kijken). Lens 28,4 cm boven de mat, x −0,18 (net vóór de achter-intake). Met 90° (52° verticaal)
+ * ziet hij de vloer van ±18 cm tot ±2,7 m achter de lens: zo vindt hij gele POLLEN al van ver als hij achteruit zoekt.
  */
-export const REAR_CAMERA_MOUNT = Object.freeze({ x: -0.18, y: 0, z: 0.2, pitchDeg: -50, rollDeg: 0, yawDeg: 180 });
+export const REAR_CAMERA_MOUNT = Object.freeze({ x: -0.18, y: 0, z: 0.24, pitchDeg: -32, rollDeg: 0, yawDeg: 180 });
 
 /** Camera-id's en namen (FTC-configuratienaam = WebcamName). */
 export const CAMERA_IDS = Object.freeze(['front', 'rear']);

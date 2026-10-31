@@ -8,7 +8,7 @@ export default {
   <thead><tr><th>Paneel</th><th>Wat zie je?</th></tr></thead>
   <tbody>
     <tr><td><strong>Blocks</strong></td><td>De officiële FTC Blocks-editor (offline, in een iframe). Hier bouw je je OpMode met blokken.</td></tr>
-    <tr><td><strong>Sim</strong></td><td>De MuJoCo-simulatie van het BIOBUZZ-veld met de robot. Bovenaan een HUD (Robot x&nbsp;/&nbsp;4, Hopper, Rear, AprilTags, Score, Intake, Control: Teleop of OpMode) met rechts de keuzelijst <strong>Camera-zichtveld</strong> en het vinkje <strong>Portret</strong> (zie hieronder). Linksboven in beeld het <strong>score-paneel</strong> (zie hieronder), rechtsboven het <em>camerabeeld van de robot</em>; de lichtblauwe piramide op de robot laat zien wat die camera ziet. Ook een virtuele gamepad (L↑/L↓/R↑/R↓) die je met de muis kunt indrukken.</td></tr>
+    <tr><td><strong>Sim</strong></td><td>De MuJoCo-simulatie van het BIOBUZZ-veld met de robot. Bovenaan een HUD (Robot x&nbsp;/&nbsp;4, Hopper, Rear, AprilTags, Score, Intake, Control: Teleop of OpMode) met rechts de keuzelijst <strong>Camera-zichtveld</strong> en het vinkje <strong>Portret</strong> (zie hieronder). Linksboven in beeld het <strong>score-paneel</strong> (zie hieronder), rechtsboven het <em>camerabeeld van de robot</em>; de lichtblauwe piramide op de robot laat zien wat die camera ziet.</td></tr>
     <tr><td><strong>Code</strong></td><td>Vier stukken onder elkaar: <em>Telemetry</em> (de telemetry van je OpMode plus mechanisme-status; de hoogte is te slepen), <em>JS (gegenereerd)</em>, <em>Java (preview)</em> en de <em>Runtime-log</em> (meldingen en fouten).</td></tr>
   </tbody>
 </table>
@@ -88,20 +88,11 @@ export default {
   <li>78° en 65° hebben te weinig zichtveld hiervoor. Occlusie (HIVE-poten, eigen intake, andere robots) is niet meegenomen.</li>
 </ul>
 
-<h3>Weergaveknoppen: Blocks / Sim / Code / Gelijk</h3>
-<p>Rechts in de werkbalk. Elke knop maakt één paneel groot; de andere twee worden klein.</p>
-<ul>
-  <li><strong>Blocks</strong> – Blocks-editor groot (ca. 70% / 15% / 15%).</li>
-  <li><strong>Sim</strong> – simulatie groot.</li>
-  <li><strong>Code</strong> – code/telemetry groot.</li>
-  <li><strong>Gelijk</strong> – terug naar de standaardverdeling (ca. 40% / 35% / 25%). Nogmaals op de actieve knop klikken doet hetzelfde.</li>
-</ul>
-
 <h3>Panelen aanpassen</h3>
 <ul>
   <li><strong>Slepen:</strong> sleep de dunne verticale balk (splitter) tussen twee panelen om ze groter of kleiner te maken (horizontaal bij smalle schermen). Minimale breedte ca. 120&nbsp;px.</li>
   <li><strong>◀ Inklappen</strong> in de titelbalk van een paneel klapt het op tot een smalle strook; nogmaals klikken klapt het weer uit. Je kunt niet alle drie tegelijk inklappen.</li>
-  <li><strong>⛶ Vergroot</strong> in de titelbalk doet hetzelfde als de bijbehorende weergaveknop; nogmaals klikken herstelt Gelijk.</li>
+  <li><strong>⛶ Vergroot</strong> in de titelbalk maakt dat paneel groot; nogmaals klikken herstelt de standaardverdeling.</li>
   <li>De indeling blijft bewaard in je browser (<code>localStorage</code>, sleutel <code>ftc-blocks-layout-v1</code>). De sim-canvas past zich automatisch aan.</li>
 </ul>
 <p class="help-note">Het formaat van de panelen heeft geen invloed op een lopende OpMode of de simulatie.</p>

@@ -15,7 +15,6 @@ export default {
     <tr><td><strong>START</strong></td><td>Gaat verder voorbij <code>waitForStart</code>: de OpMode loopt (<code>opModeIsActive</code> = waar). Alleen actief na INIT.</td></tr>
     <tr><td><strong>STOP</strong></td><td>Stopt de OpMode, zet drive en mechanismen op nul en geeft de robot terug aan de toetsenbordbesturing (idle teleop). Werkt ook in INIT en tijdens een debugger-pauze.</td></tr>
     <tr><td><strong>Reset sim</strong></td><td>Stopt de OpMode, zet de robot terug op de startpositie, reset de runtime en wist de telemetry. Gebruik dit om opnieuw te beginnen.</td></tr>
-    <tr><td><strong>Blocks · Sim · Code · Gelijk</strong></td><td>Weergaveknoppen, zie <a href="#help-panelen" data-help-link="panelen">Panelen</a>.</td></tr>
     <tr><td><strong>Help</strong></td><td>Opent dit venster. Sluiten met <kbd>Esc</kbd>, de ✕-knop of een klik naast het venster. De simulatie loopt gewoon door.</td></tr>
   </tbody>
 </table>

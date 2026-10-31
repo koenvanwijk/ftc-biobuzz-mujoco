@@ -132,7 +132,7 @@ describe('Help stays in sync with the app', () => {
     const html = read('index.html');
     const toolbar = html.slice(html.indexOf('<header class="toolbar">'), html.indexOf('</header>'));
     const labels = [...toolbar.matchAll(/<button[^>]*>([^<]+)<\/button>/g)].map((m) => m[1].trim());
-    assert.ok(labels.length >= 12);
+    assert.ok(labels.length >= 8);
     for (const l of labels) {
       const name = l.replace(/^●\s*/, '');
       assert.ok(all.includes(name), `Help mentions "${name}"`);

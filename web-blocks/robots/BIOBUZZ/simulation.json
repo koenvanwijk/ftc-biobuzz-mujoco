@@ -150,11 +150,11 @@
       "rearMount": {
         "x": -0.18,
         "y": 0,
-        "z": 0.2,
-        "pitchDeg": -50,
+        "z": 0.24,
+        "pitchDeg": -32,
         "rollDeg": 0,
         "yawDeg": 180,
-        "note": "robot_rear_cam (Webcam 2): rear, landscape, looking backwards (yawDeg 180) and 50 deg down onto the mat; lens 24.4 cm above the mat at x -0.18 (just in front of the rear POLLEN intake). Same Brio 4K preset as the front: at 90 deg (66 x 52 deg) the floor from ~6 cm to ~55 cm behind the lens is in view. Used for ColorBlob (yellow POLLEN) detection; AprilTags stay on the front camera."
+        "note": "robot_rear_cam (Webcam 2): rear, landscape, looking backwards (yawDeg 180) and 32 deg down (raised/tilted up to look farther); lens 28.4 cm above the mat at x -0.18 (just in front of the rear POLLEN intake). Same Brio 4K preset as the front: at 90 deg (66 x 52 deg) the floor from ~18 cm to ~2.7 m behind the lens is in view (top edge ~6 deg below the horizon). Used for ColorBlob (yellow POLLEN) detection; AprilTags stay on the front camera."
       }
     }
   },
