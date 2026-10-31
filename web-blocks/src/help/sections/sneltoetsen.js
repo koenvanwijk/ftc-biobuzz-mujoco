@@ -73,6 +73,5 @@ ${opModeRows()}
   </tbody>
 </table>
 <p class="help-note">Verschillen met idle: <kbd>A</kbd> en <kbd>D</kbd> doen tijdens een OpMode niets, <kbd>T</kbd> en <kbd>R</kbd> sturen de OpMode niet aan, en <kbd>W</kbd> en <kbd>S</kbd> zijn de <em>linker</em> stick (Y-as). Pijltjes omhoog/omlaag en Space worden niet meer door de browser gescrold.</p>
-<p>Je kunt ook de virtuele gamepad in het Sim-paneel gebruiken (L↑ L↓ = <code>leftStickY</code>, R↑ R↓ = <code>rightStickY</code>, ingedrukt houden).</p>
 `,
 };

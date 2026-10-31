@@ -40,16 +40,16 @@ function quatToMat([w, x, y, z]) {
 }
 
 describe('Achtercamera: montage en zichtveld', () => {
-  it('kijkt achteruit en 50° omlaag, liggend (beeld-X horizontaal)', () => {
+  it('kijkt achteruit en 32° omlaag, liggend (beeld-X horizontaal)', () => {
     const m = quatToMat(mountQuat(REAR_CAMERA_MOUNT.pitchDeg, REAR_CAMERA_MOUNT.rollDeg, REAR_CAMERA_MOUNT.yawDeg));
     const fwd = [0, 1, 2].map((i) => -m[i][2]);
-    assert.ok(Math.abs(fwd[0] + Math.cos(50 * DEG)) < 1e-9, `achteruit: ${fwd}`);
-    assert.ok(Math.abs(fwd[2] + Math.sin(50 * DEG)) < 1e-9, `omlaag: ${fwd}`);
+    assert.ok(Math.abs(fwd[0] + Math.cos(32 * DEG)) < 1e-9, `achteruit: ${fwd}`);
+    assert.ok(Math.abs(fwd[2] + Math.sin(32 * DEG)) < 1e-9, `omlaag: ${fwd}`);
     assert.ok(Math.abs(m[2][0]) < 1e-9, 'beeld-X horizontaal');
     assert.ok(m[2][1] > 0, 'beeld-boven heeft +z');
   });
 
-  it('vloerstrook in beeld (90°): van vlak achter de lens tot ±0,55 m, horizon niet in beeld', () => {
+  it('vloerstrook in beeld (90°): van ±0,2 m tot ±2,7 m (omhoog: kijkt ver), horizon niet in beeld', () => {
     const fov = cameraFov(resolveCameraConfig(null), { dfovDeg: 90, rollDeg: 0 });
     const h = REAR_CAMERA_MOUNT.z + ROBOT_ORIGIN_ABOVE_FLOOR_M;
     const top = -REAR_CAMERA_MOUNT.pitchDeg - fov.vfovDeg / 2; // graden onder horizontaal (bovenrand)
@@ -57,7 +57,7 @@ describe('Achtercamera: montage en zichtveld', () => {
     assert.ok(top > 5, `bovenrand ${top}° onder horizontaal: geen lucht/zaal`);
     const near = h / Math.tan(bot * DEG);
     const far = h / Math.tan(top * DEG);
-    assert.ok(near < 0.1 && far > 0.45 && far < 0.7, `vloer ${near.toFixed(2)}..${far.toFixed(2)} m`);
+    assert.ok(near < 0.25 && far > 2 && far < 3.5, `vloer ${near.toFixed(2)}..${far.toFixed(2)} m`);
     // lens achter het midden, vóór de achter-intake (x −0,22)
     assert.ok(REAR_CAMERA_MOUNT.x < 0 && REAR_CAMERA_MOUNT.x > -0.22);
   });
@@ -135,8 +135,9 @@ describe('Achtercamera in de echte scène', () => {
     assert.ok(r.length === 1 && r[0].Circle.X < 280, JSON.stringify(r));
   });
 
-  it('POLLEN 1,5 m achter de robot valt buiten de vloerstrook', () => {
-    assert.equal(blobs(1.5, CAMERA_SITES.rear).length, 0);
+  it('POLLEN 1,5 m achter de robot is (omhoog gezette camera) wél in beeld, 4 m niet meer', () => {
+    assert.ok(blobs(1.5, CAMERA_SITES.rear).length > 0);
+    assert.equal(blobs(4, CAMERA_SITES.rear).length, 0);
   });
 });
 

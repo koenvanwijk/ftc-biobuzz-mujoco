@@ -61,7 +61,7 @@ De **Help**-knop (rechts in de werkbalk) opent een in-app naslagvenster in het N
 
 ### UI — panelen
 
-De drie panelen (Blocks / Sim / Code) zijn **versleepbaar** via de verticale splits (horizontaal op smalle schermen). Toolbar: **Blocks · Sim · Code · Gelijk** vergroot één paneel of herstelt de standaardverdeling (~40/35/25). Per paneel: **◀** inklappen, **⛶** vergroten. Breedtes en inklapstatus blijven bewaard in `localStorage` (`ftc-blocks-layout-v1`). Na layout-wijziging krijgt de MuJoCo-canvas een resize (window-event + `viewer.resize()`).
+De drie panelen (Blocks / Sim / Code) zijn **versleepbaar** via de verticale splits (horizontaal op smalle schermen). (De weergaveknoppen Blocks/Sim/Code/Gelijk zijn vervallen: gebruik de splits en ◀/⛶.) Per paneel: **◀** inklappen, **⛶** vergroten. Breedtes en inklapstatus blijven bewaard in `localStorage` (`ftc-blocks-layout-v1`). Na layout-wijziging krijgt de MuJoCo-canvas een resize (window-event + `viewer.resize()`).
 
 
 ### Spelregels & score (Competition Manual TU03)

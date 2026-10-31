@@ -248,8 +248,6 @@ async function boot() {
     hud: $('biobuzzHud'),
   });
   scorePanel.show();
-  $('teleopHint').textContent =
-    'Idle teleop: W/S·I/K tank · pijltjes · E intake · Space/F shoot · X place · C reverse · T arcade. OpMode: sticks + E/C/X/Space/F/G/B/Y + UJHL dpad → gamepad1.';
 
   runner = new OpModeRunner({
     onDebugState: (msg) => onDebugState(msg),
@@ -923,7 +921,7 @@ function wireGamepadFallback() {
   });
 
   const pad = $('gamepadPad');
-  pad.querySelectorAll('button[data-axis]').forEach((btn) => {
+  pad?.querySelectorAll('button[data-axis]').forEach((btn) => {
     const axis = btn.dataset.axis;
     const dir = Number(btn.dataset.dir);
     const apply = (v) => {

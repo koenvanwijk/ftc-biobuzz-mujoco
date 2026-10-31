@@ -38,32 +38,7 @@
         <span class="sep"></span>
         <button id="btnDebug" type="button" aria-pressed="false" title="Debug-modus: INIT pauzeert bij het eerste blok en je kunt blok voor blok stappen. Aan/uit te zetten vóór INIT.">Debug</button>
         <span class="sep"></span>
-        <div class="layout-presets" role="group" aria-label="Paneelindeling">
-          <button type="button" data-layout-preset="blocks" title="Vergroot Blocks-editor">Blocks</button>
-          <button type="button" data-layout-preset="sim" title="Vergroot simulatie">Sim</button>
-          <button type="button" data-layout-preset="code" title="Vergroot code/telemetry">Code</button>
-          <button type="button" data-layout-preset="equal" title="Drie panelen gelijk">Gelijk</button>
-        </div>
-        <span class="sep"></span>
         <button id="btnHelp" type="button" title="Help en naslag (Esc sluit)">Help</button>
-      </div>
-      <div id="debugRow" class="status-row">
-        <span id="debugGroup" class="debug-group" role="group" aria-label="Debugger">
-          <button id="btnDbgStep" type="button" disabled title="Voer het volgende blok uit en pauzeer weer (stapt in aangeroepen functies)">Stap</button>
-          <button id="btnDbgStepOver" type="button" disabled title="Stap over: voer het blok uit; een functie-aanroep draait in één keer (breakpoints erin pauzeren nog wel) en pauzeert bij het volgende blok">Stap over</button>
-          <button id="btnDbgStepOut" type="button" disabled title="Stap uit: draai door tot de huidige functie terugkeert en pauzeer bij het volgende blok in de aanroeper">Stap uit</button>
-          <button id="btnDbgContinue" type="button" disabled title="Ga door tot een breakpoint, Pauzeer of het einde">Doorgaan</button>
-          <button id="btnDbgPause" type="button" disabled title="Pauzeer bij het eerstvolgende blok">Pauzeer</button>
-          <button id="btnDbgBreakpoint" type="button" title="Zet/verwijder een breakpoint op het geselecteerde blok in de editor">● Breakpoint</button>
-          <button id="btnDbgClearBp" type="button" title="Verwijder alle breakpoints">Wis BP</button>
-          <span id="dbgBpCount" class="muted small">0 BP</span>
-        </span>
-        <div id="runStatus" class="run-status" title="Idle">Idle</div>
-      </div>
-      <div id="debugVars" class="debug-vars is-off" aria-live="polite" title="Debug: klik in de editor op een blok en zet een breakpoint (● Breakpoint), druk INIT en gebruik Stap / Stap over / Stap uit / Doorgaan. Tijdens een pauze staat de OpMode én de simulatie stil. Beweeg de muis over een blok in de editor om de waarde van zijn variabelen te zien; over een variabele hieronder om de blokken ervan te markeren.">
-        <strong class="debug-vars-head">Variabelen</strong>
-        <div id="debugVarsList" class="debug-vars-list"></div>
-        <span id="debugVarsInfo" class="muted small"></span>
       </div>
     </header>
 
@@ -137,17 +112,6 @@
             <p class="score-note" id="scoreNote">* indicatief: nog geen wedstrijdklok</p>
           </div>
         </div>
-        <div class="on-screen-pad" id="gamepadPad" aria-label="Virtuele gamepad">
-          <div class="pad-row">
-            <button type="button" data-axis="ly" data-dir="-1">L↑</button>
-            <button type="button" data-axis="ry" data-dir="-1">R↑</button>
-          </div>
-          <div class="pad-row">
-            <button type="button" data-axis="ly" data-dir="1">L↓</button>
-            <button type="button" data-axis="ry" data-dir="1">R↓</button>
-          </div>
-          <p class="muted small" id="teleopHint">Idle teleop / OpMode gamepad</p>
-        </div>
       </section>
 
       <div class="splitter" id="splitter1" role="separator" aria-orientation="vertical" aria-label="Sleep om sim en code te vergroten" tabindex="0"></div>
@@ -162,6 +126,24 @@
           </span>
         </div>
         <div class="side-panel-body">
+          <div id="debugRow" class="status-row">
+            <span id="debugGroup" class="debug-group" role="group" aria-label="Debugger">
+              <button id="btnDbgStep" type="button" disabled title="Voer het volgende blok uit en pauzeer weer (stapt in aangeroepen functies)">Stap</button>
+              <button id="btnDbgStepOver" type="button" disabled title="Stap over: voer het blok uit; een functie-aanroep draait in één keer (breakpoints erin pauzeren nog wel) en pauzeert bij het volgende blok">Stap over</button>
+              <button id="btnDbgStepOut" type="button" disabled title="Stap uit: draai door tot de huidige functie terugkeert en pauzeer bij het volgende blok in de aanroeper">Stap uit</button>
+              <button id="btnDbgContinue" type="button" disabled title="Ga door tot een breakpoint, Pauzeer of het einde">Doorgaan</button>
+              <button id="btnDbgPause" type="button" disabled title="Pauzeer bij het eerstvolgende blok">Pauzeer</button>
+              <button id="btnDbgBreakpoint" type="button" title="Zet/verwijder een breakpoint op het geselecteerde blok in de editor">● Breakpoint</button>
+              <button id="btnDbgClearBp" type="button" title="Verwijder alle breakpoints">Wis BP</button>
+              <span id="dbgBpCount" class="muted small">0 BP</span>
+            </span>
+            <div id="runStatus" class="run-status" title="Idle">Idle</div>
+          </div>
+          <div id="debugVars" class="debug-vars is-off" aria-live="polite" title="Debug: klik in de editor op een blok en zet een breakpoint (● Breakpoint), druk INIT en gebruik Stap / Stap over / Stap uit / Doorgaan. Tijdens een pauze staat de OpMode én de simulatie stil. Beweeg de muis over een blok in de editor om de waarde van zijn variabelen te zien; over een variabele hieronder om de blokken ervan te markeren.">
+            <strong class="debug-vars-head">Variabelen</strong>
+            <div id="debugVarsList" class="debug-vars-list"></div>
+            <span id="debugVarsInfo" class="muted small"></span>
+          </div>
           <div class="panel-subtitle">Telemetry</div>
           <pre id="telemetryOut" class="telemetry"></pre>
           <div class="panel-subtitle">JS (gegenereerd)</div>
