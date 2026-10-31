@@ -4971,22 +4971,9 @@
                         </value>
                         <next>
                           <block type="comment" id="fc695">
-                            <field name="COMMENT">Eerst vanaf de zijkant (richting HIVE_HEADING) met de tags de positie bepalen.</field>
+                            <field name="COMMENT">Geen extra positiecheck onderweg: de startpositie (A6) en de HIVE-stand bij de start zijn bekend, en na het schieten weet de robot zijn positie nog (laatste localize op de schietplek). Odometrie tot de schietplek; daar pas de tags.</field>
                             <next>
-                              <block type="procedures_callnoreturn" id="fc697">
-                                <mutation name="turnToHeading">
-                                  <arg name="targetHeading"/>
-                                </mutation>
-                                <value name="ARG0">
-                                  <block type="variables_get" id="fc696">
-                                    <field name="VAR" id="v_HIVE_HEADING">HIVE_HEADING</field>
-                                  </block>
-                                </value>
-                                <next>
-                                  <block type="procedures_callnoreturn" id="fc698">
-                                    <mutation name="localize"/>
-                                    <next>
-                                      <block type="comment" id="fc699">
+                              <block type="comment" id="fc699">
                                         <field name="COMMENT">Dan altijd via de gang x = -1,0 (ruim langs de palen van de wip, x = -0,6) en het tussenpunt y = ±1,2 naar de schietplek. Zo blijft de robot ook weg van de FLOWER-kraag bij de muur (y = ±1,73).</field>
                                         <next>
                                           <block type="procedures_callnoreturn" id="fc700">
@@ -6007,10 +5994,6 @@
                                           </block>
                                         </next>
                                       </block>
-                                    </next>
-                                  </block>
-                                </next>
-                              </block>
                             </next>
                           </block>
                         </next>
@@ -6126,28 +6109,9 @@
             <mutation name="leaveHive"/>
             <next>
               <block type="comment" id="fc918">
-                <field name="COMMENT">Odometrie loopt weg na een paar meter rijden en draaien. Eerst naar het midden (-1,45, 0): alleen daar ziet de camera altijd een rode cluster (na een TIP kijken de tags van de omlaag-CELL naar beneden). Positie opnieuw bepalen met de AprilTags, dan pas naar de ballen.</field>
+                <field name="COMMENT">Na het schieten is de positie bekend (localize op de schietplek), dus geen tussenstop om te localizen: via de gang x = -1,0 direct naar de ballen.</field>
                 <next>
-                  <block type="procedures_callnoreturn" id="fc921">
-                    <mutation name="goTo">
-                      <arg name="gx"/>
-                      <arg name="gy"/>
-                    </mutation>
-                    <value name="ARG0">
-                      <block type="math_number" id="fc919">
-                        <field name="NUM">-1.45</field>
-                      </block>
-                    </value>
-                    <value name="ARG1">
-                      <block type="math_number" id="fc920">
-                        <field name="NUM">0</field>
-                      </block>
-                    </value>
-                    <next>
-                      <block type="procedures_callnoreturn" id="fc922">
-                        <mutation name="localizeAny"/>
-                        <next>
-                          <block type="procedures_callnoreturn" id="fc925">
+                  <block type="procedures_callnoreturn" id="fc925">
                             <mutation name="goTo">
                               <arg name="gx"/>
                               <arg name="gy"/>
@@ -6371,10 +6335,6 @@
                               </block>
                             </next>
                           </block>
-                        </next>
-                      </block>
-                    </next>
-                  </block>
                 </next>
               </block>
             </next>
@@ -6385,90 +6345,12 @@
   </block>
   <block type="procedures_defnoreturn" id="fc1021" x="2500" y="1400">
     <field name="NAME">shootRound</field>
-    <comment pinned="false" h="140" w="560">Eén schietronde: positie bepalen, in het midden vaststellen welke CELL omhoog staat, naar de schietplek van die CELL (voorkant = shooter naar de opening), daar nog een keer controleren en alleen schieten als het zeker is.</comment>
+    <comment pinned="false" h="140" w="560">Eén schietronde: met de bekende stand van de HIVE direct naar de schietplek van de omhoog-CELL (voorkant = shooter naar de opening). Daar, vlak voor het schieten, positie (tags) en CELL controleren; alleen schieten als het zeker is en de tags gezien zijn.</comment>
     <statement name="STACK">
       <block type="comment" id="fc965">
-        <field name="COMMENT">Eerst naar het midden tussen beide CELLs (x = -1,45, y = 0): daar ziet de liggende camera beide rode clusters en vergelijkt hun hoogte. Daar ook de positie opnieuw bepalen (localizeAny) en het laatste stukje bijrijden.</field>
+        <field name="COMMENT">De stand van de HIVE (welke CELL omhoog staat) is bekend: bij de start RED AUDIENCE, daarna de laatste controle vlak voor het schieten. Geen tussenstop in het midden: direct naar de schietplek van die CELL en daar controleren (positie + CELL) voor het schieten.</field>
         <next>
-          <block type="procedures_callnoreturn" id="fc968">
-            <mutation name="goTo">
-              <arg name="gx"/>
-              <arg name="gy"/>
-            </mutation>
-            <value name="ARG0">
-              <block type="math_number" id="fc966">
-                <field name="NUM">-1.3</field>
-              </block>
-            </value>
-            <value name="ARG1">
-              <block type="variables_get" id="fc967">
-                <field name="VAR" id="v_robotY">robotY</field>
-              </block>
-            </value>
-            <next>
-              <block type="procedures_callnoreturn" id="fc971">
-                <mutation name="goTo">
-                  <arg name="gx"/>
-                  <arg name="gy"/>
-                </mutation>
-                <value name="ARG0">
-                  <block type="math_number" id="fc969">
-                    <field name="NUM">-1.45</field>
-                  </block>
-                </value>
-                <value name="ARG1">
-                  <block type="math_number" id="fc970">
-                    <field name="NUM">0</field>
-                  </block>
-                </value>
-                <next>
-                  <block type="procedures_callnoreturn" id="fc972">
-                    <mutation name="localizeAny"/>
-                    <next>
-                      <block type="procedures_callnoreturn" id="fc975">
-                        <mutation name="goTo">
-                          <arg name="gx"/>
-                          <arg name="gy"/>
-                        </mutation>
-                        <value name="ARG0">
-                          <block type="math_number" id="fc973">
-                            <field name="NUM">-1.45</field>
-                          </block>
-                        </value>
-                        <value name="ARG1">
-                          <block type="math_number" id="fc974">
-                            <field name="NUM">0</field>
-                          </block>
-                        </value>
-                        <next>
-                          <block type="procedures_callnoreturn" id="fc977">
-                            <mutation name="turnToHeading">
-                              <arg name="targetHeading"/>
-                            </mutation>
-                            <value name="ARG0">
-                              <block type="math_number" id="fc976">
-                                <field name="NUM">0</field>
-                              </block>
-                            </value>
-                            <next>
-                              <block type="telemetry_addTextData_All" id="fc980">
-                                <value name="KEY">
-                                  <block type="text" id="fc979">
-                                    <field name="TEXT">Fase</field>
-                                  </block>
-                                </value>
-                                <value name="TEXT">
-                                  <block type="text" id="fc978">
-                                    <field name="TEXT">Welke CELL staat omhoog?</field>
-                                  </block>
-                                </value>
-                                <next>
-                                  <block type="procedures_callnoreturn" id="rc32"><mutation name="showTime"></mutation><next><block type="telemetry_update" id="fc981">
-                                    <next>
-                                      <block type="procedures_callnoreturn" id="fc982">
-                                        <mutation name="decideUpCell"/>
-                                        <next>
-                                          <block type="procedures_callnoreturn" id="fc983">
+          <block type="procedures_callnoreturn" id="fc983">
                                             <mutation name="setTargetCell"/>
                                             <next>
                                               <block type="procedures_callnoreturn" id="fc984">
@@ -6647,22 +6529,6 @@
                                               </block>
                                             </next>
                                           </block>
-                                        </next>
-                                      </block>
-                                    </next>
-                                  </block></next></block>
-                                </next>
-                              </block>
-                            </next>
-                          </block>
-                        </next>
-                      </block>
-                    </next>
-                  </block>
-                </next>
-              </block>
-            </next>
-          </block>
         </next>
       </block>
     </statement>

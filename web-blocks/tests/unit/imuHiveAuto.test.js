@@ -152,9 +152,26 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     const d = def('decideUpCell');
     for (const v of ['zAud', 'zSco', 'nAud', 'nSco', 'cellSure', 'frame']) assert.ok(d.includes(`>${v}</field>`), v);
     const r = def('shootRound');
-    assert.ok((r.match(/<mutation name="decideUpCell"/g) || []).length >= 2, 'midden + schietplek');
+    assert.ok((r.match(/<mutation name="decideUpCell"/g) || []).length >= 2, 'schietplek (+ na wisselen)');
     const iShoot = r.indexOf('<mutation name="shootAll"');
     assert.ok(iShoot > 0 && r.lastIndexOf('>cellSure</field>', iShoot) > 0, 'shootAll alleen na cellSure');
+  });
+  it('assumes the start pose / HIVE stand and only checks right before shooting (no mid-route localize)', () => {
+    const def = (name) => {
+      const i = xml.indexOf(`<field name="NAME">${name}</field>`);
+      const j = xml.indexOf('type="procedures_defnoreturn"', i);
+      return xml.slice(i, j < 0 ? undefined : j);
+    };
+    assert.ok(!xml.includes('<mutation name="localizeAny"/>'), 'geen localizeAny-tussenstop');
+    const r = def('shootRound');
+    assert.ok(!/<field name="NUM">-1.45<\/field>/.test(r), 'geen midden-stop in shootRound');
+    const iGo = r.indexOf('<mutation name="goToShootingSpot"');
+    assert.ok(iGo > 0 && r.indexOf('<mutation name="decideUpCell"') > iGo, 'CELL pas op de schietplek controleren');
+    const g = def('goToShootingSpot');
+    const iLeave = g.indexOf('<mutation name="leaveHive"');
+    assert.ok(!g.slice(0, iLeave).includes('<mutation name="localize"'), 'geen startcontrole vooraf');
+    assert.ok(g.slice(iLeave).includes('<mutation name="localize"'), 'localize op de schietplek, vóór het schieten');
+    assert.ok(!/<mutation name="localize(Any)?"/.test(def('collectAt')), 'na het schieten is de positie bekend');
   });
   it('only fires the shooter when the last localize saw the HIVE tags (found), otherwise skips the shot', () => {
     const i = xml.indexOf('<field name="NAME">shootAll</field>');
