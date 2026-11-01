@@ -197,6 +197,7 @@ describe('ColorBlobLocator ROI in unity-coördinaten volgt de resolutie', () => 
   const run = (snap) => {
     const access = createColorBlobLocatorAccess(() => snap);
     const b = access.createColorBlobLocatorProcessorBuilder();
+    access.setContourMode(b, 'EXTERNAL_ONLY');
     access.setRoi(b, opencvAccess.asUnityCenterCoordinates(0, 1, 1, -1)); // rechterhelft
     return JSON.parse(access.getBlobs(access.buildColorBlobLocatorProcessor(b))).map((x) => x.Circle.X);
   };

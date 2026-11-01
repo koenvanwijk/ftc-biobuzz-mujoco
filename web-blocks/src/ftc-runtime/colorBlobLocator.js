@@ -12,10 +12,14 @@ export function createColorBlobLocatorAccess(readDetections) {
   };
   const access = {
     createColorBlobLocatorProcessorBuilder: () => ({ __type: 'ColorBlobLocatorProcessor.Builder', _cfg: {} }),
-    buildColorBlobLocatorProcessor: (b) => ({
+    buildColorBlobLocatorProcessor: (b) => {
+      // Net als de echte FTC SDK: build() zonder setContourMode gooit een fout.
+      if (!b || !b._cfg || !b._cfg.contourMode) throw new Error('IllegalArgumentException - You must set a contour mode!');
+      return {
       __type: 'ColorBlobLocatorProcessor', enabled: true, filters: [],
       ...((b && b._cfg) || {}),
-    }),
+      };
+    },
     addFilter(p, f) { if (p && f) p.filters = [...(p.filters || []), f]; },
     removeFilter(p, f) { if (p) p.filters = (p.filters || []).filter((x) => x !== f); },
     removeAllFilters(p) { if (p) p.filters = []; },

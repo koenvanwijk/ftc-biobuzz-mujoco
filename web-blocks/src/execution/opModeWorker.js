@@ -1571,9 +1571,12 @@ function createColorBlobLocatorAccessNative() {
   const set = (b, key, value) => { const cfg = cfgOf(b); if (cfg) cfg[key] = value; };
   const api = {
     createColorBlobLocatorProcessorBuilder: () => visionHandle('ColorBlobLocatorProcessor.Builder', { cfg: {} }),
-    buildColorBlobLocatorProcessor: (b) => visionHandle('ColorBlobLocatorProcessor', {
-      enabled: true, filters: [], sort: null, ...(cfgOf(b) || {}),
-    }),
+    buildColorBlobLocatorProcessor: (b) => {
+      // Net als de echte FTC SDK: build() zonder setContourMode gooit een fout.
+      const cfg = cfgOf(b);
+      if (!cfg || !cfg.contourMode) throw new Error('IllegalArgumentException - You must set a contour mode!');
+      return visionHandle('ColorBlobLocatorProcessor', { enabled: true, filters: [], sort: null, ...cfg });
+    },
     addFilter(p, f) {
       const s = visionState(p);
       if (s && f) s.filters = [...s.filters, f];

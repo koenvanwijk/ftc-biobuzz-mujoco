@@ -22,6 +22,13 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.match(fs.readFileSync(path.join(root, 'index.html'), 'utf8'), /value="StarterBot_ImuHiveAuto\.blk"/);
   });
 
+  it('sets a ColorBlobLocator contour mode before build (robot throws otherwise)', () => {
+    const iMode = xml.indexOf('colorBlobLocatorProcessorBuilder_setContourMode');
+    const iBuild = xml.indexOf('colorBlobLocatorProcessorBuilder_build');
+    assert.ok(iMode > 0 && iMode < iBuild);
+    assert.match(xml, /<field name="CONTOUR_MODE">EXTERNAL_ONLY<\/field>/);
+  });
+
   it('defines every procedure it calls', () => {
     const defs = new Set([...xml.matchAll(/type="procedures_defnoreturn"[^>]*>(?:\s*<mutation>[\s\S]*?<\/mutation>)?\s*<field name="NAME">(\w+)</g)].map((m) => m[1]));
     for (const p of ['runOpMode', 'readHeading', 'computeError', 'turnToHeading', 'driveStraight', 'localize', 'goToShootingSpot', 'shootAll']) {
