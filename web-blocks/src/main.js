@@ -114,6 +114,19 @@ function syncCameraResolution(cmds) {
   log(`Camera-resolutie ${res.width}×${res.height} → zichtveld ${describeFov(fov)}`);
 }
 
+/**
+ * Actieve camera van de OpMode volgen (pseudo-command `__activeCamera`): in de sim is er net als op
+ * de robot maar één camera actief (switchable camera / het portal dat streamt). Voor/Achter volgt mee.
+ */
+let lastOpModeCamera = null;
+function syncActiveCamera(cmds) {
+  const c = cmds && cmds.__activeCamera;
+  const name = c && c.type === 'activeCamera' ? c.camera : null;
+  if (!name || name === lastOpModeCamera) return;
+  lastOpModeCamera = name;
+  setActiveCamera(name);
+}
+
 function resetCameraResolution() {
   if (!opModeCameraRes) return;
   opModeCameraRes = null;
@@ -267,6 +280,7 @@ async function boot() {
       latestCommands = cmds;
       if (opModeOwns) {
         syncCameraResolution(cmds);
+        syncActiveCamera(cmds);
         adapter.applyCommands(cmds);
       }
     },
@@ -810,6 +824,7 @@ function wireUi() {
     runtime.resetAll();
     latestCommands = {};
     resetCameraResolution();
+    lastOpModeCamera = null;
     opModeOwns = false;
     clearGamepadOverrides();
     $('telemetryOut').textContent = '';
@@ -838,6 +853,7 @@ function wireUi() {
       runtime.resetAll();
       latestCommands = {};
       resetCameraResolution();
+      lastOpModeCamera = null;
       adapter.zeroAll();
       opModeOwns = true;
       const sensors = adapter.readSensors();
