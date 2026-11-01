@@ -94,7 +94,7 @@
             <field name="VAR" id="v_TICKS_PER_METER">TICKS_PER_METER</field>
             <value name="VALUE">
               <block type="math_number" id="b482">
-                <field name="NUM">2200</field>
+                <field name="NUM">1981</field>
               </block>
             </value>
             <next>
@@ -193,7 +193,7 @@
                                                               </shadow>
                                                             </value>
                                                             <next>
-                                                              <block type="imu_initialize" id="b507">
+                                                              <block type="dcMotor_setDualProperty_ZeroPowerBehavior" id="zpb1"><field name="PROP">ZeroPowerBehavior</field><field name="IDENTIFIER1">leftDriveAsDcMotor</field><field name="IDENTIFIER2">rightDriveAsDcMotor</field><data>{"IDENTIFIER1":"leftDrive","IDENTIFIER2":"rightDrive"}</data><value name="VALUE1"><shadow type="dcMotor_typedEnum_zeroPowerBehavior"><field name="ZERO_POWER_BEHAVIOR">BRAKE</field></shadow></value><value name="VALUE2"><shadow type="dcMotor_typedEnum_zeroPowerBehavior"><field name="ZERO_POWER_BEHAVIOR">BRAKE</field></shadow></value><next><block type="imu_initialize" id="b507">
                                                                 <field name="IDENTIFIER">imuAsIMU</field>
                                                                 <value name="PARAMETERS">
                                                                   <block type="imuParameters_create" id="b506">
@@ -867,7 +867,7 @@
                                                                     </next>
                                                                   </block>
                                                                 </next>
-                                                              </block>
+                                                              </block></next></block>
                                                             </next>
                                                           </block>
                                                         </next>
@@ -1634,7 +1634,7 @@
                                                               </block>
                                                             </value>
                                                             <next>
-                                                              <block type="procedures_callnoreturn" id="rc21"><mutation name="showTime"/><next><block type="telemetry_update" id="b145"/></next></block>
+                                                              <block type="telemetry_addNumericData_Number" id="lt1"><value name="KEY"><block type="text" id="lt1k"><field name="TEXT">L ticks</field></block></value><value name="NUMBER"><block type="dcMotor_getProperty_Number" id="lt1v"><field name="IDENTIFIER">leftDriveAsDcMotor</field><field name="PROP">CurrentPosition</field><data>{"IDENTIFIER":"leftDrive"}</data></block></value><next><block type="telemetry_addNumericData_Number" id="rt1"><value name="KEY"><block type="text" id="rt1k"><field name="TEXT">R ticks</field></block></value><value name="NUMBER"><block type="dcMotor_getProperty_Number" id="rt1v"><field name="IDENTIFIER">rightDriveAsDcMotor</field><field name="PROP">CurrentPosition</field><data>{"IDENTIFIER":"rightDrive"}</data></block></value><next><block type="procedures_callnoreturn" id="rc21"><mutation name="showTime"/><next><block type="telemetry_update" id="b145"/></next></block></next></block></next></block>
                                                             </next>
                                                           </block>
                                                         </next>
