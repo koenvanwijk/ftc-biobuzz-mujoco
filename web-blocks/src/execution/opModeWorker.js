@@ -1022,10 +1022,12 @@ function createAprilTagAccessNative() {
       return 0;
     },
     getDetections() {
+      if (!cameraIsActive('Webcam 1')) return '[]';
       const snap = sensorState.aprilTagDetections || { json: '[]' };
       return typeof snap.json === 'string' ? snap.json : JSON.stringify(snap.json || []);
     },
     getFreshDetections() {
+      if (!cameraIsActive('Webcam 1')) return null;
       const snap = sensorState.aprilTagDetections || { json: '[]', generation: 0 };
       const gen = snap.generation ?? 0;
       const json = typeof snap.json === 'string' ? snap.json : JSON.stringify(snap.json || []);
@@ -1392,15 +1394,36 @@ const ptzControlAccessNative = {
 };
 
 function createVisionPortalAccessNative() {
-  const state = new WeakMap();
-  const controlCache = new WeakMap();
-  const st = (p) => {
-    if (!p || typeof p !== 'object') return { streaming: true };
-    if (!state.has(p)) state.set(p, { streaming: true });
-    return state.get(p);
+  const controlCache = new Map();
+  const st = (p) => visionState(p) || { streaming: true, legacy: true };
+  /** Nieuw portal (net als VisionPortalImpl): live-view-container claimen, daarna evt. streamen. */
+  const makePortal = (camera, processors, cfg = {}) => {
+    // Builder-standaard: live view aan in DEFAULT_VIEW_CONTAINER_ID; enableLiveView(false) → geen view (0).
+    let viewId = cfg.containerId != null ? Number(cfg.containerId) : (cfg.liveView === false ? 0 : DEFAULT_VIEW_CONTAINER_ID);
+    if (cfg.containerId == null && cfg.liveView === true) viewId = DEFAULT_VIEW_CONTAINER_ID;
+    if (viewId !== 0) {
+      if (viewsInUse.includes(viewId)) {
+        if (viewId === DEFAULT_VIEW_CONTAINER_ID) {
+          throw new Error('IllegalStateException - When using multiple vision portals, you MUST use setLiveViewContainerId(int), NOT enableLiveView(bool)');
+        }
+        throw new Error('IllegalStateException - User code attempted to set up multiple LiveViews with the same View ID. If you are using makeMultiPortalView(...), make sure you are using different index values on the returned array for each portal.');
+      }
+      viewsInUse.push(viewId);
+    }
+    const ps = {
+      streaming: false,
+      closed: false,
+      viewId,
+      camera,
+      active: camera && camera.__type === 'SwitchableCameraName' ? (camera.members || [])[0] || null : null,
+    };
+    const h = visionHandle('VisionPortal', ps);
+    simPortals.push(ps);
+    if (cfg.autoStart !== false) startPortalStream(ps);
+    return { ...h, camera, processors };
   };
   const ensurePortalControls = (portal) => {
-    const key = portal && typeof portal === 'object' ? portal : null;
+    const key = portal && typeof portal === 'object' ? (portal.__handle != null ? portal.__handle : portal) : null;
     if (!key) {
       return {
         exposure: createExposureControlNative(),
@@ -1430,10 +1453,10 @@ function createVisionPortalAccessNative() {
   };
   return {
     easyCreateWithDefaults_oneProcessor(camera, processor) {
-      return { __type: 'VisionPortal', camera, processors: processor ? [processor] : [] };
+      return makePortal(camera, processor ? [processor] : []);
     },
     easyCreateWithDefaults_twoProcessors(camera, p1, p2) {
-      return { __type: 'VisionPortal', camera, processors: [p1, p2].filter(Boolean) };
+      return makePortal(camera, [p1, p2].filter(Boolean));
     },
     createBuilder() {
       // Handle (net als ColorBlobLocator.Builder): setters wijzigen de native staat, zodat build()
@@ -1485,16 +1508,23 @@ function createVisionPortalAccessNative() {
       const cfg = vpCfg(b) || {};
       // Net als de echte FTC SDK (VisionPortal.Builder.build).
       if (cfg.camera == null) throw new Error("IllegalArgumentException - You can't build a vision portal without setting a camera!");
-      return { __type: 'VisionPortal', camera: cfg.camera, processors: cfg.processors || [] };
+      return makePortal(cfg.camera, cfg.processors || [], cfg);
     },
     getCameraState(p) {
-      return st(p).streaming ? 'STREAMING' : 'CAMERA_DEVICE_CLOSED';
+      const ps = st(p);
+      if (ps.closed) return 'CAMERA_DEVICE_CLOSED';
+      if (ps.legacy) return ps.streaming ? 'STREAMING' : 'CAMERA_DEVICE_CLOSED';
+      return ps.streaming ? 'STREAMING' : 'CAMERA_DEVICE_READY';
     },
     stopStreaming(p) {
-      st(p).streaming = false;
+      const ps = st(p);
+      ps.streaming = false;
+      if (!ps.legacy && simActiveCamera === portalActiveName(ps)) setSimActiveCamera(null);
     },
     resumeStreaming(p) {
-      st(p).streaming = true;
+      const ps = st(p);
+      if (ps.legacy) { ps.streaming = true; return; }
+      if (!ps.closed) startPortalStream(ps);
     },
     stopLiveView() {},
     resumeLiveView() {},
@@ -1512,7 +1542,12 @@ function createVisionPortalAccessNative() {
       return processor ? processor.enabled !== false : false;
     },
     close(p) {
-      st(p).streaming = false;
+      const ps = st(p);
+      if (!ps.legacy && simActiveCamera === portalActiveName(ps) && ps.streaming) setSimActiveCamera(null);
+      ps.streaming = false;
+      ps.closed = true;
+      viewsInUse = viewsInUse.filter((v) => v !== ps.viewId);
+      simPortals = simPortals.filter((o) => o !== ps);
     },
     saveNextFrameRaw() {
       unsupported('saveNextFrameRaw');
@@ -1532,15 +1567,30 @@ function createVisionPortalAccessNative() {
     getWhiteBalanceControl(portal) {
       return ensurePortalControls(portal).whiteBalance;
     },
-    setActiveCamera() {
-      unsupported('setActiveCamera');
+    setActiveCamera(p, webcamName) {
+      // Net als VisionPortalImpl.setActiveCamera: alleen voor een switchable camera.
+      const ps = st(p);
+      if (!ps.camera || ps.camera.__type !== 'SwitchableCameraName') {
+        throw new Error('UnsupportedOperationException - setActiveCamera is only supported for switchable webcams');
+      }
+      const name = webcamName && webcamName.name;
+      if (!name || !(ps.camera.members || []).includes(name)) {
+        throw new Error('IllegalArgumentException - setActiveCamera: camera is not a member of the switchable camera');
+      }
+      ps.active = name;
+      if (ps.streaming) setSimActiveCamera(name);
     },
     getActiveCamera(p) {
-      return p && p.camera;
+      const ps = st(p);
+      if (!ps.camera || ps.camera.__type !== 'SwitchableCameraName') {
+        throw new Error('UnsupportedOperationException - getActiveCamera is only supported for switchable webcams');
+      }
+      return ps.active ? { __type: 'WebcamName', name: ps.active } : null;
     },
     cameraStreamServer_setSource() {},
-    makeMultiPortalView() {
-      return [];
+    makeMultiPortalView(count) {
+      const n = Math.max(0, Math.round(Number(count) || 0));
+      return Array.from({ length: n }, (_, i) => 1001 + i);
     },
     cameraCompatibilityManager_addQuirk() {},
     cameraCompatibilityManager_removeQuirk() {},
@@ -1557,6 +1607,42 @@ function createVisionPortalAccessNative() {
  */
 let visionHandles = new Map();
 let nextVisionHandle = 1;
+
+/**
+ * Sim-camerastaat per OpMode. Net als op de robot (één USB-camerastream tegelijk) is er in de sim
+ * altijd maar ÉÉN camera actief: die van het portal dat het laatst is gaan streamen; bij een
+ * switchable camera het lid dat met setActiveCamera is gekozen. AprilTags zien alleen iets als
+ * Webcam 1 (voor) actief is, de ColorBlobLocator alleen met de camera die de POLLEN-blobs levert.
+ * viewsInUse = de live-view-containers van open portals (VisionPortalImpl.viewsInUse in de SDK).
+ */
+const DEFAULT_VIEW_CONTAINER_ID = -1;
+let simPortals = [];
+let viewsInUse = [];
+let simActiveCamera = null;
+function resetSimCameras() {
+  simPortals = [];
+  viewsInUse = [];
+  simActiveCamera = null;
+}
+function portalActiveName(ps) {
+  if (!ps || !ps.camera) return null;
+  return ps.camera.__type === 'SwitchableCameraName' ? ps.active : ps.camera.name;
+}
+function setSimActiveCamera(name) {
+  simActiveCamera = name || null;
+  if (simActiveCamera) pub({ jsId: '__activeCamera', type: 'activeCamera', camera: simActiveCamera });
+}
+/** Portal ps gaat streamen → wordt de enige actieve camera; andere streamende portals stoppen. */
+function startPortalStream(ps) {
+  for (const o of simPortals) if (o !== ps && o.streaming) o.streaming = false;
+  ps.streaming = true;
+  setSimActiveCamera(portalActiveName(ps));
+}
+/** Ziet een processor beeld van camera `name`? (alleen als dat de actieve camera is) */
+function cameraIsActive(name) {
+  if (!simPortals.length) return true; // geen VisionPortal (oude tests / directe processor-calls)
+  return simActiveCamera === name && simPortals.some((ps) => ps.streaming && portalActiveName(ps) === name);
+}
 function visionHandle(type, state) {
   const id = nextVisionHandle++;
   visionHandles.set(id, state);
@@ -1622,6 +1708,7 @@ function createColorBlobLocatorAccessNative() {
       const namedColor = s.targetColorRange && s.targetColorRange.name;
       if (namedColor && namedColor !== 'YELLOW') return '[]';
       const snap = sensorState.colorBlobDetections || { json: '[]' };
+      if (!cameraIsActive(snap.camera || 'Webcam 2')) return '[]';
       let blobs = typeof snap.json === 'string' ? JSON.parse(snap.json) : (snap.json || []);
       const roi = s.roi;
       if (roi && roi.units !== 'ENTIRE') {
@@ -2021,6 +2108,7 @@ function wrapNativeAccess(interp, native) {
 function bindSimulatedSensors(interp, globalObject) {
   visionHandles = new Map();
   nextVisionHandle = 1;
+  resetSimCameras();
   const aprilNative = createAprilTagAccessNative();
   const colorBlobNative = createColorBlobLocatorAccessNative();
   const opencvNative = {
@@ -2041,6 +2129,10 @@ function bindSimulatedSensors(interp, globalObject) {
       const n = name == null ? '' : String(name);
       if (!CONFIGURED_WEBCAMS.includes(n)) return null;
       return { __type: 'WebcamName', name: n };
+    },
+    createSwitchableCameraNameForAllWebcams() {
+      // ClassFactory.createSwitchableCameraNameForAllWebcams: alle webcams uit de configuratie.
+      return { __type: 'SwitchableCameraName', members: [...CONFIGURED_WEBCAMS] };
     },
   };
   const paramsNative = {

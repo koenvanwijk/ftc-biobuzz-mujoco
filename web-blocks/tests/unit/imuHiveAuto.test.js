@@ -204,7 +204,7 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.ok(xml.slice(i).includes('<field name="TEXT">Tijd sinds start (s)</field>'));
     // Elke telemetry.update na START krijgt de tijd erbij.
     const updates = (xml.match(/type="telemetry_update"/g) || []).length;
-    const shows = (xml.match(/<mutation name="showTime">/g) || []).length;
+    const shows = (xml.match(/<mutation name="showTime"\s*\/?>/g) || []).length;
     assert.equal(shows, updates - 1, `${shows} showTime / ${updates} updates (alleen niet vóór START)`);
     assert.match(xml, /<field name="OP">MINUS<\/field>\s*<value name="A">\s*<block type="linearOpMode_getRuntime_Number"[^>]*\/>\s*<\/value>\s*<value name="B">\s*<block type="variables_get"[^>]*>\s*<field name="VAR" id="v_startT">/);
   });
