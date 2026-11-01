@@ -63,6 +63,7 @@ function runOpMode() {
   telemetry.addData("blue", JSON.parse(c.getBlobs(c.buildColorBlobLocatorProcessor(b))).length);
   var b3 = c.createColorBlobLocatorProcessorBuilder();
   c.setContourMode(b3, "EXTERNAL_ONLY");
+  c.setTargetColorRange(b3, opencvAccess.colorRange("YELLOW"));
   c.setRoi(b3, opencvAccess.asImageCoordinates(0, 0, 320, 240));
   telemetry.addData("roi", JSON.parse(c.getBlobs(c.buildColorBlobLocatorProcessor(b3))).length);
   var b2 = c.createColorBlobLocatorProcessorBuilder();
@@ -109,6 +110,7 @@ function runOpMode() {
   var c = colorBlobLocatorAccess;
   var b0 = c.createColorBlobLocatorProcessorBuilder();
   c.setContourMode(b0, "EXTERNAL_ONLY");
+  c.setTargetColorRange(b0, opencvAccess.colorRange("YELLOW"));
   var p = c.buildColorBlobLocatorProcessor(b0);
   var blobs = JSON.parse(c.getBlobs(p));
   colorBlobsSortByCriteria("BY_CONTOUR_AREA", "ASCENDING", blobs);
