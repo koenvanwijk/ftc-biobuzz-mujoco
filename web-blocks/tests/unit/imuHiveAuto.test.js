@@ -16,6 +16,14 @@ function constant(name) {
   return Number(m[1]);
 }
 
+/** XML van procedure-definitie `name` (tot de volgende procedure-definitie). */
+function procBody(name) {
+  const start = xml.indexOf(`<field name="NAME">${name}</field>`);
+  assert.ok(start >= 0, `procedure ${name} ontbreekt`);
+  const next = xml.indexOf('type="procedures_defnoreturn"', start);
+  return xml.slice(start, next < 0 ? xml.length : next);
+}
+
 describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + schieten)', () => {
   it('is an AUTONOMOUS OpMode listed in the dropdown', () => {
     assert.match(blk, /flavor="AUTONOMOUS"/);
@@ -59,7 +67,20 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.match(xml, /v_up">up<\/field>\s*<value name="VALUE">\s*<block type="aprilTagDetection2_getProperty_Number"[^>]*>\s*<field name="PROP">ftcPose.z</);
     assert.match(xml, /v_side">side<\/field>\s*<value name="VALUE">\s*<block type="math_single"[^>]*>\s*<field name="OP">NEG<\/field>\s*<value name="NUM">\s*<block type="aprilTagDetection2_getProperty_Number"[^>]*>\s*<field name="PROP">ftcPose.x</);
     assert.ok(!/v_up">up<\/field>\s*<value name="VALUE">\s*<block[^>]*>\s*<field name="PROP">ftcPose.x</.test(xml), 'geen portret-mapping');
-    assert.ok(!xml.includes('ftcPose.range') && !xml.includes('ftcPose.bearing'));
+    // De lokalisatie-pose gebruikt geen ruwe range/bearing (alleen liggende geometrie).
+    for (const p of ['localize', 'localizeAny']) {
+      const body = procBody(p);
+      assert.ok(!body.includes('ftcPose.range') && !body.includes('ftcPose.bearing'), `${p} gebruikt geen ruwe range/bearing`);
+    }
+    assert.ok(!xml.includes('ftcPose.range'));
+  });
+
+  it('aims on the AprilTag bearing (aimAprilBearing) before shooting', () => {
+    const aim = procBody('aimAprilBearing');
+    assert.ok(aim.includes('<field name="PROP">ftcPose.bearing</field>'), 'aimAprilBearing stuurt op ftcPose.bearing');
+    assert.match(xml, /<block type="procedures_callnoreturn"[^>]*>\s*<mutation name="aimAprilBearing"/, 'aimAprilBearing wordt aangeroepen vóór het schieten');
+    // bearing komt alleen in aimAprilBearing voor.
+    assert.equal(xml.split('ftcPose.bearing').length - 1, aim.split('ftcPose.bearing').length - 1);
   });
 
   it('constants match the camera mount and the shooting-distance study', () => {
