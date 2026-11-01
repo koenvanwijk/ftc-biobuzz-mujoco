@@ -12,6 +12,7 @@ describe('ColorBlobLocator simulated runtime', () => {
   it('returns yellow pollen and rejects another predefined color', () => {
     const access = createColorBlobLocatorAccess(() => ({ json: JSON.stringify(blobs) }));
     const builder = access.createColorBlobLocatorProcessorBuilder();
+    access.setContourMode(builder, 'EXTERNAL_ONLY');
     access.setTargetColorRange(builder, opencvAccess.colorRange('YELLOW'));
     const processor = access.buildColorBlobLocatorProcessor(builder);
     assert.equal(JSON.parse(access.getBlobs(processor)).length, 2);
@@ -19,9 +20,17 @@ describe('ColorBlobLocator simulated runtime', () => {
     assert.equal(JSON.parse(access.getBlobs(processor)).length, 0);
   });
 
+  it('requires setContourMode before build, like the FTC SDK', () => {
+    const access = createColorBlobLocatorAccess(() => ({ json: '[]' }));
+    const builder = access.createColorBlobLocatorProcessorBuilder();
+    access.setTargetColorRange(builder, opencvAccess.colorRange('YELLOW'));
+    assert.throws(() => access.buildColorBlobLocatorProcessor(builder), /You must set a contour mode!/);
+  });
+
   it('applies FTC blob filters, sorting and image ROI', () => {
     const access = createColorBlobLocatorAccess(() => ({ json: JSON.stringify(blobs) }));
     const builder = access.createColorBlobLocatorProcessorBuilder();
+    access.setContourMode(builder, 'EXTERNAL_ONLY');
     access.setRoi(builder, opencvAccess.asImageCoordinates(0, 0, 320, 240));
     const processor = access.buildColorBlobLocatorProcessor(builder);
     access.addFilter(processor, access.createColorBlobLocatorProcessorBlobFilter('BY_CONTOUR_AREA', 50, 200));

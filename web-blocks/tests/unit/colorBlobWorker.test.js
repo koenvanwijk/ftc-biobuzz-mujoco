@@ -58,12 +58,15 @@ describe('ColorBlobLocator in the OpMode worker', () => {
 function runOpMode() {
   var c = colorBlobLocatorAccess;
   var b = c.createColorBlobLocatorProcessorBuilder();
+  c.setContourMode(b, "EXTERNAL_ONLY");
   c.setTargetColorRange(b, opencvAccess.colorRange("BLUE"));
   telemetry.addData("blue", JSON.parse(c.getBlobs(c.buildColorBlobLocatorProcessor(b))).length);
   var b3 = c.createColorBlobLocatorProcessorBuilder();
+  c.setContourMode(b3, "EXTERNAL_ONLY");
   c.setRoi(b3, opencvAccess.asImageCoordinates(0, 0, 320, 240));
   telemetry.addData("roi", JSON.parse(c.getBlobs(c.buildColorBlobLocatorProcessor(b3))).length);
   var b2 = c.createColorBlobLocatorProcessorBuilder();
+  c.setContourMode(b2, "EXTERNAL_ONLY");
   c.setTargetColorRange(b2, opencvAccess.colorRange("YELLOW"));
   var p = c.buildColorBlobLocatorProcessor(b2);
   telemetry.addData("all", JSON.parse(c.getBlobs(p)).length);
@@ -90,11 +93,23 @@ function runOpMode() {
     assert.equal(tel.enabled, false);
   });
 
+  it('throws like the FTC SDK when build() is called without setContourMode', () => {
+    assert.throws(() => runWorker(`
+function runOpMode() {
+  var c = colorBlobLocatorAccess;
+  var b = c.createColorBlobLocatorProcessorBuilder();
+  c.setTargetColorRange(b, opencvAccess.colorRange("YELLOW"));
+  c.buildColorBlobLocatorProcessor(b);
+}`, BLOBS), /You must set a contour mode!/);
+  });
+
   it('provides the ColorBlobLocatorProcessor.Util helpers (in place) and FTC Circle properties', () => {
     const tel = runWorker(`
 function runOpMode() {
   var c = colorBlobLocatorAccess;
-  var p = c.buildColorBlobLocatorProcessor(c.createColorBlobLocatorProcessorBuilder());
+  var b0 = c.createColorBlobLocatorProcessorBuilder();
+  c.setContourMode(b0, "EXTERNAL_ONLY");
+  var p = c.buildColorBlobLocatorProcessor(b0);
   var blobs = JSON.parse(c.getBlobs(p));
   colorBlobsSortByCriteria("BY_CONTOUR_AREA", "ASCENDING", blobs);
   telemetry.addData("ascFirst", blobs[0].ContourArea);
