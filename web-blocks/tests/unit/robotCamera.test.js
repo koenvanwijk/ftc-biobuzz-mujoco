@@ -286,6 +286,7 @@ describe('VisionPortal.Builder.setCameraResolution', () => {
   it('main-thread runtime bewaart de resolutie in het portal', () => {
     const v = createVisionPortalAccess();
     const b = v.createBuilder();
+    v.setCamera(b, { __type: 'WebcamName', name: 'Webcam 1' });
     v.setCameraResolution(b, 1280, 720);
     assert.deepEqual(v.build(b).resolution, { width: 1280, height: 720 });
   });
@@ -309,6 +310,7 @@ describe('VisionPortal.Builder.setCameraResolution', () => {
     const code = `
 function runOpMode() {
   var b = visionPortalAccess.createBuilder();
+  visionPortalAccess.setCamera(b, navigationAccess.getWebcamName("Webcam 1"));
   visionPortalAccess.setCameraResolution(b, 1280, 720);
   var p = visionPortalAccess.build(b);
   linearOpMode.waitForStart();

@@ -31,6 +31,7 @@ describe('ColorBlobLocator simulated runtime', () => {
     const access = createColorBlobLocatorAccess(() => ({ json: JSON.stringify(blobs) }));
     const builder = access.createColorBlobLocatorProcessorBuilder();
     access.setContourMode(builder, 'EXTERNAL_ONLY');
+    access.setTargetColorRange(builder, opencvAccess.colorRange('YELLOW'));
     access.setRoi(builder, opencvAccess.asImageCoordinates(0, 0, 320, 240));
     const processor = access.buildColorBlobLocatorProcessor(builder);
     access.addFilter(processor, access.createColorBlobLocatorProcessorBlobFilter('BY_CONTOUR_AREA', 50, 200));

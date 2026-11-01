@@ -1436,47 +1436,55 @@ function createVisionPortalAccessNative() {
       return { __type: 'VisionPortal', camera, processors: [p1, p2].filter(Boolean) };
     },
     createBuilder() {
-      return { __type: 'VisionPortal.Builder', _cfg: { processors: [] } };
+      // Handle (net als ColorBlobLocator.Builder): setters wijzigen de native staat, zodat build()
+      // ziet wat er gezet is ondanks dat de interpreter argumenten als kopie doorgeeft.
+      return visionHandle('VisionPortal.Builder', { cfg: { processors: [] } });
     },
     setCamera(b, camera) {
-      if (b) b._cfg = { ...(b._cfg || {}), camera };
+      const cfg = vpCfg(b);
+      if (cfg) cfg.camera = camera;
     },
     setStreamFormat(b, fmt) {
-      if (b) b._cfg = { ...(b._cfg || {}), streamFormat: fmt };
+      const cfg = vpCfg(b);
+      if (cfg) cfg.streamFormat = fmt;
     },
     enableLiveView(b, v) {
-      if (b) b._cfg = { ...(b._cfg || {}), liveView: v };
+      const cfg = vpCfg(b);
+      if (cfg) cfg.liveView = v;
     },
     setAutoStopLiveView(b, v) {
-      if (b) b._cfg = { ...(b._cfg || {}), autoStop: v };
+      const cfg = vpCfg(b);
+      if (cfg) cfg.autoStop = v;
     },
     setAutoStartStreamOnBuild(b, v) {
-      if (b) b._cfg = { ...(b._cfg || {}), autoStart: v };
+      const cfg = vpCfg(b);
+      if (cfg) cfg.autoStart = v;
     },
     setShowStatsOverlay(b, v) {
-      if (b) b._cfg = { ...(b._cfg || {}), stats: v };
+      const cfg = vpCfg(b);
+      if (cfg) cfg.stats = v;
     },
     setLiveViewContainerId(b, id) {
-      if (b) b._cfg = { ...(b._cfg || {}), containerId: id };
+      const cfg = vpCfg(b);
+      if (cfg) cfg.containerId = id;
     },
     setCameraResolution(b, width, height) {
       // De sim krijgt de resolutie direct (beeldverhouding → zichtveld van PiP/detectie).
-      // Niet pas bij build(): argumenten komen als kopie uit de interpreter, dus
-      // wijzigingen aan b._cfg komen niet terug in de builder-variabele.
       const w = Math.round(Number(width));
       const h = Math.round(Number(height));
       if (!(w >= 16 && h >= 16 && w <= 8192 && h <= 8192)) return;
-      if (b) b._cfg = { ...(b._cfg || {}), resolution: { width: w, height: h } };
+      const cfg = vpCfg(b);
+      if (cfg) cfg.resolution = { width: w, height: h };
       pub({ jsId: '__camera', type: 'cameraResolution', width: w, height: h });
     },
     addProcessor(b, processor) {
-      if (b) {
-        const procs = [...((b._cfg && b._cfg.processors) || []), processor];
-        b._cfg = { ...(b._cfg || {}), processors: procs };
-      }
+      const cfg = vpCfg(b);
+      if (cfg) cfg.processors = [...(cfg.processors || []), processor];
     },
     build(b) {
-      const cfg = (b && b._cfg) || {};
+      const cfg = vpCfg(b) || {};
+      // Net als de echte FTC SDK (VisionPortal.Builder.build).
+      if (cfg.camera == null) throw new Error("IllegalArgumentException - You can't build a vision portal without setting a camera!");
       return { __type: 'VisionPortal', camera: cfg.camera, processors: cfg.processors || [] };
     },
     getCameraState(p) {
@@ -1559,11 +1567,26 @@ function visionState(obj) {
   return null;
 }
 
+const vpCfg = (b) => { const s = visionState(b); return s ? s.cfg : (b && b._cfg) || null; };
+
 const COLOR_BLOB_VALUE_KEY = {
   BY_CONTOUR_AREA: 'ContourArea', BY_DENSITY: 'Density',
   BY_ASPECT_RATIO: 'AspectRatio', BY_ARC_LENGTH: 'ArcLength',
   BY_CIRCULARITY: 'Circularity',
 };
+
+/**
+ * Verplichte setters van ColorBlobLocatorProcessor.Builder.build() in FTC SDK 12 (Vision-12.0.0.aar):
+ * ROI (standaard ImageRegion.entireFrame(), dus alleen fout na setRoi(null)), target color range,
+ * contour mode. Geeft de foutmelding van de SDK terug, of null als build() slaagt.
+ */
+function colorBlobBuilderMissing(cfg) {
+  if (!cfg) return 'You must set a color range!';
+  if ('roi' in cfg && cfg.roi == null) return 'You must set a region of interest!';
+  if (cfg.targetColorRange == null) return 'You must set a color range!';
+  if (cfg.contourMode == null) return 'You must set a contour mode!';
+  return null;
+}
 
 function createColorBlobLocatorAccessNative() {
   const valueKey = COLOR_BLOB_VALUE_KEY;
@@ -1572,9 +1595,10 @@ function createColorBlobLocatorAccessNative() {
   const api = {
     createColorBlobLocatorProcessorBuilder: () => visionHandle('ColorBlobLocatorProcessor.Builder', { cfg: {} }),
     buildColorBlobLocatorProcessor: (b) => {
-      // Net als de echte FTC SDK: build() zonder setContourMode gooit een fout.
+      // Net als de echte FTC SDK (ColorBlobLocatorProcessor.Builder.build): zelfde checks, zelfde volgorde.
       const cfg = cfgOf(b);
-      if (!cfg || !cfg.contourMode) throw new Error('IllegalArgumentException - You must set a contour mode!');
+      const missing = colorBlobBuilderMissing(cfg);
+      if (missing) throw new Error(`IllegalArgumentException - ${missing}`);
       return visionHandle('ColorBlobLocatorProcessor', { enabled: true, filters: [], sort: null, ...cfg });
     },
     addFilter(p, f) {

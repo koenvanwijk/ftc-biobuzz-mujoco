@@ -6,6 +6,19 @@ const VALUE_BY_CRITERIA = {
   BY_CIRCULARITY: 'Circularity',
 };
 
+/**
+ * Verplichte setters van ColorBlobLocatorProcessor.Builder.build() in FTC SDK 12 (Vision-12.0.0.aar):
+ * ROI (standaard ImageRegion.entireFrame(), dus alleen fout na setRoi(null)), target color range,
+ * contour mode. Geeft de foutmelding van de SDK terug, of null als build() slaagt.
+ */
+export function colorBlobBuilderMissing(cfg) {
+  if (!cfg) return 'You must set a color range!';
+  if ('roi' in cfg && cfg.roi == null) return 'You must set a region of interest!';
+  if (cfg.targetColorRange == null) return 'You must set a color range!';
+  if (cfg.contourMode == null) return 'You must set a contour mode!';
+  return null;
+}
+
 export function createColorBlobLocatorAccess(readDetections) {
   const set = (builder, key, value) => {
     if (builder) builder._cfg = { ...(builder._cfg || {}), [key]: value };
@@ -13,8 +26,9 @@ export function createColorBlobLocatorAccess(readDetections) {
   const access = {
     createColorBlobLocatorProcessorBuilder: () => ({ __type: 'ColorBlobLocatorProcessor.Builder', _cfg: {} }),
     buildColorBlobLocatorProcessor: (b) => {
-      // Net als de echte FTC SDK: build() zonder setContourMode gooit een fout.
-      if (!b || !b._cfg || !b._cfg.contourMode) throw new Error('IllegalArgumentException - You must set a contour mode!');
+      // Net als de echte FTC SDK (ColorBlobLocatorProcessor.Builder.build): zelfde checks, zelfde volgorde.
+      const missing = colorBlobBuilderMissing(b && b._cfg);
+      if (missing) throw new Error(`IllegalArgumentException - ${missing}`);
       return {
       __type: 'ColorBlobLocatorProcessor', enabled: true, filters: [],
       ...((b && b._cfg) || {}),

@@ -121,6 +121,8 @@ export function createVisionPortalAccess() {
     },
     build(builder) {
       const cfg = (builder && builder._cfg) || {};
+      // Net als de echte FTC SDK (VisionPortal.Builder.build).
+      if (cfg.camera == null) throw new Error("IllegalArgumentException - You can't build a vision portal without setting a camera!");
       return {
         __type: 'VisionPortal',
         camera: cfg.camera,
