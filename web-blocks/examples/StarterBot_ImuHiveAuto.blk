@@ -206,7 +206,7 @@
                                                                         </value>
                                                                         <value name="USB_FACING_DIRECTION">
                                                                           <block type="revHubOrientationOnRobot_typedEnum_usbFacingDirection" id="b504">
-                                                                            <field name="USB_FACING_DIRECTION">FORWARD</field>
+                                                                            <field name="USB_FACING_DIRECTION">RIGHT</field>
                                                                           </block>
                                                                         </value>
                                                                       </block>
