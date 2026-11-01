@@ -325,12 +325,12 @@ Stopped).</comment>
 <data>{"commentPositionLeft":-20,"commentPositionTop":-169}</data>
 <statement name="STACK">
 <block type="comment" id="Lc#BFtj*NTB48YL;eBl.">
-<field name="COMMENT">Setting up motors and variables. Sim-aanpassing: in de BIOBUZZ-sim is de LINKER aandrijfmotor gespiegeld gemonteerd, dus leftDrive REVERSE (het REV-origineel zet rightDrive REVERSE).</field>
+<field name="COMMENT">Setting up motors and variables. Net als het REV-origineel: de RECHTER aandrijfmotor is gespiegeld gemonteerd, dus rightDrive REVERSE.</field>
 <next>
 <block type="dcMotor_setProperty_Direction" id="yOjC,B9E+Od5BQ-SUl_5">
-<field name="IDENTIFIER">leftDriveAsDcMotor</field>
+<field name="IDENTIFIER">rightDriveAsDcMotor</field>
 <field name="PROP">Direction</field>
-<data>{"IDENTIFIER":"leftDrive"}</data>
+<data>{"IDENTIFIER":"rightDrive"}</data>
 <value name="VALUE">
 <shadow type="dcMotor_typedEnum_direction" id="!PR#N(I{~X^p!v_n:Vd7">
 <field name="DIRECTION">REVERSE</field>

@@ -109,7 +109,7 @@ function runOpMode(code, { maxSec = 15, debug, defaults } = {}) {
     code,
     sensors: sensors(),
     supplyVoltage: 12.5,
-    motorDefaultDirections: defaults || { leftDriveAsDcMotor: 'REVERSE', rightDriveAsDcMotor: 'FORWARD' },
+    motorDefaultDirections: defaults || { leftDriveAsDcMotor: 'FORWARD', rightDriveAsDcMotor: 'REVERSE' },
     debug: debug || { enabled: false },
   });
   drain();
@@ -149,10 +149,10 @@ function runOpMode() {
 
 describe('DcMotor.isBusy in the OpMode worker (RUN_TO_POSITION)', () => {
   for (const [motor, dir] of [
-    ['leftDriveAsDcMotor', undefined], // default REVERSE (mirrored left motor)
-    ['rightDriveAsDcMotor', undefined], // default FORWARD
-    ['leftDriveAsDcMotor', 'FORWARD'],
-    ['rightDriveAsDcMotor', 'REVERSE'],
+    ['leftDriveAsDcMotor', undefined], // default FORWARD
+    ['rightDriveAsDcMotor', undefined], // default REVERSE (mirrored right motor)
+    ['leftDriveAsDcMotor', 'REVERSE'],
+    ['rightDriveAsDcMotor', 'FORWARD'],
   ]) {
     for (const target of [1000, -600]) {
       it(`${motor}${dir ? ` (${dir})` : ''} target ${target}: busy right after setPower, false at target, loop ends`, () => {
@@ -224,7 +224,7 @@ function runOpMode() {
       const v = values(r.tel, k)[0];
       assert.ok(Math.abs(v - 1000) <= 10, `${k}=${v}`);
     }
-    // forward: both logical wheels moved forward (left mirrored → electrical ticks negative)
+    // forward: both logical wheels moved forward (right mirrored → electrical ticks negative)
     assert.ok(r.adapter.data.qpos[0] > 0 && r.adapter.data.qpos[1] > 0);
   });
 
