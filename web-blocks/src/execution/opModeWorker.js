@@ -2032,9 +2032,15 @@ function bindSimulatedSensors(interp, globalObject) {
     createScalar_with3: (v0, v1, v2) => ({ val: [v0, v1, v2, 0] }),
   };
   const visionNative = createVisionPortalAccessNative();
+  /** Webcams in de robotconfiguratie (src/config/hardware.js: webcam1/webcam2). */
+  const CONFIGURED_WEBCAMS = ['Webcam 1', 'Webcam 2'];
   const navNative = {
     getWebcamName(name) {
-      return { __type: 'WebcamName', name: String(name) };
+      // Net als op de Hub: een naam die niet in de robotconfiguratie staat geeft geen camera (null),
+      // waarna VisionPortal.Builder.build faalt met "You can't build a vision portal without setting a camera!".
+      const n = name == null ? '' : String(name);
+      if (!CONFIGURED_WEBCAMS.includes(n)) return null;
+      return { __type: 'WebcamName', name: n };
     },
   };
   const paramsNative = {
