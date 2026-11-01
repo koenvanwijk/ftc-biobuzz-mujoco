@@ -19,7 +19,7 @@
                   <block type="revHubOrientationOnRobot_typedEnum_logoFacingDirection" id="logo"><field name="LOGO_FACING_DIRECTION">UP</field></block>
                 </value>
                 <value name="USB_FACING_DIRECTION">
-                  <block type="revHubOrientationOnRobot_typedEnum_usbFacingDirection" id="usb"><field name="USB_FACING_DIRECTION">FORWARD</field></block>
+                  <block type="revHubOrientationOnRobot_typedEnum_usbFacingDirection" id="usb"><field name="USB_FACING_DIRECTION">RIGHT</field></block>
                 </value>
               </block>
             </value>
