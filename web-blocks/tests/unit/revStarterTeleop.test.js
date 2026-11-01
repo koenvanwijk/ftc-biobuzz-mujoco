@@ -30,10 +30,9 @@ describe('REVStarterBotTeleOp2026.blk', () => {
     }
   });
 
-  it('sim-aanpassing: leftDrive REVERSE (linkermotor gespiegeld in de sim), verder het REV-origineel', () => {
-    assert.match(blk, /dcMotor_setProperty_Direction[^]*?<field name="IDENTIFIER">leftDriveAsDcMotor<\/field>[^]*?REVERSE/);
-    assert.ok(!/<field name="IDENTIFIER">rightDriveAsDcMotor<\/field>\s*<field name="PROP">Direction/.test(blk));
-    assert.match(blk, /Sim-aanpassing/);
+  it('zoals het REV-origineel: rightDrive REVERSE (rechtermotor gespiegeld), leftDrive niet gezet', () => {
+    assert.match(blk, /dcMotor_setProperty_Direction[^]*?<field name="IDENTIFIER">rightDriveAsDcMotor<\/field>[^]*?REVERSE/);
+    assert.ok(!/<field name="IDENTIFIER">leftDriveAsDcMotor<\/field>\s*<field name="PROP">Direction/.test(blk));
     for (const p of ['Triangle', 'Square', 'CrossWasPressed', 'CircleWasPressed', 'RightTriggerPressed', 'LeftBumper', 'RightBumper', 'DpadUp', 'DpadDown']) {
       assert.ok(blk.includes(`<field name="PROP">${p}</field>`), p);
     }

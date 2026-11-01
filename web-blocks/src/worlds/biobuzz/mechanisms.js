@@ -548,8 +548,8 @@ export class IntakeShooter {
 }
 
 /**
- * Real robot polarity: the LEFT drive motor is mounted mirrored, so the default
- * Blocks config is `leftDrive.setDirection(REVERSE)` + `rightDrive.setDirection(FORWARD)`
+ * Real robot polarity (REV Starter Bot): the RIGHT drive motor is mounted mirrored, so the
+ * default Blocks config is `leftDrive.setDirection(FORWARD)` + `rightDrive.setDirection(REVERSE)`
  * and positive power on both motors drives the robot forward.
  *
  * FTC Direction is applied first (power * dirSign); *_DRIVE_SIGN then maps that
@@ -557,8 +557,8 @@ export class IntakeShooter {
  * (+1 = wheel spins forward). Only the Blocks/OpMode path uses these — teleop
  * (setTankPower with logical sticks) bypasses them and must NOT be inverted.
  */
-export const LEFT_DRIVE_SIGN = -1;
-export const RIGHT_DRIVE_SIGN = 1;
+export const LEFT_DRIVE_SIGN = 1;
+export const RIGHT_DRIVE_SIGN = -1;
 
 /** Map post-Direction electrical motor power [-1,1] → logical wheel sticks for setTankPower. */
 export function electricalToWheelSticks(leftElectrical = 0, rightElectrical = 0) {

@@ -152,7 +152,7 @@ export class BiobuzzHardwareAdapter {
       rightElec = this._motorPower01(rightCmd, rightMeta);
     }
 
-    // Real robot: left motor is mirrored (default leftDrive REVERSE, rightDrive FORWARD).
+    // Real robot: right motor is mirrored (default leftDrive FORWARD, rightDrive REVERSE).
     // Map post-Direction electrical power → logical wheel sticks (+ = forward).
     const sticks = electricalToWheelSticks(leftElec, rightElec);
     setTankPower(this.data, sticks.left, sticks.right);

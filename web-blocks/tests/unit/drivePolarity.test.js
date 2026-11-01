@@ -54,25 +54,25 @@ function wheelSpeeds(adapter, cmds) {
 }
 
 describe('drive polarity constants', () => {
-  it('inverts the LEFT drive, not the right', () => {
-    assert.equal(LEFT_DRIVE_SIGN, -1);
-    assert.equal(RIGHT_DRIVE_SIGN, 1);
-    assert.deepEqual(electricalToWheelSticks(-0.5, 0.5), { left: 0.5, right: 0.5 });
+  it('inverts the RIGHT drive, not the left', () => {
+    assert.equal(LEFT_DRIVE_SIGN, 1);
+    assert.equal(RIGHT_DRIVE_SIGN, -1);
+    assert.deepEqual(electricalToWheelSticks(0.5, -0.5), { left: 0.5, right: 0.5 });
   });
 });
 
-describe('real-robot polarity: left REVERSE + right FORWARD', () => {
+describe('real-robot polarity: left FORWARD + right REVERSE', () => {
   it('positive power on both motors => both wheel sticks positive-forward', () => {
     const cmds = [];
     const left = makeMotor('leftDriveAsDcMotor', cmds);
     const right = makeMotor('rightDriveAsDcMotor', cmds);
-    left.setDirection('REVERSE');
-    right.setDirection('FORWARD');
+    left.setDirection('FORWARD');
+    right.setDirection('REVERSE');
     left.setPower(0.5);
     right.setPower(0.5);
     const last = (id) => cmds.filter((c) => c.jsId === id).at(-1);
-    assert.equal(last('leftDriveAsDcMotor').power, -0.5); // electrical
-    assert.equal(last('rightDriveAsDcMotor').power, 0.5);
+    assert.equal(last('leftDriveAsDcMotor').power, 0.5); // electrical
+    assert.equal(last('rightDriveAsDcMotor').power, -0.5);
     const s = electricalToWheelSticks(last('leftDriveAsDcMotor').power, last('rightDriveAsDcMotor').power);
     assert.equal(s.left, 0.5);
     assert.equal(s.right, 0.5);
@@ -82,8 +82,8 @@ describe('real-robot polarity: left REVERSE + right FORWARD', () => {
     const cmds = [];
     const left = makeMotor('leftDriveAsDcMotor', cmds);
     const right = makeMotor('rightDriveAsDcMotor', cmds);
-    left.setDirection('REVERSE');
-    right.setDirection('FORWARD');
+    left.setDirection('FORWARD');
+    right.setDirection('REVERSE');
     left.setPower(0.5);
     right.setPower(0.5);
     const byId = {};
@@ -97,21 +97,21 @@ describe('real-robot polarity: left REVERSE + right FORWARD', () => {
   it('setDirection block overrides the hardware-map default', () => {
     const cmds = [];
     const left = makeMotor('leftDriveAsDcMotor', cmds);
-    left.setDirection('REVERSE'); // default
-    left.setDirection('FORWARD'); // Blocks override
+    left.setDirection('FORWARD'); // default
+    left.setDirection('REVERSE'); // Blocks override
     left.setPower(0.5);
-    assert.equal(cmds.at(-1).power, 0.5);
+    assert.equal(cmds.at(-1).power, -0.5);
   });
 
-  it('RUN_TO_POSITION with REVERSE left drives the wheel forward and reports busy in the logical frame', () => {
+  it('RUN_TO_POSITION with REVERSE right drives the wheel forward and reports busy in the logical frame', () => {
     const a = makeAdapter();
     const cmd = (dir, id) => ({
       type: 'motor', jsId: id, power: 0.4 * (dir === 'REVERSE' ? -1 : 1), direction: dir,
       mode: 'RUN_TO_POSITION', targetPosition: 1000, targetTolerance: 10, encoderOffsetTicks: 0,
     });
     const [wl, wr] = wheelSpeeds(a, {
-      leftDriveAsDcMotor: cmd('REVERSE', 'leftDriveAsDcMotor'),
-      rightDriveAsDcMotor: cmd('FORWARD', 'rightDriveAsDcMotor'),
+      leftDriveAsDcMotor: cmd('FORWARD', 'leftDriveAsDcMotor'),
+      rightDriveAsDcMotor: cmd('REVERSE', 'rightDriveAsDcMotor'),
     });
     assert.ok(wl > 0 && wr > 0, `${wl} ${wr}`);
   });
@@ -127,10 +127,10 @@ describe('real-robot polarity: left REVERSE + right FORWARD', () => {
 
 describe('hardware-map defaults', () => {
   for (const rel of ['public/robots/BIOBUZZ/simulation.json', 'robots/BIOBUZZ/simulation.json']) {
-    it(`${rel}: left REVERSE, right FORWARD`, () => {
+    it(`${rel}: left FORWARD, right REVERSE`, () => {
       const cfg = readCfg(rel);
-      assert.equal(cfg.drive.left.defaultDirection, 'REVERSE');
-      assert.equal(cfg.drive.right.defaultDirection, 'FORWARD');
+      assert.equal(cfg.drive.left.defaultDirection, 'FORWARD');
+      assert.equal(cfg.drive.right.defaultDirection, 'REVERSE');
     });
   }
 
@@ -143,8 +143,8 @@ describe('hardware-map defaults', () => {
 
   it('createRuntime applies defaults; no setDirection => both wheels forward with +power', () => {
     const rt = createRuntime(readCfg('robots/BIOBUZZ/simulation.json'));
-    assert.equal(rt.motors.leftDriveAsDcMotor.getDirection(), 'REVERSE');
-    assert.equal(rt.motors.rightDriveAsDcMotor.getDirection(), 'FORWARD');
+    assert.equal(rt.motors.leftDriveAsDcMotor.getDirection(), 'FORWARD');
+    assert.equal(rt.motors.rightDriveAsDcMotor.getDirection(), 'REVERSE');
     rt.motors.leftDriveAsDcMotor.setPower(0.5);
     rt.motors.rightDriveAsDcMotor.setPower(0.5);
     const c = rt.bus.allCommands();
@@ -154,14 +154,14 @@ describe('hardware-map defaults', () => {
 
   it('createRuntime: setDirection overrides default', () => {
     const rt = createRuntime(readCfg('robots/BIOBUZZ/simulation.json'));
-    rt.motors.leftDriveAsDcMotor.setDirection('FORWARD');
-    assert.equal(rt.motors.leftDriveAsDcMotor.getDirection(), 'FORWARD');
+    rt.motors.leftDriveAsDcMotor.setDirection('REVERSE');
+    assert.equal(rt.motors.leftDriveAsDcMotor.getDirection(), 'REVERSE');
   });
 
-  it('TankDrive example sets leftDrive REVERSE / rightDrive FORWARD', () => {
+  it('TankDrive example sets leftDrive FORWARD / rightDrive REVERSE', () => {
     const blk = fs.readFileSync(path.join(root, 'examples/StarterBot_TankDrive.blk'), 'utf8');
     const m = [...blk.matchAll(/id="d([LR])"><field name="DIRECTION">(\w+)</g)];
     const d = Object.fromEntries(m.map((x) => [x[1], x[2]]));
-    assert.deepEqual(d, { L: 'REVERSE', R: 'FORWARD' });
+    assert.deepEqual(d, { L: 'FORWARD', R: 'REVERSE' });
   });
 });

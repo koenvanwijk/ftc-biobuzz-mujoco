@@ -179,7 +179,7 @@
                                                         <data>{"IDENTIFIER":"leftDrive"}</data>
                                                         <value name="VALUE">
                                                           <shadow type="dcMotor_typedEnum_direction">
-                                                            <field name="DIRECTION">REVERSE</field>
+                                                            <field name="DIRECTION">FORWARD</field>
                                                           </shadow>
                                                         </value>
                                                         <next>
@@ -189,7 +189,7 @@
                                                             <data>{"IDENTIFIER":"rightDrive"}</data>
                                                             <value name="VALUE">
                                                               <shadow type="dcMotor_typedEnum_direction">
-                                                                <field name="DIRECTION">FORWARD</field>
+                                                                <field name="DIRECTION">REVERSE</field>
                                                               </shadow>
                                                             </value>
                                                             <next>
