@@ -428,9 +428,8 @@ function initializeBlockly() {
     toolbox: document.getElementById('toolbox')
   });
 
-  if (parentArea.clientWidth >= 800) {
-    showJavaCheckbox.checked = true;
-  }
+  // BioBuzz: Show Java standaard uit (gebruiker kan hem zelf aanzetten).
+  showJavaCheckbox.checked = false;
   showJavaChanged();
 
   parentArea.style.visibility = 'visible'; // Unhide parentArea
