@@ -37,8 +37,14 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
     assert.match(xml, /<field name="CONTOUR_MODE">EXTERNAL_ONLY<\/field>/);
   });
 
+  it('waarde-helpers zijn functies met output (readHeading, computeError, angleTo)', () => {
+    for (const p of ['readHeading', 'computeError', 'angleTo']) {
+      assert.match(xml, new RegExp(`type="procedures_defreturn"[^>]*>(?:\\s*<mutation>[\\s\\S]*?</mutation>)?\\s*<field name="NAME">${p}<`), `${p} geeft een waarde terug`);
+      assert.doesNotMatch(xml, new RegExp(`procedures_callnoreturn"[^>]*>\\s*<mutation name="${p}"`), `${p} wordt niet meer als void aangeroepen`);
+    }
+  });
   it('defines every procedure it calls', () => {
-    const defs = new Set([...xml.matchAll(/type="procedures_defnoreturn"[^>]*>(?:\s*<mutation>[\s\S]*?<\/mutation>)?\s*<field name="NAME">(\w+)</g)].map((m) => m[1]));
+    const defs = new Set([...xml.matchAll(/type="procedures_def(?:no)?return"[^>]*>(?:\s*<mutation>[\s\S]*?<\/mutation>)?\s*<field name="NAME">(\w+)</g)].map((m) => m[1]));
     for (const p of ['runOpMode', 'readHeading', 'computeError', 'turnToHeading', 'driveStraight', 'localize', 'goToShootingSpot', 'shootAll']) {
       assert.ok(defs.has(p), p);
     }
@@ -144,7 +150,7 @@ describe('StarterBot_ImuHiveAuto.blk (autonoom: IMU + AprilTag naar de HIVE + sc
   });
 
   it('loops: collect at the next known spot and shoot again into the current upward CELL until spots or time run out', () => {
-    const defs = new Set([...xml.matchAll(/type="procedures_defnoreturn"[^>]*>(?:\s*<mutation>[\s\S]*?<\/mutation>)?\s*<field name="NAME">(\w+)</g)].map((m) => m[1]));
+    const defs = new Set([...xml.matchAll(/type="procedures_def(?:no)?return"[^>]*>(?:\s*<mutation>[\s\S]*?<\/mutation>)?\s*<field name="NAME">(\w+)</g)].map((m) => m[1]));
     for (const p of ['collectAt', 'leaveHive', 'localizeAny', 'setTargetCell', 'shootRound', 'goTo', 'driveOdo']) assert.ok(defs.has(p), p);
     assert.equal(constant('TOTAL_TIME_S'), 120);
     assert.match(xml, /<field name="VAR" id="v_spot">spot<\/field>/);
