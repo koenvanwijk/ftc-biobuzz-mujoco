@@ -9,14 +9,14 @@ export default {
   <tbody>
     <tr><td><strong>Blocks</strong></td><td>De officiële FTC Blocks-editor (offline, in een iframe). Hier bouw je je OpMode met blokken.</td></tr>
     <tr><td><strong>Sim</strong></td><td>De MuJoCo-simulatie van het BIOBUZZ-veld met de robot. Bovenaan een HUD (Robot x&nbsp;/&nbsp;4, Hopper, Rear, AprilTags, Score, Intake, Control: Teleop of OpMode) met rechts de keuzelijst <strong>Camera-zichtveld</strong> en het vinkje <strong>Portret</strong> (zie hieronder). Linksboven in beeld het <strong>score-paneel</strong> (zie hieronder), rechtsboven het <em>camerabeeld van de robot</em>; de lichtblauwe piramide op de robot laat zien wat die camera ziet.</td></tr>
-    <tr><td><strong>Code</strong></td><td>Vier stukken onder elkaar: <em>Telemetry</em> (de telemetry van je OpMode plus mechanisme-status; de hoogte is te slepen), <em>JS (gegenereerd)</em>, <em>Java (preview)</em> en de <em>Runtime-log</em> (meldingen en fouten).</td></tr>
+    <tr><td><strong>Code</strong></td><td>Drie stukken onder elkaar: <em>Telemetry</em> (de telemetry van je OpMode plus mechanisme-status; de hoogte is te slepen), de <em>Route</em>-plot (bovenaanzicht van de gereden route; tab <em>JS</em> toont de gegenereerde code) en de <em>Runtime-log</em> (meldingen en fouten).</td></tr>
   </tbody>
 </table>
 
 <h3>Hoe hangen ze samen?</h3>
 <ol>
   <li>Jij bouwt blokken in <strong>Blocks</strong>.</li>
-  <li>Met <strong>Code vernieuwen</strong> wordt daaruit JavaScript (en een Java-preview) gemaakt en in het <strong>Code</strong>-paneel getoond.</li>
+  <li>Met <strong>Code vernieuwen</strong> wordt daaruit JavaScript gemaakt en in het <strong>Code</strong>-paneel getoond.</li>
   <li><strong>INIT</strong> draait dat JavaScript in een aparte worker. De OpMode stuurt motoren en servo's aan in de <strong>Sim</strong>.</li>
   <li>Sensoren (encoders, IMU, AprilTags) en je gamepad/toetsen gaan de andere kant op: van de sim naar je blokken. Telemetry en fouten komen terug in het <strong>Code</strong>-paneel.</li>
 </ol>

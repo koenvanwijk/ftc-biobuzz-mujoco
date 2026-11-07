@@ -783,11 +783,6 @@ function wireUi() {
       await bridge.setBlk(text, projectName);
       const js = await bridge.getJavaScript();
       $('jsOut').textContent = js;
-      try {
-        $('javaOut').textContent = await bridge.getJava();
-      } catch (e) {
-        $('javaOut').textContent = `(Java-preview: ${e.message})`;
-      }
       log(`Voorbeeld geladen: ${name}`);
       focusEditor($('blocksFrame'));
     } catch (e) {
@@ -800,11 +795,6 @@ function wireUi() {
       await bridge.install();
       await bridge.waitUntilReady({ requireBlocks: false });
       $('jsOut').textContent = await bridge.getJavaScript();
-      try {
-        $('javaOut').textContent = await bridge.getJava();
-      } catch (e) {
-        $('javaOut').textContent = `(Java: ${e.message})`;
-      }
       log('Code vernieuwd vanuit editor');
     } catch (e) {
       log(`Code vernieuwen: ${e.message}`);

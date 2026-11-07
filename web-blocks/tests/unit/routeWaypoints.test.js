@@ -102,3 +102,13 @@ describe('snapAxisAligned (Shift)', () => {
     assert.equal(Math.round(waypointSegments([b, a], 0)[0].heading), 180);
   });
 });
+
+describe('Java-preview-paneel weg', () => {
+  it('index.html en main.js hebben geen javaOut meer; Export Java blijft', () => {
+    const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+    const js = fs.readFileSync(new URL('../../src/main.js', import.meta.url), 'utf8');
+    assert.doesNotMatch(html, /javaOut|Java \(preview\)/);
+    assert.doesNotMatch(js, /javaOut/);
+    assert.match(html, /id="btnExportJava"/);
+  });
+});
