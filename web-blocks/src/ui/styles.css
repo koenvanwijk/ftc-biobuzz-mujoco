@@ -49,13 +49,13 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
 .status-row.is-off .debug-group { visibility: hidden; } /* ruimte blijft gereserveerd (ook bij wrappen op smalle vensters) → geen hoogte-/positiesprong */
 /* Eén compacte rij, altijd gereserveerd (onzichtbaar als Debug uit staat) → toolbar-hoogte springt nooit. */
 .debug-vars {
-  flex: 1 1 100%; min-width: 0; height: 1.75rem; display: flex; align-items: center; gap: 0.6rem;
-  font-size: 0.78rem; border-left: 3px solid var(--accent); padding: 0 0.5rem; overflow: hidden; white-space: nowrap;
+  flex: 1 1 auto; min-width: 0; min-height: 1.75rem; display: flex; flex-direction: column; align-items: stretch; gap: 0.15rem;
+  font-size: 0.78rem; border-left: 3px solid var(--accent); padding: 0.15rem 0.5rem; overflow: hidden;
 }
 .debug-vars.is-off { visibility: hidden; }
 .debug-vars-head { color: var(--muted); flex: 0 0 auto; }
-.debug-vars-list { display: flex; flex-wrap: nowrap; gap: 0.5rem; font-family: ui-monospace, monospace; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
-.debug-vars-list .dv { flex: 0 0 auto; padding: 0 0.35rem; border-radius: 3px; background: #1d2636; white-space: nowrap; max-width: 28rem; overflow: hidden; text-overflow: ellipsis; }
+.debug-vars-list { display: flex; flex-direction: column; gap: 1px; font-family: ui-monospace, monospace; flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; }
+.debug-vars-list .dv { display: block; flex: 0 0 auto; padding: 0 0.35rem; border-radius: 3px; background: #1d2636; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .debug-vars-list .dv .dv-scope { color: var(--muted); font-size: 0.7rem; margin-right: 0.25rem; }
 .debug-vars-list .dv.is-touched { background: #5c4a00; outline: 1px solid #ffd400; }
 .debug-vars-list .dv.is-read { background: #16405c; outline: 1px solid var(--accent); }
@@ -427,3 +427,7 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
   flex: 0 0 6px; cursor: row-resize; background: var(--splitter); touch-action: none; position: relative;
 }
 .stack-splitter:hover, .stack-splitter.dragging { background: var(--splitter-hover); }
+
+/* Status-deelpaneel: Variabelen vult de rest en scrollt verticaal. */
+.stack-pane[data-pane="status"] > .debug-vars { flex: 1 1 auto; }
+.stack-pane[data-pane="status"]:not([style*="height"]) { height: 9rem; }

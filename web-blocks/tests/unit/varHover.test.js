@@ -97,9 +97,22 @@ describe('editor bridge + toolbar wiring', () => {
     assert.match(main, /el\.title = `\$\{full\}/);
     assert.ok(!/pausedText \+= ` · \$\{vt\}`/.test(main), 'no variable values in the status line');
   });
-  it('Variabelen row has a reserved fixed height and Debug-off does not change the toolbar height', () => {
+  it('Variabelen: verticale lijst (één per regel), scrollt verticaal, ellipsis + volledige waarde in title', () => {
     const css = fs.readFileSync(path.join(root, 'src/ui/styles.css'), 'utf8');
-    assert.match(css.match(/\.debug-vars\s*\{([\s\S]*?)\}/)[1], /\bheight:\s*[\d.]+rem/);
+    const box = css.match(/\.debug-vars\s*\{([\s\S]*?)\}/)[1];
+    assert.match(box, /flex-direction:\s*column/);
+    assert.match(box, /min-height:\s*[\d.]+rem/);
+    const list = css.match(/\.debug-vars-list\s*\{([\s\S]*?)\}/)[1];
+    assert.match(list, /flex-direction:\s*column/);
+    assert.match(list, /overflow-y:\s*auto/);
+    const dv = css.match(/\.debug-vars-list \.dv\s*\{([\s\S]*?)\}/)[1];
+    assert.match(dv, /display:\s*block/);
+    assert.match(dv, /text-overflow:\s*ellipsis/);
+    const main = fs.readFileSync(path.join(root, 'src/main.js'), 'utf8');
+    assert.match(main, /el\.title = `\$\{v\.scope\}: \$\{v\.name\} = \$\{v\.text\}/);
+  });
+  it('Debug-off does not change the toolbar height', () => {
+    const css = fs.readFileSync(path.join(root, 'src/ui/styles.css'), 'utf8');
     assert.match(css, /\.debug-vars\.is-off\s*\{\s*visibility:\s*hidden/);
     const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     assert.match(html, /id="debugVars" class="debug-vars is-off"/);
