@@ -132,7 +132,7 @@
                             <field name="VAR" id="v_CAMERA_HEIGHT_M">CAMERA_HEIGHT_M</field>
                             <value name="VALUE">
                               <block type="math_number" id="fc1090">
-                                <field name="NUM">0.165</field>
+                                <field name="NUM">0.08</field>
                               </block>
                             </value>
                             <next>
