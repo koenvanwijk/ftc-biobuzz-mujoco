@@ -141,7 +141,7 @@
       "mount": {
         "x": 0.24,
         "y": 0,
-        "z": 0.121,
+        "z": 0.036,
         "pitchDeg": 45,
         "rollDeg": 0,
         "note": "robot_up_cam pose in the robot frame (x forward, y left, z up from the robot body origin, ~0.044 m above the mat; lens height above mat = z + 0.044). pitchDeg = optical axis above horizontal, rollDeg = rotation about the optical axis (0 = landscape). Default (front shooter + rear POLLEN intake, no POLLEN vision): landscape at the front (x 0.24), lens 16.5 cm above the mat, +45 deg, 90 deg preset, 640x480 (66 x 52 deg H x V): the upward red CELL tags are in view from both tip-line shooting spots (~1.1 m in front of the CELL) and both red clusters from the middle check at (-1.45, 0) in either HIVE state (scratch geometry check in the real scene). Floor POLLEN are not in view (not needed: no yellow-ball detection)."
