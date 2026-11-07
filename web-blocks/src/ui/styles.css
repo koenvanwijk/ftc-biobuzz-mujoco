@@ -411,3 +411,19 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
 .route-wrap { border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .route-wrap[hidden] { display: none; }
 .route-canvas { display: block; width: 100%; aspect-ratio: 1.15 / 1; max-height: 50vh; }
+
+/* Gestapelde deelpanelen met versleepbare balken (rechterkolom) */
+#sideStack { overflow: hidden; }
+.stack-pane { display: flex; flex-direction: column; min-height: 0; overflow: hidden; flex: 0 0 auto; }
+.stack-pane.stack-fill { flex: 1 1 auto; min-height: 40px; }
+.stack-pane > .telemetry, .stack-pane > .log-out, .stack-pane > .code-out {
+  flex: 1 1 auto; height: auto; max-height: none; resize: none; min-height: 0;
+}
+.stack-route .route-wrap { flex: 1 1 auto; min-height: 0; }
+.stack-route .route-canvas { height: 100%; aspect-ratio: auto; max-height: none; }
+.stack-route:not([style*="height"]) .route-wrap { height: 320px; }
+.stack-pane[data-pane="telemetry"]:not([style*="height"]) { height: 12lh; }
+.stack-splitter {
+  flex: 0 0 6px; cursor: row-resize; background: var(--splitter); touch-action: none; position: relative;
+}
+.stack-splitter:hover, .stack-splitter.dragging { background: var(--splitter-hover); }

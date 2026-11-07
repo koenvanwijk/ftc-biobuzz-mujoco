@@ -10,6 +10,7 @@ import { createRuntime } from './ftc-runtime/createRuntime.js';
 import { initSplitLayout } from './ui/splitLayout.js';
 import { initHelpPanel } from './help/helpPanel.js';
 import { RoutePlot } from './ui/routePlot.js';
+import { initStackSplitters } from './ui/stackSplitters.js';
 import { parseFieldElements } from './ui/fieldElements.js';
 import { snapAxisAligned, waypointSegments, routeToBlocksXml, REQUIRED_HELPERS } from './ui/routeWaypoints.js';
 import { resolveCameraConfig, cameraFov, normalizeResolution, applyCameraMount } from './mujoco/robotCamera.js';
@@ -1018,6 +1019,7 @@ let routeJointAdr = -2;
 let routeLastDraw = 0;
 
 function initRoutePanel() {
+  initStackSplitters(document.getElementById('sideStack'));
   const canvas = document.getElementById('routeCanvas');
   if (!canvas) return;
   routePlot = new RoutePlot(canvas);
