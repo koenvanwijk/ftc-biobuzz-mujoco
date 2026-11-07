@@ -10,6 +10,8 @@ import { createRuntime } from './ftc-runtime/createRuntime.js';
 import { initSplitLayout } from './ui/splitLayout.js';
 import { initHelpPanel } from './help/helpPanel.js';
 import { RoutePlot } from './ui/routePlot.js';
+import { parseFieldElements } from './ui/fieldElements.js';
+import { waypointSegments, routeToBlocksXml, REQUIRED_HELPERS } from './ui/routeWaypoints.js';
 import { resolveCameraConfig, cameraFov, normalizeResolution, applyCameraMount } from './mujoco/robotCamera.js';
 import {
   initCameraFovSelect,
@@ -1021,6 +1023,7 @@ function readGamepadSnapshot() {
 
 /** @type {RoutePlot | null} */
 let routePlot = null;
+let routeStartYawDeg = 0;
 let routeJointAdr = -2;
 let routeLastDraw = 0;
 
@@ -1028,6 +1031,10 @@ function initRoutePanel() {
   const canvas = document.getElementById('routeCanvas');
   if (!canvas) return;
   routePlot = new RoutePlot(canvas);
+  fetch(publicUrl('assets/biobuzz_scene.xml'))
+    .then((r) => r.text())
+    .then((xml) => { routePlot.field = parseFieldElements(xml); routePlot.redraw(); })
+    .catch((e) => log(`Route-plot: veldelementen niet geladen (${e.message})`));
   const show = (route) => {
     $('routeWrap').hidden = !route;
     $('jsOut').hidden = route;
@@ -1037,7 +1044,56 @@ function initRoutePanel() {
   };
   $('tabRoute').onclick = () => show(true);
   $('tabJs').onclick = () => show(false);
-  $('btnRouteClear').onclick = () => routePlot.reset();
+  $('btnRouteClear').onclick = () => { routePlot.waypoints = []; routeStartYawDeg = 0; routePlot.reset(); };
+  $('btnRouteDraw').onclick = () => {
+    routePlot.drawMode = !routePlot.drawMode;
+    $('btnRouteDraw').classList.toggle('active', routePlot.drawMode);
+    canvas.classList.toggle('drawing', routePlot.drawMode);
+    if (routePlot.drawMode) show(true);
+  };
+  const undo = () => { routePlot.waypoints.pop(); routePlot.redraw(); };
+  $('btnRouteUndo').onclick = undo;
+  canvas.addEventListener('contextmenu', (e) => {
+    if (!routePlot.drawMode) return;
+    e.preventDefault();
+    undo();
+  });
+  canvas.addEventListener('click', (e) => {
+    if (!routePlot.drawMode) return;
+    const r = canvas.getBoundingClientRect();
+    const p = routePlot.toWorld(e.clientX - r.left, e.clientY - r.top);
+    if (!p) return;
+    if (!routePlot.waypoints.length) {
+      // Start = huidige robotpose; de yaw daar is IMU-heading 0.
+      const cur = routePlot.tracker.current;
+      routePlot.waypoints.push(cur ? { x: cur.x, y: cur.y } : { x: p.x, y: p.y });
+      routeStartYawDeg = cur ? (cur.yaw * 180) / Math.PI : 0;
+      if (!cur) { routePlot.redraw(); return; }
+    }
+    routePlot.waypoints.push(p);
+    routePlot.redraw();
+  });
+  $('btnRouteBlocks').onclick = async () => {
+    try {
+      const segs = waypointSegments(routePlot.waypoints, routeStartYawDeg);
+      if (!segs.length) { log('Teken eerst minstens twee waypoints (Teken route)'); return; }
+      await bridge.install();
+      await bridge.waitUntilReady({ requireBlocks: false });
+      const procs = (await bridge.listProcedures()) || [];
+      const missing = REQUIRED_HELPERS.filter((n) => !procs.includes(n));
+      if (missing.length) {
+        log(`Maak blokken: functie(s) ${missing.join(', ')} ontbreken; open het voorbeeld StarterBot_ImuHiveAuto`);
+        return;
+      }
+      let name = 'gevolgdeRoute';
+      for (let i = 2; procs.includes(name); i++) name = `gevolgdeRoute${i}`;
+      await bridge.appendBlocksXml(routeToBlocksXml(segs, { name }));
+      $('jsOut').textContent = await bridge.getJavaScript();
+      log(`Functie ${name} toegevoegd (${segs.length} segmenten). Sleep 'call ${name}' in runOpMode.`);
+    } catch (e) {
+      log(`Maak blokken: ${e.message}`);
+    }
+  };
   routePlot.draw();
 }
 

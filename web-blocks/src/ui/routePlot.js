@@ -5,6 +5,7 @@
 
 export const FIELD_SIZE_M = 3.66;
 const HALF = FIELD_SIZE_M / 2;
+import { worldToFtc, ftcToWorld } from './fieldElements.js';
 
 /** Kleurverloop blauw -> geel -> rood voor t in [0,1]; geeft [r,g,b]. */
 export function gradientRgb(t) {
@@ -70,12 +71,28 @@ export class RoutePlot {
     this.canvas = canvas;
     this.tracker = tracker;
     this.dirty = true;
+    /** @type {{x:number,y:number}[]} */
+    this.waypoints = [];
+    this.drawMode = false;
+    /** @type {ReturnType<import('./fieldElements.js').parseFieldElements> | null} */
+    this.field = null;
+    this._map = null;
     if (typeof ResizeObserver !== 'undefined') {
       this._ro = new ResizeObserver(() => { this.dirty = true; this.draw(); });
       this._ro.observe(canvas);
     }
   }
   reset() { this.tracker.reset(); this.dirty = true; this.draw(); }
+  redraw() { this.dirty = true; this.draw(); }
+  /** CSS-pixels (t.o.v. canvas) -> veld-meters, of null buiten het plotvlak. */
+  toWorld(px, py) {
+    const m = this._map;
+    if (!m) return null;
+    const x = ((px - m.ox) / m.plot) * 2 * m.range - m.range;
+    const y = m.range - ((py - m.oy) / m.plot) * 2 * m.range;
+    if (Math.abs(x) > HALF || Math.abs(y) > HALF) return null;
+    return ftcToWorld(x, y);
+  }
   add(x, y, yaw) { if (this.tracker.add(x, y, yaw)) this.dirty = true; else if (this.tracker.current) this.dirty = true; }
   draw() {
     const c = this.canvas;
@@ -96,6 +113,9 @@ export class RoutePlot {
     const range = HALF + 0.07;
     const sx = (x) => ox + ((x + range) / (2 * range)) * plot;
     const sy = (y) => oy + ((range - y) / (2 * range)) * plot;
+    this._map = { ox, oy, plot, range };
+    // Wereld (sim) -> scherm via FTC-coördinaten.
+    const sp = (x, y) => { const f = worldToFtc(x, y); return [sx(f.x), sy(f.y)]; };
     ctx.font = '10px ui-monospace, monospace';
     ctx.fillStyle = '#111'; ctx.fillRect(ox, oy, plot, plot);
     // Raster + ticks
@@ -116,23 +136,71 @@ export class RoutePlot {
     ctx.beginPath(); ctx.moveTo(sx(-range), sy(0)); ctx.lineTo(sx(range), sy(0)); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(sx(0), sy(-range)); ctx.lineTo(sx(0), sy(range)); ctx.stroke();
     ctx.fillStyle = '#ddd'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-    ctx.fillText('x (m)', ox + plot / 2, oy + plot + 15);
+    ctx.fillText('X_ftc (m) \u2192 publiek', ox + plot / 2, oy + plot + 15);
     ctx.save(); ctx.translate(9, oy + plot / 2); ctx.rotate(-Math.PI / 2);
-    ctx.textBaseline = 'middle'; ctx.fillText('y (m)', 0, 0); ctx.restore();
+    ctx.textBaseline = 'middle'; ctx.fillText('Y_ftc (m) \u2192 blauw', 0, 0); ctx.restore();
     // Veldrand
     ctx.strokeStyle = '#ccc'; ctx.lineWidth = 2;
     ctx.strokeRect(sx(-HALF), sy(HALF), sx(HALF) - sx(-HALF), sy(-HALF) - sy(HALF));
+    // Statische veldelementen (uit scene-XML)
+    const fe = this.field;
+    if (fe) {
+      for (const p of fe.posts) {
+        const [qx, qy] = sp(p.x, p.y);
+        ctx.fillStyle = '#999'; ctx.beginPath(); ctx.arc(qx, qy, Math.max(2.5, (p.r / (2 * range)) * plot), 0, Math.PI * 2); ctx.fill();
+      }
+      for (const f of fe.flowers) {
+        const [qx, qy] = sp(f.x, f.y);
+        ctx.strokeStyle = '#f0f'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(qx, qy, Math.max(3, (f.r / (2 * range)) * plot), 0, Math.PI * 2); ctx.stroke();
+      }
+      for (const st of fe.starts) {
+        const [qx, qy] = sp(st.x, st.y);
+        const k = plot / (2 * range);
+        ctx.save(); ctx.translate(qx, qy); ctx.rotate(-((st.yawDeg * Math.PI) / 180 + Math.PI / 2));
+        ctx.strokeStyle = st.alliance === 'red' ? '#e33' : '#38f'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(-st.hx * k, -st.hy * k, 2 * st.hx * k, 2 * st.hy * k);
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(st.hx * k, 0); ctx.stroke();
+        ctx.restore();
+      }
+      // Kleine legenda linksboven in het veld
+      ctx.font = '9px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      const items = [['#e33', 'start rood'], ['#38f', 'start blauw'], ['#f0f', 'FLOWER'], ['#999', 'HIVE-paal']];
+      items.forEach(([col, label], i) => {
+        const yy = oy + 10 + i * 11;
+        ctx.fillStyle = col; ctx.fillRect(ox + 5, yy - 3, 7, 7);
+        ctx.fillStyle = '#ccc'; ctx.fillText(label, ox + 15, yy);
+      });
+      ctx.font = '10px ui-monospace, monospace';
+    }
     // Route
     const pts = this.tracker.points, max = this.tracker.total;
     ctx.lineWidth = 2.5; ctx.lineCap = 'round';
     for (let i = 1; i < pts.length; i++) {
       ctx.strokeStyle = distanceColor(pts[i].d, max);
-      ctx.beginPath(); ctx.moveTo(sx(pts[i - 1].x), sy(pts[i - 1].y)); ctx.lineTo(sx(pts[i].x), sy(pts[i].y)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(...sp(pts[i - 1].x, pts[i - 1].y)); ctx.lineTo(...sp(pts[i].x, pts[i].y)); ctx.stroke();
+    }
+    // Getekende waypoints (gestippeld, genummerd)
+    const wp = this.waypoints;
+    if (wp.length) {
+      ctx.save();
+      ctx.setLineDash([6, 4]); ctx.strokeStyle = '#0f0'; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      wp.forEach((p, i) => (i ? ctx.lineTo(...sp(p.x, p.y)) : ctx.moveTo(...sp(p.x, p.y))));
+      ctx.stroke(); ctx.setLineDash([]);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold 9px sans-serif';
+      wp.forEach((p, i) => {
+        ctx.fillStyle = i ? '#0a0' : '#06c';
+        const [qx, qy] = sp(p.x, p.y);
+        ctx.beginPath(); ctx.arc(qx, qy, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillText(i ? String(i) : 'S', qx, qy);
+      });
+      ctx.restore();
     }
     // Robotmarker (driehoek in kijkrichting)
     const cur = this.tracker.current;
     if (cur) {
-      const px = sx(cur.x), py = sy(cur.y), a = -cur.yaw, r = 8;
+      const [px, py] = sp(cur.x, cur.y), a = -(cur.yaw + Math.PI / 2), r = 8;
       ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(px + r * Math.cos(a), py + r * Math.sin(a));
