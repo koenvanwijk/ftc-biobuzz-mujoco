@@ -2,6 +2,7 @@ import { publicUrl } from '../../publicUrl.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CAMERA_SITES, DEFAULT_ROBOT_CAMERA_FOV, activeCameraIndicator, normalizeCameraId } from '../../mujoco/robotCamera.js';
+import { buildTagClusterMap, tagIdFromGeomName, aprilTagLabel } from './aprilTagNames.js';
 import { pipLabelCss, renderWithPip, viewerPixelRatio } from './pipViewport.js';
 
 /**
@@ -47,6 +48,7 @@ export class MujocoThreeViewer {
     this.controls.dampingFactor = 0.08;
     this.controls.maxPolarAngle = Math.PI * 0.95;
     this.controls.update();
+    this._initTagHover(canvas);
 
     const hemi = new THREE.HemisphereLight(0xdde7ff, 0x3a3020, 0.85);
     this.scene.add(hemi);
@@ -524,7 +526,66 @@ export class MujocoThreeViewer {
     });
   }
 
+  /** Tag-id -> cluster uit het MuJoCo-model (ouder-body van de tag-body). */
+  _tagMap() {
+    if (this._tagClusterMap) return this._tagClusterMap;
+    const { mujoco, model } = this;
+    const entries = [];
+    const BODY = mujoco.mjtObj.mjOBJ_BODY.value;
+    for (let b = 0; b < model.nbody; b++) {
+      const m = /^apriltag_body_(\d+)$/.exec(mujoco.mj_id2name(model, BODY, b) || '');
+      if (m) entries.push({ tagId: Number(m[1]), cluster: mujoco.mj_id2name(model, BODY, model.body_parentid[b]) || 'world' });
+    }
+    this._tagClusterMap = buildTagClusterMap(entries);
+    return this._tagClusterMap;
+  }
+
+  /** Hover-tooltip met AprilTag/cluster-naam (raycast, ~20 Hz, niet tijdens slepen). */
+  _initTagHover(canvas) {
+    const tip = document.createElement('div');
+    tip.className = 'apriltag-tooltip';
+    Object.assign(tip.style, {
+      position: 'fixed', pointerEvents: 'none', zIndex: 50, display: 'none',
+      background: 'rgba(15,18,26,0.92)', color: '#eee', font: '12px sans-serif',
+      padding: '3px 7px', borderRadius: '4px', border: '1px solid #556', whiteSpace: 'nowrap',
+    });
+    document.body.appendChild(tip);
+    this._tagTip = tip;
+    const ray = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+    let dragging = false, last = 0;
+    const hide = () => { tip.style.display = 'none'; };
+    this._onTagDown = () => { dragging = true; hide(); };
+    this._onTagUp = () => { dragging = false; };
+    this._onTagMove = (e) => {
+      if (dragging || e.buttons) return hide();
+      const now = performance.now();
+      if (now - last < 50) return;
+      last = now;
+      const r = canvas.getBoundingClientRect();
+      ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      ray.setFromCamera(ndc, this.camera);
+      const hit = ray.intersectObjects(this.root.children, false).find((h) => h.object.visible && (tagIdFromGeomName(h.object.name) != null || (h.object.material?.opacity ?? 1) > 0.5));
+      const id = hit ? tagIdFromGeomName(hit.object.name) : null;
+      if (id == null) return hide();
+      tip.textContent = aprilTagLabel(id, this._tagMap());
+      tip.style.left = `${e.clientX + 14}px`;
+      tip.style.top = `${e.clientY + 12}px`;
+      tip.style.display = 'block';
+    };
+    canvas.addEventListener('pointerdown', this._onTagDown);
+    window.addEventListener('pointerup', this._onTagUp);
+    canvas.addEventListener('pointermove', this._onTagMove);
+    canvas.addEventListener('pointerleave', hide);
+    this._onTagLeave = hide;
+  }
+
   dispose() {
+    this.canvas.removeEventListener('pointerdown', this._onTagDown);
+    window.removeEventListener('pointerup', this._onTagUp);
+    this.canvas.removeEventListener('pointermove', this._onTagMove);
+    this.canvas.removeEventListener('pointerleave', this._onTagLeave);
+    this._tagTip?.remove();
     window.removeEventListener('resize', this._onResize);
     this._ro?.disconnect?.();
     this.controls.dispose();
