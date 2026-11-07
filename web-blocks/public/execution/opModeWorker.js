@@ -45,7 +45,7 @@ self.onmessage = (ev) => {
       simTimeSec = 0;
       pendingAsync = null;
       commandBuffer = Object.create(null);
-      dbg.configure(msg.debug);
+      dbg?.configure(msg.debug);
       hostFrozen = false;
       motorApiById.clear();
       motorDefaultDirections = msg.motorDefaultDirections || Object.create(null);
@@ -81,7 +81,7 @@ self.onmessage = (ev) => {
         pendingAsync = null;
         try { r(); } catch (_) { /* ignore */ }
       }
-      dbg.reset();
+      dbg?.reset();
       hostFrozen = false;
       zeroCommands();
       flushCommands();
@@ -94,7 +94,7 @@ self.onmessage = (ev) => {
       sensorState = msg.sensors || sensorState;
       gamepadState = msg.gamepads || gamepadState;
       // Gepauzeerd: sleep niet hervatten (host bevriest ook de sim-tijd).
-      if (!dbg.paused) resolveDueSleep();
+      if (!dbg?.paused) resolveDueSleep();
       if (!stopFlag) pump();
       break;
     case 'debug':
@@ -121,7 +121,7 @@ let hostFrozen = false;
 
 /** Geef de host de sim-tijd terug als we niet (meer) op een debug-pauze staan (async wait, budget, ...). */
 function releaseHostIfFrozen() {
-  if (hostFrozen && !dbg.paused && !stopFlag) postDebugState('running');
+  if (hostFrozen && !dbg?.paused && !stopFlag) postDebugState('running');
 }
 
 function postDebugState(state) {
@@ -303,7 +303,7 @@ function startOpMode(code) {
 
 function pump() {
   if (!interpreter || stopFlag) return;
-  if (dbg.paused) return; // gepauzeerd: OpMode bevroren, commands blijven zoals ze waren
+  if (!dbg || dbg.paused) return; // nog niet geladen of gepauzeerd: OpMode bevroren, commands blijven zoals ze waren
   if (pendingAsync) {
     flushCommands();
     return;
