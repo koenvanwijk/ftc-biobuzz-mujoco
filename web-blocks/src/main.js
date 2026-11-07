@@ -556,10 +556,10 @@ function renderVars(vars, touched) {
   // Aangeraakte variabelen eerst, dan lokaal, dan globaal (volgorde binnen groep blijft behouden).
   const rank = (v) => (isW(v) ? 0 : isR(v) ? 1 : 2);
   [...vars].sort((a, b) => rank(a) - rank(b)).forEach((v) => {
-    const el = document.createElement('span');
+    const el = document.createElement('div');
     el.className = 'dv' + (isW(v) ? ' is-touched' : isR(v) ? ' is-read' : '');
     el.dataset.name = v.name;
-    el.title = `${v.scope}${isW(v) ? ' · net gezet door het vorige blok' : isR(v) ? ' · gelezen door dit blok' : ''}`;
+    el.title = `${v.scope}: ${v.name} = ${v.text}${isW(v) ? ' · net gezet door het vorige blok' : isR(v) ? ' · gelezen door dit blok' : ''}`;
     const sc = document.createElement('span');
     sc.className = 'dv-scope';
     sc.textContent = v.scope === 'lokaal' ? 'lok' : 'glob';
