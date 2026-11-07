@@ -25,7 +25,7 @@ const attr = (tag, name) => {
 /**
  * @param {string} xml scene-XML
  * @returns {{starts:{alliance:string,x:number,y:number,yawDeg:number,hx:number,hy:number}[],
- *   flowers:{name:string,x:number,y:number,r:number}[], posts:{name:string,x:number,y:number,r:number}[]}}
+ *   flowers:{name:string,x:number,y:number,r:number}[], posts:{name:string,x:number,y:number,r:number,alliance:string|null}[]}}
  */
 export function parseFieldElements(xml) {
   const flowers = [];
@@ -39,6 +39,21 @@ export function parseFieldElements(xml) {
     // Voetpunt = het uiteinde met de laagste z.
     const [x, y] = f[2] <= f[5] ? [f[0], f[1]] : [f[3], f[4]];
     posts.push({ name: m[1], x, y, r: nums(attr(m[0], 'size'))[0] });
+  }
+  // HIVE-alliantie: middelpunt van de CELL-shells per kleur (bodies red_*_shell / blue_*_shell in
+  // hive_red / hive_blue); elke paalvoet krijgt de kleur van de dichtstbijzijnde HIVE.
+  const hives = {};
+  for (const color of ['red', 'blue']) {
+    const ps = [...xml.matchAll(new RegExp(`<body\\s[^>]*name="${color}_\\w+_shell"[^>]*>`, 'g'))].map((m) => nums(attr(m[0], 'pos')));
+    if (ps.length) hives[color] = { x: ps.reduce((a, p) => a + p[0], 0) / ps.length, y: ps.reduce((a, p) => a + p[1], 0) / ps.length };
+  }
+  for (const p of posts) {
+    let best = null, bd = Infinity;
+    for (const [c, h] of Object.entries(hives)) {
+      const d = Math.hypot(p.x - h.x, p.y - h.y);
+      if (d < bd) { bd = d; best = c; }
+    }
+    p.alliance = best;
   }
   const starts = [];
   const rb = xml.match(/<body\s[^>]*name="robot"[^>]*>[\s\S]*?<geom\s[^>]*name="bumper"[^>]*>/);
