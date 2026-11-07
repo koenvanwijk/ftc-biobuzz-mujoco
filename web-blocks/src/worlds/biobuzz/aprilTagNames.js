@@ -3,6 +3,19 @@
  * Cluster = ouder-body van apriltag_body_N in de scene (bijv. red_cell_scoring).
  */
 
+import { BIOBUZZ_CLUSTERS } from '../../ftc-runtime/aprilTag.js';
+
+/** Tag-id -> clusternaam zoals in de blokken (bijv. 'RED AUDIENCE'). */
+const BLOCK_CLUSTER_BY_ID = new Map();
+for (const c of BIOBUZZ_CLUSTERS) for (const id of c.memberIds) BLOCK_CLUSTER_BY_ID.set(id, c);
+
+/** Tagbereik als '34–37' (aaneengesloten) of '30, 32'. */
+function formatIds(ids) {
+  const s = [...ids].sort((a, b) => a - b);
+  const contiguous = s.every((v, i) => i === 0 || v === s[i - 1] + 1);
+  return contiguous && s.length > 1 ? `${s[0]}–${s[s.length - 1]}` : s.join(', ');
+}
+
 /**
  * @param {{tagId:number, cluster:string}[]} entries
  * @returns {Map<number, {cluster:string, tags:number[]}>}
@@ -41,9 +54,11 @@ export function tagIdFromGeomName(name) {
   return m ? Number(m[1]) : null;
 }
 
-/** Tooltiptekst, bijv. "red_cell_scoring – tag 31 (cluster: 30, 31, 32, 33)". */
+/** Tooltiptekst, bijv. "RED AUDIENCE – tag 35 (cluster: 34–37)" (namen uit de Blocks-bibliotheek). */
 export function aprilTagLabel(tagId, map) {
-  const c = map.get(tagId);
+  const b = BLOCK_CLUSTER_BY_ID.get(tagId);
+  if (b) return `${b.name} – tag ${tagId} (cluster: ${formatIds(b.memberIds)})`;
+  const c = map?.get(tagId);
   if (!c) return `AprilTag ${tagId}`;
-  return `${c.cluster} – tag ${tagId} (cluster: ${c.tags.join(', ')})`;
+  return `${c.cluster} – tag ${tagId} (cluster: ${formatIds(c.tags)})`;
 }

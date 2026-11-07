@@ -19,8 +19,15 @@ describe('AprilTag-namen (hover)', () => {
     assert.equal(tagIdFromGeomName('chassis'), null);
     assert.equal(tagIdFromGeomName(undefined), null);
   });
+  it('blocknamen passen bij de scene-clusters', () => {
+    const want = { 30: 'red_cell_scoring', 34: 'red_cell_audience', 38: 'blue_cell_audience', 42: 'blue_cell_scoring' };
+    for (const [id, c] of Object.entries(want)) assert.equal(map.get(Number(id)).cluster, c);
+  });
   it('label', () => {
-    assert.equal(aprilTagLabel(31, map), 'red_cell_scoring – tag 31 (cluster: 30, 31, 32, 33)');
+    assert.equal(aprilTagLabel(31, map), 'RED SCORING – tag 31 (cluster: 30–33)');
+    assert.equal(aprilTagLabel(35, map), 'RED AUDIENCE – tag 35 (cluster: 34–37)');
+    assert.equal(aprilTagLabel(40, map), 'BLUE AUDIENCE – tag 40 (cluster: 38–41)');
+    assert.equal(aprilTagLabel(45, map), 'BLUE SCORING – tag 45 (cluster: 42–45)');
     assert.equal(aprilTagLabel(99, map), 'AprilTag 99');
   });
 });
