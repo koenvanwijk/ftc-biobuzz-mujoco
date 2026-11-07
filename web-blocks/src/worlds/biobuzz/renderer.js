@@ -9,6 +9,10 @@ import { pipLabelCss, renderWithPip, viewerPixelRatio } from './pipViewport.js';
  * sync transforms each frame from geom_xpos / geom_xmat.
  * MuJoCo is Z-up; we keep camera.up = Z.
  */
+/** Standaard 3D-camera: vanaf de rode muur (-X) kijkend naar +X, zodat scherm-rechts = -Y (publiek). */
+export const DEFAULT_CAMERA_POS = [-4.6, 0, 3.0];
+export const DEFAULT_CAMERA_TARGET = [0, 0, 0.4];
+
 export class MujocoThreeViewer {
   constructor(canvas, mujoco, model, data) {
     this.canvas = canvas;
@@ -33,10 +37,12 @@ export class MujocoThreeViewer {
 
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.05, 40);
     this.camera.up.set(0, 0, 1);
-    this.camera.position.set(3.2, -3.6, 2.4);
+    // Startaanzicht = 2D route-plot (FTC-coördinaten): rode muur (-X sim, -Y_ftc) dichtbij/onder,
+    // publiek (-Y sim, +X_ftc) rechts, blauw (+X sim) achter.
+    this.camera.position.set(...DEFAULT_CAMERA_POS);
 
     this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.target.set(0, 0, 0.4);
+    this.controls.target.set(...DEFAULT_CAMERA_TARGET);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.maxPolarAngle = Math.PI * 0.95;

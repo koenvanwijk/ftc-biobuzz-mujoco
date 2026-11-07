@@ -147,7 +147,7 @@ export class RoutePlot {
     if (fe) {
       for (const p of fe.posts) {
         const [qx, qy] = sp(p.x, p.y);
-        ctx.fillStyle = '#999'; ctx.beginPath(); ctx.arc(qx, qy, Math.max(2.5, (p.r / (2 * range)) * plot), 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = p.alliance === 'red' ? '#e33' : p.alliance === 'blue' ? '#38f' : '#999'; ctx.beginPath(); ctx.arc(qx, qy, Math.max(2.5, (p.r / (2 * range)) * plot), 0, Math.PI * 2); ctx.fill();
       }
       for (const f of fe.flowers) {
         const [qx, qy] = sp(f.x, f.y);
@@ -163,14 +163,6 @@ export class RoutePlot {
         ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(st.hx * k, 0); ctx.stroke();
         ctx.restore();
       }
-      // Kleine legenda linksboven in het veld
-      ctx.font = '9px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-      const items = [['#e33', 'start rood'], ['#38f', 'start blauw'], ['#f0f', 'FLOWER'], ['#999', 'HIVE-paal']];
-      items.forEach(([col, label], i) => {
-        const yy = oy + 10 + i * 11;
-        ctx.fillStyle = col; ctx.fillRect(ox + 5, yy - 3, 7, 7);
-        ctx.fillStyle = '#ccc'; ctx.fillText(label, ox + 15, yy);
-      });
       ctx.font = '10px ui-monospace, monospace';
     }
     // Route

@@ -57,10 +57,29 @@ describe('fieldElements', () => {
     const blue = fe.starts.find((s) => s.alliance === 'blue');
     near(blue.x, 1.5688); near(blue.yawDeg, 180);
   });
+  it('HIVE-paalvoeten gekleurd naar dichtstbijzijnde HIVE (rood x<0, blauw x>0)', () => {
+    for (const p of fe.posts) assert.equal(p.alliance, p.x < 0 ? 'red' : 'blue');
+  });
+  it('geen veldelementen-legenda meer in de plot', () => {
+    const src = fs.readFileSync(new URL('../../src/ui/routePlot.js', import.meta.url), 'utf8');
+    assert.doesNotMatch(src, /start rood|HIVE-paal'/);
+  });
   it('FTC-afbeelding: rood op -Y_ftc, publiek op +X_ftc, round-trip', () => {
     const r = worldToFtc(-1.5, 0); near(r.y, -1.5);
     const aud = worldToFtc(0, -1.8); near(aud.x, 1.8);
     const w = ftcToWorld(...Object.values(worldToFtc(0.3, -0.7))); near(w.x, 0.3); near(w.y, -0.7);
     assert.equal(worldYawToFtcDeg(0), 90); assert.equal(worldYawToFtcDeg(180), -90);
+  });
+});
+
+describe('3D-startcamera komt overeen met 2D-plot', () => {
+  it('camera bij de rode muur (-X), scherm-rechts = -Y sim (= +X_ftc)', () => {
+    const src = fs.readFileSync(new URL('../../src/worlds/biobuzz/renderer.js', import.meta.url), 'utf8');
+    const pos = src.match(/DEFAULT_CAMERA_POS = \[([^\]]+)\]/)[1].split(',').map(Number);
+    const tgt = src.match(/DEFAULT_CAMERA_TARGET = \[([^\]]+)\]/)[1].split(',').map(Number);
+    const f = [tgt[0] - pos[0], tgt[1] - pos[1]];
+    const right = [f[1], -f[0]]; // f x z (up = +Z)
+    assert.ok(pos[0] < 0 && Math.abs(pos[1]) < 1e-9);
+    assert.ok(right[1] < 0 && Math.abs(right[0]) < 1e-9);
   });
 });
