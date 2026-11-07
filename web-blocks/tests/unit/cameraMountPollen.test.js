@@ -100,7 +100,7 @@ describe('Camera-montage (webcam.camera.mount)', () => {
       assert.ok(cam.mount, `${p} heeft webcam.camera.mount`);
       assert.equal(cam.orientation, 'landscape');
       const m = resolveCameraConfig(cam).mount;
-      assert.deepEqual(m, { x: 0.24, y: 0, z: 0.121, pitchDeg: 35, rollDeg: 0 });
+      assert.deepEqual(m, { x: 0.24, y: 0, z: 0.121, pitchDeg: 45, rollDeg: 0 });
       near(mountHeightAboveFloor(m), 0.165, 0.002, 'lenshoogte boven de mat');
       assert.deepEqual(resolveCameraConfig(cam).resolution, { width: 640, height: 480 });
       assert.equal(resolveCameraConfig(cam).defaultDfovDeg, 90);

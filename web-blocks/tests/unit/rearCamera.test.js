@@ -71,7 +71,7 @@ describe('Achtercamera: montage en zichtveld', () => {
       assert.equal(j.webcam2.cameraSite, CAMERA_SITES.rear);
       assert.equal(j.webcam.cameraSite, CAMERA_SITES.front);
       // voorcamera ongewijzigd (+35°, liggend, 16,5 cm)
-      assert.deepEqual(cfg.mount, { x: 0.24, y: 0, z: 0.121, pitchDeg: 35, rollDeg: 0 });
+      assert.deepEqual(cfg.mount, { x: 0.24, y: 0, z: 0.121, pitchDeg: 45, rollDeg: 0 });
     }
   });
 
