@@ -10,8 +10,6 @@ export const FLOWER_COLORS = {
   black: [0.07, 0.07, 0.08], // zwarte ringen, beugel/plankje
   silver: [0.76, 0.77, 0.8], // grondplaat en metalen voet
 };
-/** Doorzichtige paarse buis (visuele geom in de scene). */
-export const FLOWER_TUBE_RGBA = [0.62, 0.42, 0.85, 0.3];
 
 /** Deel-categorie uit relatieve hoogtes (0 = onderkant, 1 = bovenkant FLOWER). */
 export function classifyFlowerPart(z0, z1) {

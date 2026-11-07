@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { flowerVertexColors, classifyFlowerPart, FLOWER_COLORS, FLOWER_TUBE_RGBA } from '../../src/worlds/biobuzz/flowerColors.js';
+import { flowerVertexColors, classifyFlowerPart, FLOWER_COLORS } from '../../src/worlds/biobuzz/flowerColors.js';
 
 /** Binaire STL -> gededupliceerde vertices (zoals MuJoCo) + indices. */
 function loadStl(file) {
@@ -50,15 +50,9 @@ describe('FLOWER-kleuren', () => {
     assert.equal(classifyFlowerPart(0, 0.03), 'silver');
     assert.deepEqual(FLOWER_COLORS.rod, [0.2, 0.55, 0.22]);
   });
-  it('doorzichtige paarse buis in alle scene-kopieën, zonder botsing', () => {
-    for (const p of ['../../public/assets/biobuzz_scene.xml', '../../../web/assets/biobuzz_scene.xml', '../../../web/public/assets/biobuzz_scene.xml', '../../../ftc_sim/assets/biobuzz_scene.xml']) {
-      const xml = fs.readFileSync(new URL(p, import.meta.url), 'utf8');
-      const tubes = [...xml.matchAll(/<geom name="flower_\w+_tube_vis"[^>]*>/g)].map((m) => m[0]);
-      assert.equal(tubes.length, 4, p);
-      for (const t of tubes) {
-        assert.match(t, new RegExp(`rgba="${FLOWER_TUBE_RGBA.join(' ')}"`));
-        assert.match(t, /contype="0" conaffinity="0" group="1"/);
-      }
+  it('geen paarse buis in de scene-kopieën en scene.py', () => {
+    for (const p of ['../../public/assets/biobuzz_scene.xml', '../../../web/assets/biobuzz_scene.xml', '../../../web/public/assets/biobuzz_scene.xml', '../../../ftc_sim/assets/biobuzz_scene.xml', '../../../ftc_sim/scene.py']) {
+      assert.doesNotMatch(fs.readFileSync(new URL(p, import.meta.url), 'utf8'), /tube_vis/, p);
     }
   });
 });
