@@ -8,7 +8,8 @@ function emptyLibrary() {
   return { __type: 'AprilTagLibrary', tags: [], clusters: [] };
 }
 
-const BIOBUZZ_CLUSTERS = [
+/** Clusternamen zoals in de Blocks-dropdowns (AprilTag-bibliotheek). */
+export const BIOBUZZ_CLUSTERS = [
   { name: 'RED SCORING', shortName: 'RS', memberIds: [30, 31, 32, 33] },
   { name: 'RED AUDIENCE', shortName: 'RA', memberIds: [34, 35, 36, 37] },
   { name: 'BLUE AUDIENCE', shortName: 'BA', memberIds: [38, 39, 40, 41] },

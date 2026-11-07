@@ -124,7 +124,8 @@
             <button type="button" class="panel-btn" data-panel-focus title="Vergroot paneel" aria-label="Vergroot">⛶</button>
           </span>
         </div>
-        <div class="side-panel-body">
+        <div class="side-panel-body" id="sideStack">
+          <div class="stack-pane" data-pane="status" data-min="30">
           <div id="debugRow" class="status-row">
             <span id="debugGroup" class="debug-group" role="group" aria-label="Debugger">
               <button id="btnDbgStep" type="button" disabled title="Voer het volgende blok uit en pauzeer weer (stapt in aangeroepen functies)">Stap</button>
@@ -143,8 +144,12 @@
             <div id="debugVarsList" class="debug-vars-list"></div>
             <span id="debugVarsInfo" class="muted small"></span>
           </div>
+          </div>
+          <div class="stack-pane" data-pane="telemetry">
           <div class="panel-subtitle">Telemetry</div>
           <pre id="telemetryOut" class="telemetry"></pre>
+          </div>
+          <div class="stack-pane stack-route" data-pane="route" data-min="80">
           <div class="panel-subtitle route-tabs">
             <button type="button" id="tabRoute" class="route-tab active">Route</button>
             <button type="button" id="tabJs" class="route-tab">JS</button>
@@ -155,8 +160,11 @@
           </div>
           <div id="routeWrap" class="route-wrap"><canvas id="routeCanvas" class="route-canvas"></canvas></div>
           <pre id="jsOut" class="code-out" hidden></pre>
+          </div>
+          <div class="stack-pane stack-log" data-pane="log">
           <div class="panel-subtitle">Runtime-log</div>
           <pre id="logOut" class="log-out"></pre>
+          </div>
         </div>
       </aside>
     </main>
