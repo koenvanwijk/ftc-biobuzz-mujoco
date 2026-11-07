@@ -92,7 +92,7 @@ describe('Camera-montage in de echte scène', () => {
   it('standaard uit simulation.json (liggend aan de voorkant, 16,5 cm, +35°): HIVE-tags vanaf de schietplekken en vanuit het midden', () => {
     const mount = resolveCameraConfig(SIM_CAMERA).mount;
     assert.equal(mount.rollDeg, 0);
-    assert.equal(mount.pitchDeg, 35);
+    assert.equal(mount.pitchDeg, 45);
     const names = (pose, tipDeg) => {
       const { model, data } = world(mount, 3, pose);
       const JNT = mujoco.mjtObj.mjOBJ_JOINT.value;

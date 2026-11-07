@@ -116,7 +116,7 @@
                     <field name="VAR" id="v_CAMERA_PITCH_DEG">CAMERA_PITCH_DEG</field>
                     <value name="VALUE">
                       <block type="math_number" id="b486">
-                        <field name="NUM">35</field>
+                        <field name="NUM">45</field>
                       </block>
                     </value>
                     <next>
