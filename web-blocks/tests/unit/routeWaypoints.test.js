@@ -83,3 +83,32 @@ describe('3D-startcamera komt overeen met 2D-plot', () => {
     assert.ok(right[1] < 0 && Math.abs(right[0]) < 1e-9);
   });
 });
+
+import { snapAxisAligned } from '../../src/ui/routeWaypoints.js';
+describe('snapAxisAligned (Shift)', () => {
+  it('houdt grootste component, nult de andere', () => {
+    assert.deepEqual(snapAxisAligned({ x: 0, y: 0 }, { x: 1, y: 0.2 }), { x: 1, y: 0 });
+    assert.deepEqual(snapAxisAligned({ x: 0.5, y: 0.5 }, { x: 0.4, y: -1 }), { x: 0.5, y: -1 });
+    assert.deepEqual(snapAxisAligned(null, { x: 1, y: 2 }), { x: 1, y: 2 });
+  });
+  it('gesnapte route geeft rechte hoeken (start-yaw veld-gericht)', () => {
+    const a = { x: -1.5, y: 1.4 };
+    const b = snapAxisAligned(a, { x: -0.3, y: 1.3 });
+    const c = snapAxisAligned(b, { x: -0.25, y: 0.2 });
+    const segs = waypointSegments([a, b, c], 0);
+    assert.deepEqual(segs.map((s) => Math.round(s.heading)), [0, -90]);
+    const back = waypointSegments([c, b], 0);
+    assert.equal(Math.round(back[0].heading), 90);
+    assert.equal(Math.round(waypointSegments([b, a], 0)[0].heading), 180);
+  });
+});
+
+describe('Java-preview-paneel weg', () => {
+  it('index.html en main.js hebben geen javaOut meer; Export Java blijft', () => {
+    const html = fs.readFileSync(new URL('../../index.html', import.meta.url), 'utf8');
+    const js = fs.readFileSync(new URL('../../src/main.js', import.meta.url), 'utf8');
+    assert.doesNotMatch(html, /javaOut|Java \(preview\)/);
+    assert.doesNotMatch(js, /javaOut/);
+    assert.match(html, /id="btnExportJava"/);
+  });
+});
