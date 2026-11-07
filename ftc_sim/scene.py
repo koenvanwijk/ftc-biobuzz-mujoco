@@ -375,8 +375,7 @@ def _add_hive(world: ET.Element) -> None:
             group="1",
         )
         # CAD A-frame (sawhorse): long axis = ±X, short ends = A-frames at ±X.
-        # Long-side underpass (drive along ±Y under the crossbar) stays open.
-        # Short ends have a solid base plate between the two feet (official CAD).
+        # All sides stay open at floor level: there are no beams between the posts.
         fw, fd = 0.60, 0.46  # CAD foot centroids (±X, ±Y)
         pivot_z = C.TILE_THICKNESS + C.HIVE_PIVOT_Z
         z0 = C.TILE_THICKNESS + 0.02
@@ -393,21 +392,6 @@ def _add_hive(world: ET.Element) -> None:
                 type="capsule",
                 fromto=_pos(sx * fw, sy * fd, z0, sx * fw, 0.0, pivot_z),
                 size="0.03",
-                rgba="0.5 0.5 0.5 0",
-                contype="1",
-                conaffinity="1",
-                group="3",
-            )
-        # Short-side base plates (grey CAD bars between feet) — block drive-through
-        plate_h = 0.06
-        plate_t = 0.04
-        for sx, name in [(-1, "base_neg_x"), (1, "base_pos_x")]:
-            _add_geom(
-                frame,
-                name=f"hive_frame_{name}_col",
-                type="box",
-                pos=_pos(sx * fw, 0.0, z0 + plate_h / 2),
-                size=_pos(plate_t / 2, fd + 0.02, plate_h / 2),
                 rgba="0.5 0.5 0.5 0",
                 contype="1",
                 conaffinity="1",

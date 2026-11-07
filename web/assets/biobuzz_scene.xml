@@ -235,8 +235,6 @@
         <geom name="hive_frame_leg_nw_col" type="capsule" fromto="-0.60000 0.46000 0.03500 -0.60000 0.00000 1.13150" size="0.03" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
         <geom name="hive_frame_leg_se_col" type="capsule" fromto="0.60000 -0.46000 0.03500 0.60000 0.00000 1.13150" size="0.03" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
         <geom name="hive_frame_leg_ne_col" type="capsule" fromto="0.60000 0.46000 0.03500 0.60000 0.00000 1.13150" size="0.03" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
-        <geom name="hive_frame_base_neg_x_col" type="box" pos="-0.60000 0.00000 0.06500" size="0.02000 0.48000 0.03000" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
-        <geom name="hive_frame_base_pos_x_col" type="box" pos="0.60000 0.00000 0.06500" size="0.02000 0.48000 0.03000" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
         <geom name="hive_frame_crossbar_col" type="capsule" fromto="-0.60000 0.00000 1.13150 0.60000 0.00000 1.13150" size="0.03" rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"/>
       </body>
     </body>
