@@ -165,6 +165,16 @@ export class BlocksBridge {
     return this.request('getBlk');
   }
 
+  /** Voeg blokken (XML) toe rechts naast de bestaande blokken; geeft {names, x, y} terug. */
+  appendBlocksXml(xml) {
+    return this.request('appendBlocksXml', { xml }, 10000);
+  }
+
+  /** Namen van alle procedure-definities in de workspace. */
+  listProcedures() {
+    return this.request('listProcedures', {}, 5000);
+  }
+
   setBlk(content, projectName = 'SimProject') {
     return this.request('setBlk', { content, projectName }, 30000);
   }
@@ -543,6 +553,36 @@ var __ftcFormatVarTooltip = ${formatVarTooltip.toString()};
             }
             reply(xmlText + extra);
             break;
+          case 'listProcedures': {
+            await waitForWorkspace(false, 5000);
+            if (!hasWorkspace()) throw new Error(workspaceReadyError());
+            var pn = [];
+            workspace.getTopBlocks(false).forEach(function (tb) {
+              if (/^procedures_def/.test(tb.type)) pn.push(tb.getFieldValue('NAME'));
+            });
+            reply(pn);
+            break;
+          }
+          case 'appendBlocksXml': {
+            await waitForWorkspace(false, 5000);
+            if (!hasWorkspace()) throw new Error(workspaceReadyError());
+            var maxX = 0, minY = Infinity;
+            workspace.getTopBlocks(false).forEach(function (tb) {
+              var xy = tb.getRelativeToSurfaceXY();
+              var hw = tb.getHeightWidth ? tb.getHeightWidth() : { width: 0 };
+              maxX = Math.max(maxX, xy.x + hw.width);
+              minY = Math.min(minY, xy.y);
+            });
+            if (!isFinite(minY)) minY = 20;
+            var dom = Blockly.Xml.textToDom(data.payload.xml);
+            var px = maxX + 200, py = minY;
+            Array.prototype.forEach.call(dom.childNodes, function (n) {
+              if (n.nodeName && n.nodeName.toLowerCase() === 'block') { n.setAttribute('x', String(px)); n.setAttribute('y', String(py)); }
+            });
+            Blockly.Xml.domToWorkspace(dom, workspace);
+            reply({ x: px, y: py });
+            break;
+          }
           case 'setBlk':
             await waitForWorkspace(false, 28000);
             if (!hasWorkspace()) throw new Error(workspaceReadyError());
