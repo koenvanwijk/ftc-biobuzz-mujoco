@@ -424,6 +424,18 @@ def _add_hive(world: ET.Element) -> None:
                 conaffinity="0",
                 group="1",
             )
+            # Doorzichtige paarse buis (alleen visueel; de CAD-mesh heeft geen buis).
+            _add_geom(
+                flower,
+                name=f"{name}_tube_vis",
+                type="cylinder",
+                pos=_pos(x, y, 0.324),
+                size=_pos(0.042, 0.19),
+                rgba="0.62 0.42 0.85 0.3",
+                contype="0",
+                conaffinity="0",
+                group="1",
+            )
             if _mesh_available(f"{name}_hull"):
                 # Visual-only hull: solid CAD hull intersects CELL cavities and
                 # would eject free NECTAR/POLLEN. Robot hits the frame hull instead.
