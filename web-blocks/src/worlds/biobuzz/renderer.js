@@ -2,6 +2,7 @@ import { publicUrl } from '../../publicUrl.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CAMERA_SITES, DEFAULT_ROBOT_CAMERA_FOV, activeCameraIndicator, normalizeCameraId } from '../../mujoco/robotCamera.js';
+import { flowerVertexColors } from './flowerColors.js';
 import { buildTagClusterMap, tagIdFromGeomName, aprilTagLabel } from './aprilTagNames.js';
 import { pipLabelCss, renderWithPip, viewerPixelRatio } from './pipViewport.js';
 
@@ -301,6 +302,7 @@ export class MujocoThreeViewer {
         const dataid = model.geom_dataid[i];
         if (dataid < 0) continue;
         geometry = this._getMeshGeometry(dataid);
+        if (geometry && /^flower_\w+_vis$/.test(name)) geometry = this._flowerGeometry(geometry, i);
       } else {
         continue;
       }
@@ -315,6 +317,8 @@ export class MujocoThreeViewer {
           metalness: 0.05,
           side: THREE.DoubleSide,
         });
+      } else if (geometry.userData?.flowerColored) {
+        material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, metalness: 0.15 });
       } else if (name === 'tiles') {
         material = new THREE.MeshStandardMaterial({
           map: makeCheckerTexture(),
@@ -339,6 +343,23 @@ export class MujocoThreeViewer {
       this.root.add(mesh);
       this.bodies.push({ mesh, geomId: i });
     }
+  }
+
+  /** FLOWER-mesh met vertexkleuren per deel (zie flowerColors.js). */
+  _flowerGeometry(base, geomId) {
+    const g = base.clone();
+    const pos = g.getAttribute('position').array;
+    const q = this.model.geom_quat.slice(geomId * 4, geomId * 4 + 4);
+    const [w, x, y, z] = q;
+    const r0 = 2 * (x * z - w * y), r1 = 2 * (y * z + w * x), r2 = 1 - 2 * (x * x + y * y);
+    const pz = this.model.geom_pos[geomId * 3 + 2];
+    const n = pos.length / 3;
+    const worldZ = new Float32Array(n);
+    for (let v = 0; v < n; v++) worldZ[v] = pz + r0 * pos[v * 3] + r1 * pos[v * 3 + 1] + r2 * pos[v * 3 + 2];
+    const { colors } = flowerVertexColors(worldZ, g.getIndex().array);
+    g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    g.userData.flowerColored = true;
+    return g;
   }
 
   _getMeshGeometry(meshId) {

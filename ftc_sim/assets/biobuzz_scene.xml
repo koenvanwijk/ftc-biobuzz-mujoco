@@ -240,6 +240,7 @@
     </body>
     <body name="flower_pos_y" pos="0 0 0">
       <geom name="flower_pos_y_vis" type="mesh" mesh="flower_pos_y" material="flower_mat" contype="0" conaffinity="0" group="1"/>
+      <geom name="flower_pos_y_tube_vis" type="cylinder" pos="-0.59417 1.72826 0.32400" size="0.04200 0.19000" rgba="0.62 0.42 0.85 0.3" contype="0" conaffinity="0" group="1"/>
       <geom name="flower_pos_y_col" type="mesh" mesh="flower_pos_y_hull" rgba="0.8 0.8 0.8 0" contype="0" conaffinity="0" group="3"/>
       <geom name="flower_pos_y_floor" type="cylinder" pos="-0.59417 1.72826 0.01800" size="0.06172 0.00300" rgba="0.85 0.85 0.88 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
       <geom name="flower_pos_y_collar_0" type="box" pos="-0.53945 1.72826 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 90.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
@@ -257,6 +258,7 @@
     </body>
     <body name="flower_neg_y" pos="0 0 0">
       <geom name="flower_neg_y_vis" type="mesh" mesh="flower_neg_y" material="flower_mat" contype="0" conaffinity="0" group="1"/>
+      <geom name="flower_neg_y_tube_vis" type="cylinder" pos="0.59417 -1.72826 0.32400" size="0.04200 0.19000" rgba="0.62 0.42 0.85 0.3" contype="0" conaffinity="0" group="1"/>
       <geom name="flower_neg_y_col" type="mesh" mesh="flower_neg_y_hull" rgba="0.8 0.8 0.8 0" contype="0" conaffinity="0" group="3"/>
       <geom name="flower_neg_y_floor" type="cylinder" pos="0.59417 -1.72826 0.01800" size="0.06172 0.00300" rgba="0.85 0.85 0.88 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
       <geom name="flower_neg_y_collar_0" type="box" pos="0.64889 -1.72826 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 90.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
@@ -274,6 +276,7 @@
     </body>
     <body name="flower_neg_x" pos="0 0 0">
       <geom name="flower_neg_x_vis" type="mesh" mesh="flower_neg_x" material="flower_mat" contype="0" conaffinity="0" group="1"/>
+      <geom name="flower_neg_x_tube_vis" type="cylinder" pos="-1.72826 -0.59417 0.32400" size="0.04200 0.19000" rgba="0.62 0.42 0.85 0.3" contype="0" conaffinity="0" group="1"/>
       <geom name="flower_neg_x_col" type="mesh" mesh="flower_neg_x_hull" rgba="0.8 0.8 0.8 0" contype="0" conaffinity="0" group="3"/>
       <geom name="flower_neg_x_floor" type="cylinder" pos="-1.72826 -0.59417 0.01800" size="0.06172 0.00300" rgba="0.85 0.85 0.88 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
       <geom name="flower_neg_x_collar_0" type="box" pos="-1.67354 -0.59417 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 90.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
@@ -291,6 +294,7 @@
     </body>
     <body name="flower_pos_x" pos="0 0 0">
       <geom name="flower_pos_x_vis" type="mesh" mesh="flower_pos_x" material="flower_mat" contype="0" conaffinity="0" group="1"/>
+      <geom name="flower_pos_x_tube_vis" type="cylinder" pos="1.72826 0.59417 0.32400" size="0.04200 0.19000" rgba="0.62 0.42 0.85 0.3" contype="0" conaffinity="0" group="1"/>
       <geom name="flower_pos_x_col" type="mesh" mesh="flower_pos_x_hull" rgba="0.8 0.8 0.8 0" contype="0" conaffinity="0" group="3"/>
       <geom name="flower_pos_x_floor" type="cylinder" pos="1.72826 0.59417 0.01800" size="0.06172 0.00300" rgba="0.85 0.85 0.88 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
       <geom name="flower_pos_x_collar_0" type="box" pos="1.78298 0.59417 0.07100" size="0.01629 0.00700 0.05000" euler="0 0 90.0000" rgba="0.9 0.9 0.92 0" friction="1.4 0.05 0.005" condim="6" group="3"/>
