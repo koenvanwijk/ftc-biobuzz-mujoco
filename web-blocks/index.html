@@ -146,8 +146,13 @@
           </div>
           <div class="panel-subtitle">Telemetry</div>
           <pre id="telemetryOut" class="telemetry"></pre>
-          <div class="panel-subtitle">JS (gegenereerd)</div>
-          <pre id="jsOut" class="code-out"></pre>
+          <div class="panel-subtitle route-tabs">
+            <button type="button" id="tabRoute" class="route-tab active">Route</button>
+            <button type="button" id="tabJs" class="route-tab">JS</button>
+            <button type="button" id="btnRouteClear" class="route-tab" title="Route wissen">Wis</button>
+          </div>
+          <div id="routeWrap" class="route-wrap"><canvas id="routeCanvas" class="route-canvas"></canvas></div>
+          <pre id="jsOut" class="code-out" hidden></pre>
           <div class="panel-subtitle">Java (preview)</div>
           <pre id="javaOut" class="code-out"></pre>
           <div class="panel-subtitle">Runtime-log</div>
