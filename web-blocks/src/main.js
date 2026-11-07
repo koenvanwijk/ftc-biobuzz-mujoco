@@ -9,6 +9,7 @@ import { installEditorHelpers, focusEditor } from './editor/editorFocus.js';
 import { createRuntime } from './ftc-runtime/createRuntime.js';
 import { initSplitLayout } from './ui/splitLayout.js';
 import { initHelpPanel } from './help/helpPanel.js';
+import { RoutePlot } from './ui/routePlot.js';
 import { resolveCameraConfig, cameraFov, normalizeResolution, applyCameraMount } from './mujoco/robotCamera.js';
 import {
   initCameraFovSelect,
@@ -828,6 +829,7 @@ function wireUi() {
     opModeOwns = false;
     clearGamepadOverrides();
     $('telemetryOut').textContent = '';
+    routePlot?.reset();
     log('Sim gereset');
     updateButtons('Idle');
     $('runStatus').textContent = 'Idle';
@@ -851,6 +853,7 @@ function wireUi() {
       }
       adapter.resetPose();
       runtime.resetAll();
+      routePlot?.reset();
       latestCommands = {};
       resetCameraResolution();
       lastOpModeCamera = null;
@@ -1016,7 +1019,50 @@ function readGamepadSnapshot() {
   return { g1: g(runtime.gamepad1), g2: g(runtime.gamepad2) };
 }
 
+/** @type {RoutePlot | null} */
+let routePlot = null;
+let routeJointAdr = -2;
+let routeLastDraw = 0;
+
+function initRoutePanel() {
+  const canvas = document.getElementById('routeCanvas');
+  if (!canvas) return;
+  routePlot = new RoutePlot(canvas);
+  const show = (route) => {
+    $('routeWrap').hidden = !route;
+    $('jsOut').hidden = route;
+    $('tabRoute').classList.toggle('active', route);
+    $('tabJs').classList.toggle('active', !route);
+    if (route) { routePlot.dirty = true; routePlot.draw(); }
+  };
+  $('tabRoute').onclick = () => show(true);
+  $('tabJs').onclick = () => show(false);
+  $('btnRouteClear').onclick = () => routePlot.reset();
+  routePlot.draw();
+}
+
+/** Robotpose (x, y, yaw) per frame naar de route-plot; tekenen max ~20 Hz. */
+function sampleRoute(mujoco, model, data) {
+  if (!routePlot) return;
+  if (routeJointAdr === -2) {
+    const id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT.value, 'robot_free');
+    routeJointAdr = id >= 0 ? model.jnt_qposadr[id] : -1;
+  }
+  if (routeJointAdr < 0) return;
+  const q = data.qpos, a = routeJointAdr;
+  const w = q[a + 3], qx = q[a + 4], qy = q[a + 5], qz = q[a + 6];
+  const yaw = Math.atan2(2 * (w * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz));
+  routePlot.add(q[a], q[a + 1], yaw);
+  const now = performance.now();
+  if (now - routeLastDraw > 50 && !$('routeWrap').hidden) {
+    routeLastDraw = now;
+    routePlot.draw();
+  }
+}
+
 function startLoop() {
+  if (!routePlot) initRoutePanel();
+  routeJointAdr = -2;
   const { mujoco, model, data } = mujocoBundle;
   const timestep = model.opt.timestep;
   let last = performance.now();
@@ -1032,6 +1078,7 @@ function startLoop() {
       const cmd = teleopInput.poll();
       if (cmd.reset) {
         adapter.resetPose();
+        routePlot?.reset();
         log('Teleop reset (R)');
       }
       adapter.applyTeleop(cmd);
@@ -1060,6 +1107,7 @@ function startLoop() {
     if (viewer.sync) viewer.sync();
     if (viewer.render) viewer.render();
     updateBiobuzzHud();
+    sampleRoute(mujoco, model, data);
   };
   anim = requestAnimationFrame(frame);
 }

@@ -400,3 +400,12 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
   .help-overlay { padding: 0.5rem; }
   .help-table td:first-child { white-space: normal; }
 }
+
+/* Route-plot (bovenaanzicht) */
+.route-tabs { display: flex; gap: 0.25rem; align-items: center; }
+.route-tab { font-size: 0.7rem; padding: 0.1rem 0.5rem; cursor: pointer; }
+.route-tab.active { font-weight: bold; outline: 1px solid currentColor; }
+#btnRouteClear { margin-left: auto; }
+.route-wrap { border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.route-wrap[hidden] { display: none; }
+.route-canvas { display: block; width: 100%; aspect-ratio: 1.15 / 1; max-height: 50vh; }
