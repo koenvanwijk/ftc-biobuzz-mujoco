@@ -68,3 +68,13 @@ export function routeToBlocksXml(segments, { name = 'gevolgdeRoute', x = 0, y = 
 }
 
 export const REQUIRED_HELPERS = ['turnToHeading', 'driveStraight'];
+
+/**
+ * Shift-snap: maak het segment prev->p as-gericht t.o.v. het veld (grootste component blijft,
+ * de andere wordt 0). Sim- en FTC-assen staan 90° gedraaid, dus as-gericht in sim = as-gericht in FTC.
+ */
+export function snapAxisAligned(prev, p) {
+  if (!prev) return { x: p.x, y: p.y };
+  const dx = p.x - prev.x, dy = p.y - prev.y;
+  return Math.abs(dx) >= Math.abs(dy) ? { x: p.x, y: prev.y } : { x: prev.x, y: p.y };
+}

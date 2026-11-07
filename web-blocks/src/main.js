@@ -11,7 +11,7 @@ import { initSplitLayout } from './ui/splitLayout.js';
 import { initHelpPanel } from './help/helpPanel.js';
 import { RoutePlot } from './ui/routePlot.js';
 import { parseFieldElements } from './ui/fieldElements.js';
-import { waypointSegments, routeToBlocksXml, REQUIRED_HELPERS } from './ui/routeWaypoints.js';
+import { snapAxisAligned, waypointSegments, routeToBlocksXml, REQUIRED_HELPERS } from './ui/routeWaypoints.js';
 import { resolveCameraConfig, cameraFov, normalizeResolution, applyCameraMount } from './mujoco/robotCamera.js';
 import {
   initCameraFovSelect,
@@ -1063,6 +1063,7 @@ function initRoutePanel() {
     const r = canvas.getBoundingClientRect();
     const p = routePlot.toWorld(e.clientX - r.left, e.clientY - r.top);
     if (!p) return;
+    routePlot.preview = null;
     if (!routePlot.waypoints.length) {
       // Start = huidige robotpose; de yaw daar is IMU-heading 0.
       const cur = routePlot.tracker.current;
@@ -1070,9 +1071,19 @@ function initRoutePanel() {
       routeStartYawDeg = cur ? (cur.yaw * 180) / Math.PI : 0;
       if (!cur) { routePlot.redraw(); return; }
     }
-    routePlot.waypoints.push(p);
+    const prev = routePlot.waypoints[routePlot.waypoints.length - 1];
+    routePlot.waypoints.push(e.shiftKey ? snapAxisAligned(prev, p) : p);
     routePlot.redraw();
   });
+  canvas.addEventListener('mousemove', (e) => {
+    if (!routePlot.drawMode || !routePlot.waypoints.length) return;
+    const r = canvas.getBoundingClientRect();
+    const p = routePlot.toWorld(e.clientX - r.left, e.clientY - r.top);
+    const prev = routePlot.waypoints[routePlot.waypoints.length - 1];
+    routePlot.preview = p ? { ...(e.shiftKey ? snapAxisAligned(prev, p) : p), snapped: e.shiftKey } : null;
+    routePlot.redraw();
+  });
+  canvas.addEventListener('mouseleave', () => { routePlot.preview = null; routePlot.redraw(); });
   $('btnRouteBlocks').onclick = async () => {
     try {
       const segs = waypointSegments(routePlot.waypoints, routeStartYawDeg);

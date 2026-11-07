@@ -74,6 +74,8 @@ export class RoutePlot {
     /** @type {{x:number,y:number}[]} */
     this.waypoints = [];
     this.drawMode = false;
+    /** Voorbeeldpunt (sim-coördinaten) tijdens hover in tekenmodus. */
+    this.preview = null;
     /** @type {ReturnType<import('./fieldElements.js').parseFieldElements> | null} */
     this.field = null;
     this._map = null;
@@ -187,6 +189,16 @@ export class RoutePlot {
         ctx.beginPath(); ctx.arc(qx, qy, 7, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#fff'; ctx.fillText(i ? String(i) : 'S', qx, qy);
       });
+      ctx.restore();
+    }
+    // Voorbeeld van het volgende (evt. gesnapte) punt
+    if (this.preview && wp.length) {
+      const [ax, ay] = sp(wp[wp.length - 1].x, wp[wp.length - 1].y);
+      const [bx, by] = sp(this.preview.x, this.preview.y);
+      ctx.save();
+      ctx.setLineDash([3, 3]); ctx.strokeStyle = this.preview.snapped ? '#0ff' : 'rgba(0,255,0,0.5)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      ctx.setLineDash([]); ctx.beginPath(); ctx.arc(bx, by, 5, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
     }
     // Robotmarker (driehoek in kijkrichting)
