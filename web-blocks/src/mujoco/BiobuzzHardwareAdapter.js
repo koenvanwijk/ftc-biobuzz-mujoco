@@ -48,6 +48,7 @@ export class BiobuzzHardwareAdapter {
     this._lastShootOk = false;
     /** Gesimuleerde flywheelsnelheid (ticks/s) en feeder-timer (REV Starter Bot TeleOp). */
     this._flyVel = 0;
+    this.audioState = {};
     this._feedT = 0;
     this._hud = { hopper: 0, nectar: 0, scoreRed: 0, scoreBlue: 0, intake: 'uit' };
 
@@ -173,6 +174,11 @@ export class BiobuzzHardwareAdapter {
     );
     this._flyTarget = flywheelTarget(flyCmd);
     this.mech.setIntakePower(intakePower);
+    this.audioState = {
+      drive: Math.abs(leftElec) > 1e-6 || Math.abs(rightElec) > 1e-6,
+      intake: Math.abs(intakePower) > 1e-6,
+      flywheel: Math.abs(this._flyTarget) > 1e-6,
+    };
 
     // Flank-schot alleen in vermogensmodus en vooruit (setVelocity / achteruit-draaien schiet niet zelf).
     const fly = mapFlywheelEdge(flyCmd?.velocityMode ? 0 : Math.max(0, flyCmd?.power || 0), this._flyArmed, this._thr);
@@ -234,11 +240,21 @@ export class BiobuzzHardwareAdapter {
     if (!cmd) return;
     setTankPower(this.data, cmd.left || 0, cmd.right || 0);
     this.mech.setIntakePower(cmd.intake || 0);
+    this.audioState = {
+      drive: Math.abs(cmd.left || 0) > 1e-6 || Math.abs(cmd.right || 0) > 1e-6,
+      intake: Math.abs(cmd.intake || 0) > 1e-6,
+      flywheel: !!cmd.flywheel,
+    };
     if (cmd.shoot) this._lastShootOk = this.mech.fire();
     if (cmd.placeNectar) this._lastPlaceResult = this.mech.tryPlaceNectar();
   }
 
   zeroAll() {
+    this.audioState = {};
+    this._flyTarget = 0;
+    this._flyVel = 0;
+    this._feeding = false;
+    this._feedT = 0;
     resetDriveState();
     setTankPower(this.data, 0, 0);
     updateDriveSlew(this.data, 1); // snap toward 0

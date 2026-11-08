@@ -67,6 +67,7 @@ export class InputHandler {
       right: 0,
       intake: 0,
       shoot: false,
+      flywheel: this.keys.has(' ') || this.keys.has('f'),
       placeNectar: false,
       reset: false,
       modeChanged: false,
@@ -133,6 +134,7 @@ export class InputHandler {
         trigger > 0.4 ||
         (pad.axes.length > 4 && axis(pad, 4) > 0.5) ||
         (pad.buttons.length > 7 && !!pad.buttons[7]?.pressed);
+      cmd.flywheel ||= !!trigPressed;
       if (trigPressed && !this._prevShootBtn) cmd.shoot = true;
       this._prevShootBtn = !!trigPressed;
 

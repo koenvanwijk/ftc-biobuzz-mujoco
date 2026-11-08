@@ -1,4 +1,6 @@
 import { publicUrl } from './publicUrl.js';
+import { RobotAudio } from './audio/RobotAudio.js';
+import { RobotImpacts } from './audio/RobotImpacts.js';
 import { initScorePanel } from './ui/scorePanel.js';
 import { loadBiobuzzSim, BiobuzzViewer, InputHandler } from './worlds/biobuzz/index.js';
 import { BiobuzzHardwareAdapter } from './mujoco/BiobuzzHardwareAdapter.js';
@@ -34,6 +36,8 @@ const log = (msg) => {
 let simConfig;
 let mujocoBundle;
 let adapter;
+let robotAudio;
+let robotImpacts;
 let viewer;
 let runtime;
 let runner;
@@ -219,6 +223,25 @@ async function boot() {
     mujocoBundle.data,
     simConfig,
   );
+  robotImpacts = new RobotImpacts(mujocoBundle.mujoco, mujocoBundle.model);
+  robotAudio = new RobotAudio(
+    Object.fromEntries(['flywheel', 'intake', 'drive', 'collision'].map((name) => [name, publicUrl(`audio/${name}.m4a`)])),
+    { onError: (error) => {
+      $('btnSound').textContent = 'Geluid opnieuw proberen';
+      $('btnSound').setAttribute('aria-pressed', 'false');
+      log(`Geluid niet beschikbaar: ${error.message}`);
+    } },
+  );
+  $('btnSound').onclick = () => {
+    const enabled = !robotAudio.enabled;
+    $('btnSound').textContent = enabled ? 'Geluid uitzetten' : 'Geluid aanzetten';
+    $('btnSound').setAttribute('aria-pressed', String(enabled));
+    void robotAudio.setEnabled(enabled);
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) robotAudio.stopAll();
+  });
+  window.addEventListener('pagehide', () => robotAudio.stopAll());
   viewer = new BiobuzzViewer(
     $('simCanvas'),
     mujocoBundle.mujoco,
@@ -300,6 +323,7 @@ async function boot() {
       endDebugSession({ keepHighlight: true });
       $('runStatus').textContent = 'ERROR';
       adapter.zeroAll();
+      robotAudio?.stopAll();
       opModeOwns = false;
       clearGamepadOverrides();
       updateButtons('ERROR');
@@ -310,6 +334,7 @@ async function boot() {
       opModeOwns = false;
       clearGamepadOverrides();
       adapter.zeroAll();
+      robotAudio?.stopAll();
       updateButtons('DONE');
     },
   });
@@ -812,9 +837,10 @@ function wireUi() {
   };
 
   $('btnReset').onclick = () => {
-    runner.stop(() => adapter.zeroAll());
+    runner.stop(() => { adapter.zeroAll(); robotAudio?.stopAll(); });
     endDebugSession();
     adapter.resetPose();
+    robotImpacts?.reset();
     runtime.resetAll();
     latestCommands = {};
     resetCameraResolution();
@@ -845,12 +871,14 @@ function wireUi() {
         $('jsOut').textContent = code;
       }
       adapter.resetPose();
+      robotImpacts?.reset();
       runtime.resetAll();
       routePlot?.reset();
       latestCommands = {};
       resetCameraResolution();
       lastOpModeCamera = null;
       adapter.zeroAll();
+      robotAudio?.stopAll();
       opModeOwns = true;
       const sensors = adapter.readSensors();
       endDebugSession();
@@ -887,6 +915,7 @@ function wireUi() {
     endDebugSession();
     runner.stop(() => {
       adapter.zeroAll();
+      robotAudio?.stopAll();
       latestCommands = {};
       opModeOwns = false;
       clearGamepadOverrides();
@@ -1137,6 +1166,7 @@ function startLoop() {
       const cmd = teleopInput.poll();
       if (cmd.reset) {
         adapter.resetPose();
+        robotImpacts?.reset();
         routePlot?.reset();
         log('Teleop reset (R)');
       }
@@ -1155,11 +1185,13 @@ function startLoop() {
         adapter.applyCommands(latestCommands);
       }
       mujoco.mj_step(model, data);
+      if (robotImpacts.sample(data) && !document.hidden) robotAudio.impact();
       runtime.clock.advance(timestep);
       physicsAccumulator -= timestep;
       steps++;
     }
 
+    robotAudio.update(simPaused || document.hidden ? {} : adapter.audioState);
     const sensors = adapter.readSensors();
     runtime.bus.setSensors(sensors);
     runner.pushClock(runtime.clock.timeSec, sensors, readGamepadSnapshot());

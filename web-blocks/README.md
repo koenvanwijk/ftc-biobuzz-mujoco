@@ -215,3 +215,18 @@ BIOBUZZ XML/meshes/textures zijn **gekopieerd** naar `public/assets/` (bron: `ft
 - Physics is niet gevalideerd tegen een echte robot.
 - BIOBUZZ intake/shoot/place zijn **soft bridges**, geen pure joint-actuators.
 - IMU + Webcam/AprilTag/ColorBlobLocator zijn **expliciete simulator-extensies** (toolbox + runtime); geen stille placeholders — details in `src/config/extensions.md`.
+
+## Robotgeluid
+
+Klik **Geluid aanzetten** voor browser-autoplaytoestemming; opnieuw klikken dempt alles.
+De flywheel-, intake- en rijopnamen lopen onafhankelijk, alleen zolang hun motorcommandos actief zijn
+(inclusief achteruit en `setVelocity`; `RUN_TO_POSITION` stopt op het doel). In idle-teleop klinkt
+het flywheel zolang Space/F of RT ingedrukt is. De intake staat in idle-teleop standaard aan.
+STOP/DONE/ERROR stoppen de OpMode-geluiden onmiddellijk; daarna volgt geluid de hervatte idle-teleop.
+Pauze en een verborgen tab zijn stil. Botsingsgeluid volgt nieuwe robotcontacten met het veld of
+elementen, niet grond/wielen, zelfcontact, spawn-contact of voortdurend tegen een muur duwen.
+Een contactonderbreking van minstens 0,12 s herbewapent een impact (globale cooldown 0,15 s).
+
+De vier originele opnamen horen in `public/audio/{flywheel,intake,drive,collision}.m4a`.
+Er is geen gesynthetiseerd vervangend geluid. Ontbrekende of niet ondersteunde opnamen geven
+een melding in het log en de knop **Geluid opnieuw proberen**; de simulatie blijft werken.
