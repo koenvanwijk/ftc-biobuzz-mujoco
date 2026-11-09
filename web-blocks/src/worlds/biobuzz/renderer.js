@@ -466,7 +466,8 @@ export class MujocoThreeViewer {
       ch = Math.max(2, Math.floor(rect?.height || 360));
     }
     const margin = 16;
-    // Top-right corner; canvas is sized from its panel, so a small inset keeps the frame visible.
+    // Top-right on desktop; bottom-right in mobile-play so Schiet/Intake (top corners) stay clear.
+    const mobilePlay = typeof document !== 'undefined' && document.getElementById('app')?.classList.contains('mobile-play');
     const rightInset = 24;
     // Lange zijde 140–280 px; portret (aspect < 1) wordt smal en hoog.
     const base = Math.min(280, Math.max(140, Math.floor(cw * 0.24)));
@@ -479,7 +480,15 @@ export class MujocoThreeViewer {
       pipW = Math.max(1, Math.floor((pipW * maxH) / pipH));
       pipH = maxH;
     }
-    return { cw, ch, margin, rightInset, pipW, pipH, corner: 'top-right' };
+    // Leave room for the bottom-left joystick in mobile landscape.
+    if (mobilePlay) {
+      const maxW = Math.max(40, cw - 2 * margin - 120);
+      if (pipW > maxW) {
+        pipH = Math.max(1, Math.floor((pipH * maxW) / pipW));
+        pipW = maxW;
+      }
+    }
+    return { cw, ch, margin, rightInset, pipW, pipH, corner: mobilePlay ? 'bottom-right' : 'top-right' };
   }
 
   _layoutPipLabel() {

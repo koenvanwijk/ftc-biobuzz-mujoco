@@ -195,7 +195,7 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
 }
 
 .editor-panel iframe { flex: 1; width: 100%; border: 0; background: #fff; min-height: 0; }
-.sim-panel { background: #1a1f2a; }
+.sim-panel { background: #1a1f2a; position: relative; }
 #simCanvas { flex: 1 1 0%; width: 100%; max-width: 100%; height: auto; display: block; min-width: 0; min-height: 0; }
 .on-screen-pad {
   position: absolute; left: 0.5rem; bottom: 0.5rem;
@@ -203,6 +203,161 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
 }
 .pad-row { display: flex; gap: 0.35rem; margin-bottom: 0.25rem; }
 .on-screen-pad button { min-width: 2.5rem; }
+
+/* Mobile virtual joystick (bottom-left) + shoot (top-right).
+   Absolute inside the sim panel on desktop; fixed to the viewport on phones
+   so the controls stay usable when the vertical split makes the sim short. */
+.mobile-controls {
+  position: absolute; inset: 0; z-index: 4; pointer-events: none;
+}
+.mobile-controls[hidden] { display: none !important; }
+.mobile-joystick {
+  pointer-events: auto;
+  position: absolute; left: 0.6rem; bottom: 0.6rem;
+  width: 7.5rem; height: 7.5rem;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+  display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+}
+.mobile-joystick-base {
+  width: 6.75rem; height: 6.75rem; border-radius: 50%;
+  background: rgba(15, 20, 28, 0.72);
+  border: 2px solid rgba(61, 139, 253, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 4px 16px rgba(0,0,0,0.35);
+  position: relative;
+}
+.mobile-joystick.is-active .mobile-joystick-base {
+  border-color: var(--accent);
+  background: rgba(20, 32, 52, 0.85);
+}
+.mobile-joystick-knob {
+  position: absolute; left: 50%; top: 50%;
+  width: 2.6rem; height: 2.6rem; margin: -1.3rem 0 0 -1.3rem;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #4a9bff, #1f4f9c);
+  border: 2px solid rgba(232, 238, 248, 0.85);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  transform: translate(0px, 0px);
+  will-change: transform;
+}
+.mobile-joystick-label {
+  font-size: 0.68rem; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+.mobile-btn {
+  pointer-events: auto;
+  position: absolute;
+  width: 4.6rem; height: 4.6rem; border-radius: 50%;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+  color: var(--text); font-weight: 700; font-size: 0.85rem;
+  letter-spacing: 0.02em; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+.mobile-btn:active, .mobile-btn.is-pressed { transform: scale(0.96); }
+.mobile-shoot {
+  left: 0.65rem; top: 0.65rem;
+  background: rgba(107, 36, 48, 0.88);
+  border: 2px solid var(--danger);
+}
+.mobile-shoot:hover, .mobile-shoot.is-pressed {
+  background: #a33242;
+  box-shadow: 0 0 0 2px rgba(227, 93, 106, 0.45), 0 4px 14px rgba(0,0,0,0.4);
+}
+.mobile-intake {
+  right: 0.65rem; top: 0.65rem;
+  background: rgba(31, 79, 156, 0.9);
+  border: 2px solid var(--accent);
+}
+.mobile-intake:hover, .mobile-intake.is-pressed {
+  background: #2a6fd4;
+  box-shadow: 0 0 0 2px rgba(61, 139, 253, 0.45), 0 4px 14px rgba(0,0,0,0.4);
+}
+.mobile-play-ui { position: absolute; inset: 0; pointer-events: none; }
+.mobile-play-ui[hidden] { display: none !important; }
+.mobile-play-ui .mobile-joystick,
+.mobile-play-ui .mobile-btn { pointer-events: auto; }
+.mobile-rotate {
+  position: absolute; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(8, 12, 20, 0.92);
+  pointer-events: auto;
+}
+.mobile-rotate[hidden] { display: none !important; }
+.mobile-rotate-card {
+  text-align: center; padding: 1.5rem 1.25rem; max-width: 18rem;
+  background: #171d28; border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+}
+.mobile-rotate-icon {
+  font-size: 3rem; line-height: 1; color: var(--accent);
+  margin-bottom: 0.75rem;
+  animation: mobile-rotate-spin 2.4s ease-in-out infinite;
+}
+@keyframes mobile-rotate-spin {
+  0%, 100% { transform: rotate(0deg); }
+  40% { transform: rotate(90deg); }
+  60% { transform: rotate(90deg); }
+}
+.mobile-rotate-title {
+  margin: 0 0 0.4rem; font-size: 1.15rem; font-weight: 700; color: var(--text);
+}
+.mobile-rotate-hint {
+  margin: 0; font-size: 0.9rem; color: var(--muted);
+}
+
+/* Fullscreen sim + overlays: driven by #app.mobile-play (JS). Also match short
+   landscape phones via max-height so CSS works before JS runs. */
+@media (max-width: 700px), (max-height: 500px) {
+  html, body, #app { height: 100%; overflow: hidden; }
+}
+
+#app.mobile-play .toolbar,
+#app.mobile-play .editor-panel,
+#app.mobile-play .side-panel,
+#app.mobile-play .splitter,
+#app.mobile-play .biobuzz-hud,
+#app.mobile-play .score-panel,
+#app.mobile-play .panel-title {
+  display: none !important;
+}
+#app.mobile-play {
+  height: 100%;
+  overflow: hidden;
+}
+#app.mobile-play .main {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column !important;
+}
+#app.mobile-play .sim-panel {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  position: relative;
+}
+#app.mobile-play #simCanvas {
+  flex: 1 1 auto;
+  width: 100% !important;
+  height: 100% !important;
+}
+#app.mobile-play .mobile-controls {
+  position: absolute; inset: 0; z-index: 40;
+}
+#app.mobile-play .mobile-joystick {
+  position: absolute; left: 0.75rem; bottom: 0.75rem;
+  width: 6.5rem; height: 6.5rem;
+}
+#app.mobile-play .mobile-joystick-base { width: 5.75rem; height: 5.75rem; }
+#app.mobile-play .mobile-btn {
+  width: 4.25rem; height: 4.25rem; font-size: 0.78rem; top: 0.75rem;
+}
+#app.mobile-play .mobile-shoot { left: 0.75rem; right: auto; }
+#app.mobile-play .mobile-intake { right: 0.75rem; left: auto; }
+#app.mobile-portrait .mobile-play-ui { display: none !important; }
+
 .side-panel { background: var(--panel); }
 .side-panel-body {
   flex: 1;

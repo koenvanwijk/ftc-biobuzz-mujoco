@@ -53,7 +53,7 @@ export default {
   id: 'sneltoetsen',
   title: 'Sneltoetsen',
   html: `
-<p>Het toetsenbord werkt op de hele pagina, behalve als de cursor in de Blocks-editor (iframe) staat. Klik dus eerst op de simulatie of een lege plek. Een aangesloten fysieke gamepad werkt ook. In idle teleop vervangt die de rij-toetsen (W/S/I/K/A/D/pijltjes) en de C-toets; E, Space/F, X, T en R blijven werken.</p>
+<p>Het toetsenbord werkt op de hele pagina, behalve als de cursor in de Blocks-editor (iframe) staat. Klik dus eerst op de simulatie of een lege plek. Een aangesloten fysieke gamepad werkt ook. In idle teleop vervangt die de rij-toetsen (W/S/I/K/A/D/pijltjes) en de C-toets; E, Space/F, X, T en R blijven werken. Op de telefoon: <strong>Touch-besturing</strong> (joystick + Schiet) stuurt dezelfde stick/RT; een fysieke pad wint als die niet in rust is.</p>
 
 <h3>Idle: geen OpMode actief</h3>
 <p>Voor INIT, na STOP/DONE/ERROR en na Reset sim. Hier bestuurt de standaard BIOBUZZ-teleop de robot direct (HUD: Control = Teleop).</p>

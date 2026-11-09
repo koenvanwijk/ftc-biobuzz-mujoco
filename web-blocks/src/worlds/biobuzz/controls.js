@@ -14,6 +14,8 @@
  * Intake latched (default ON) — E / R1(RB) toggles; C / L1(LB) = rear FIFO out while held.
  * Space/F / R2(RT) = shoot (R2 must not toggle intake).
  * X / gamepad X = FIFO rear → flower stack (or drop).
+ * On-screen joystick (setVirtualStick) + shoot (setVirtualShoot) for phones;
+ * physical gamepad sticks/buttons win when non-zero.
  */
 export class InputHandler {
   constructor() {
@@ -28,6 +30,13 @@ export class InputHandler {
     this._prevIntakeToggle = false;
     this._prevPlaceBtn = false;
     this._prevE = false;
+    // On-screen joystick / shoot (FTC stick: up = negative Y). Physical pad wins when non-zero.
+    this._virtLx = 0;
+    this._virtLy = 0;
+    this._virtShoot = false;
+    this._prevVirtShoot = false;
+    this._virtIntake = false;
+    this._prevVirtIntake = false;
     this._onKeyDown = (e) => {
       const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       this.keys.add(k);
@@ -54,6 +63,26 @@ export class InputHandler {
     };
     window.addEventListener('keydown', this._onKeyDown);
     window.addEventListener('keyup', this._onKeyUp);
+  }
+
+  /**
+   * On-screen left stick in FTC/browser units (−1..1). Merged in poll() when pad sticks are at rest.
+   * @param {number} leftStickX
+   * @param {number} leftStickY
+   */
+  setVirtualStick(leftStickX, leftStickY) {
+    this._virtLx = Number(leftStickX) || 0;
+    this._virtLy = Number(leftStickY) || 0;
+  }
+
+  /** On-screen shoot (Right Trigger / Space). Edge while held → cmd.shoot; held → flywheel. */
+  setVirtualShoot(pressed) {
+    this._virtShoot = !!pressed;
+  }
+
+  /** On-screen intake (Right Bumper / E). Edge toggles intake latch, like physical RB in idle. */
+  setVirtualIntake(pressed) {
+    this._virtIntake = !!pressed;
   }
 
   dispose() {
@@ -159,6 +188,29 @@ export class InputHandler {
       }
       if (down('c')) reverse = true;
     }
+
+    // Virtual on-screen stick when physical sticks / keys left drive at rest
+    if (Math.abs(left) < 1e-6 && Math.abs(right) < 1e-6) {
+      const vx = this._virtLx;
+      const vy = -this._virtLy; // browser stickY up=-1 → positive throttle like pad path
+      if (Math.abs(vx) > 1e-6 || Math.abs(vy) > 1e-6) {
+        if (this.arcade) {
+          left = vy + vx;
+          right = vy - vx;
+        } else {
+          left = vy;
+          right = vy;
+        }
+      }
+    }
+    if (this._virtShoot) {
+      cmd.flywheel = true;
+      if (!this._prevVirtShoot) cmd.shoot = true;
+    }
+    this._prevVirtShoot = this._virtShoot;
+
+    if (this._virtIntake && !this._prevVirtIntake) this.intakeOn = !this.intakeOn;
+    this._prevVirtIntake = this._virtIntake;
 
     const m = Math.max(Math.abs(left), Math.abs(right), 1);
     cmd.left = left / m;
