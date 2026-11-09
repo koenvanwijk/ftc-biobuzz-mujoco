@@ -14,6 +14,7 @@ export default {
     <tr><td><strong>INIT</strong></td><td>Reset de robot en runtime, start je OpMode en draait tot <code>waitForStart</code>. Vanaf nu bestuurt de OpMode de robot (HUD: Control = OpMode). INIT is uitgeschakeld zolang een OpMode loopt.</td></tr>
     <tr><td><strong>START</strong></td><td>Gaat verder voorbij <code>waitForStart</code>: de OpMode loopt (<code>opModeIsActive</code> = waar). Alleen actief na INIT.</td></tr>
     <tr><td><strong>STOP</strong></td><td>Stopt de OpMode, zet drive en mechanismen op nul en geeft de robot terug aan de toetsenbordbesturing (idle teleop). Werkt ook in INIT en tijdens een debugger-pauze.</td></tr>
+    <tr><td><strong>Geluid aanzetten</strong></td><td>Activeert de vier robotopnamen na een bewuste klik (browser-autoplay). Flywheel, intake en rijden herhalen zolang de bijbehorende motor actief is, ook achteruit; botsingen spelen één keer per impact, niet tijdens blijvend contact. Klik opnieuw om te dempen. Geluid stopt bij pauze, reset of een verborgen tab; na STOP hervat de gewone idle-teleop.</td></tr>
     <tr><td><strong>Reset sim</strong></td><td>Stopt de OpMode, zet de robot terug op de startpositie, reset de runtime en wist de telemetry. Gebruik dit om opnieuw te beginnen.</td></tr>
     <tr><td><strong>Help</strong></td><td>Opent dit venster. Sluiten met <kbd>Esc</kbd>, de ✕-knop of een klik naast het venster. De simulatie loopt gewoon door.</td></tr>
   </tbody>
