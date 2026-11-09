@@ -7,9 +7,16 @@ const { InputHandler } = await import('../../src/worlds/biobuzz/controls.js');
 
 function press(h, k) { listeners.keydown({ key: k, code: k, preventDefault() {} }); }
 
+function setGamepads(pads) {
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: { getGamepads: () => pads },
+  });
+}
+
 describe('Idle teleop: arcade standaard (zoals REV Starter arcadeDrive)', () => {
   it('start in arcade; W = beide wielen vooruit, D = draaien', () => {
-    globalThis.navigator = { getGamepads: () => [] };
+    setGamepads([]);
     const h = new InputHandler();
     assert.equal(h.arcade, true);
     press(h, 'w');
@@ -22,7 +29,7 @@ describe('Idle teleop: arcade standaard (zoals REV Starter arcadeDrive)', () => 
   });
   it('gamepad arcade: linkerstick X stuurt (left = y + x, right = y - x)', () => {
     const axes = [0.5, -1, 0, 0];
-    globalThis.navigator = { getGamepads: () => [{ axes, buttons: [] }] };
+    setGamepads([{ axes, buttons: [] }]);
     const h = new InputHandler();
     const c = h.poll();
     assert.ok(c.left > c.right);

@@ -13,6 +13,7 @@ import { initSplitLayout } from './ui/splitLayout.js';
 import { initHelpPanel } from './help/helpPanel.js';
 import { RoutePlot } from './ui/routePlot.js';
 import { initStackSplitters } from './ui/stackSplitters.js';
+import { initMobileControls } from './ui/mobileControls.js';
 import { parseFieldElements } from './ui/fieldElements.js';
 import { snapAxisAligned, waypointSegments, routeToBlocksXml, REQUIRED_HELPERS } from './ui/routeWaypoints.js';
 import { resolveCameraConfig, cameraFov, normalizeResolution, applyCameraMount } from './mujoco/robotCamera.js';
@@ -46,6 +47,8 @@ let latestCommands = {};
 let anim = 0;
 let physicsAccumulator = 0;
 let teleopInput = null;
+let mobileControls = null;
+let opModeKeys = Object.create(null);
 let scorePanel = null; // BIOBUZZ-score (TU03 §10.5), zie ui/scorePanel.js
 let lastScore = null;
 let lastScoreT = 0;
@@ -288,6 +291,10 @@ async function boot() {
     hud: $('biobuzzHud'),
   });
   scorePanel.show();
+  mobileControls = initMobileControls({
+    root: document.querySelector('.sim-panel'),
+    toggleBtn: $('btnTouchControls'),
+  });
 
   runner = new OpModeRunner({
     onDebugState: (msg) => onDebugState(msg),
@@ -947,18 +954,17 @@ function clearGamepadOverrides() {
 }
 
 function wireGamepadFallback() {
-  const keys = Object.create(null);
   window.addEventListener('keydown', (e) => {
-    keys[e.key.toLowerCase()] = true;
+    opModeKeys[e.key.toLowerCase()] = true;
     // During OpMode: feed gamepad1 for Blocks. Idle BIOBUZZ uses InputHandler instead.
     if (opModeOwns) {
       if (e.key.startsWith('Arrow') || e.key === ' ' || e.code === 'Space') e.preventDefault();
-      applyKeys(keys);
+      applyKeys();
     }
   });
   window.addEventListener('keyup', (e) => {
-    keys[e.key.toLowerCase()] = false;
-    if (opModeOwns) applyKeys(keys);
+    opModeKeys[e.key.toLowerCase()] = false;
+    if (opModeOwns) applyKeys();
   });
 
   const pad = $('gamepadPad');
@@ -980,12 +986,15 @@ function wireGamepadFallback() {
   });
 }
 
-function applyKeys(keys) {
+/** Feed keyboard + on-screen joystick into gamepad1 during OpMode (Blocks). */
+function applyKeys() {
   // During OpMode: feed gamepad1 overrides for Blocks tank/arcade drive.
   // During biobuzz idle: InputHandler owns drive (see startLoop).
   // Axes: W/S → leftStickY · I/K or ↑/↓ → rightStickY · ←/→ → leftStickX
   // Buttons: E=RB, C=LB, X=X, Space/F=RT, G=A, B=B, Y=Y, U/J/H/L=Dpad
-  if (!opModeOwns) return;
+  // Shoot (RT), intake (RB) and left stick also come from on-screen mobile controls.
+  if (!opModeOwns || !runtime?.gamepad1) return;
+  const keys = opModeKeys;
   let ly = 0;
   let ry = 0;
   let lx = 0;
@@ -995,6 +1004,10 @@ function applyKeys(keys) {
   if (keys.k || keys.arrowdown) ry += 1;
   if (keys.arrowleft) lx -= 1;
   if (keys.arrowright) lx += 1;
+  const virt = mobileControls?.getState?.() || { leftStickX: 0, leftStickY: 0, shoot: false, intake: false };
+  // Keyboard wins per-axis when non-zero; otherwise use virtual stick (FTC/browser signs).
+  if (!lx) lx = virt.leftStickX;
+  if (!ly) ly = virt.leftStickY;
   const clamp = (v) => Math.max(-1, Math.min(1, v));
   const gp = runtime.gamepad1;
   gp.setAxisOverride('leftStickY', clamp(ly));
@@ -1002,11 +1015,11 @@ function applyKeys(keys) {
   gp.setAxisOverride('leftStickX', clamp(lx));
 
   const space = !!(keys[' '] || keys.space);
-  const shoot = space || !!keys.f;
+  const shoot = space || !!keys.f || !!virt.shoot;
   gp.setAxisOverride('rightTrigger', shoot ? 1 : 0);
 
   // Every named button each frame so release clears (false deletes override).
-  gp.setButtonOverride('RightBumper', !!keys.e);
+  gp.setButtonOverride('RightBumper', !!keys.e || !!virt.intake);
   gp.setButtonOverride('LeftBumper', !!keys.c);
   gp.setButtonOverride('X', !!keys.x);
   gp.setButtonOverride('A', !!keys.g);
@@ -1160,6 +1173,15 @@ function startLoop() {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     physicsAccumulator += dt;
+
+    // On-screen joystick / shoot → idle teleop and/or OpMode gamepad1
+    const virt = mobileControls?.getState?.();
+    if (virt && teleopInput) {
+      teleopInput.setVirtualStick(virt.leftStickX, virt.leftStickY);
+      teleopInput.setVirtualShoot(virt.shoot);
+      teleopInput.setVirtualIntake?.(virt.intake);
+    }
+    if (opModeOwns) applyKeys();
 
     // Idle BIOBUZZ teleop when OpMode does not own actuators
     if (!opModeOwns && teleopInput) {

@@ -6,6 +6,8 @@
  *  - axes[3] of axes[5] = RightStickY
  *  - buttons: A=0, B=1, X=2, Y=3, LB=4, RB=5, LT=6, RT=7, Back=8, Start=9
  * Doodzone: 0.05 (documenteer in SUPPORT_MATRIX / README).
+ *
+ * Merge: physical pad wins when non-zero; keyboard / on-screen overrides fill the rest.
  */
 const DEADZONE = 0.05;
 
@@ -55,18 +57,21 @@ export class GamepadBridge {
   }
 
   _axis(padIndexFallback, overrideKey) {
-    const o = this._override[overrideKey];
-    if (o) return o;
     const pad = this._pad();
-    if (!pad) return 0;
-    return applyDeadzone(pad.axes[padIndexFallback] || 0);
+    if (pad) {
+      const pv = applyDeadzone(pad.axes[padIndexFallback] || 0);
+      if (pv) return pv; // physical wins when non-zero
+    }
+    return this._override[overrideKey] || 0;
   }
 
   _btn(name, padButtonIndex) {
-    if (name in this._buttons) return !!this._buttons[name];
     const pad = this._pad();
-    if (!pad || padButtonIndex == null) return false;
-    return !!pad.buttons[padButtonIndex]?.pressed;
+    if (pad && padButtonIndex != null && !!pad.buttons[padButtonIndex]?.pressed) {
+      return true; // physical wins when pressed
+    }
+    if (name in this._buttons) return !!this._buttons[name];
+    return false;
   }
 
   _buttonsFromPad() {
@@ -87,20 +92,24 @@ export class GamepadBridge {
   getRightStickX() { return this._axis(2, 'rightStickX'); }
   getRightStickY() {
     const pad = this._pad();
-    if (this._override.rightStickY) return this._override.rightStickY;
-    if (!pad) return 0;
-    const idx = pad.axes.length > 3 ? 3 : 2;
-    return applyDeadzone(pad.axes[idx] || 0);
+    if (pad) {
+      const idx = pad.axes.length > 3 ? 3 : 2;
+      const pv = applyDeadzone(pad.axes[idx] || 0);
+      if (pv) return pv;
+    }
+    return this._override.rightStickY || 0;
   }
   getLeftTrigger() {
-    if (this._override.leftTrigger) return this._override.leftTrigger;
     const pad = this._pad();
-    return pad?.buttons[6]?.value || 0;
+    const pv = pad?.buttons[6]?.value || 0;
+    if (pv) return pv;
+    return this._override.leftTrigger || 0;
   }
   getRightTrigger() {
-    if (this._override.rightTrigger) return this._override.rightTrigger;
     const pad = this._pad();
-    return pad?.buttons[7]?.value || 0;
+    const pv = pad?.buttons[7]?.value || 0;
+    if (pv) return pv;
+    return this._override.rightTrigger || 0;
   }
 
   getA() { return this._btn('A', 0); }
