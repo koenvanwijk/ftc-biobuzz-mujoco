@@ -1,6 +1,6 @@
 /** One source per running motor; collision is a separate, non-looping voice. */
 export class RobotAudio {
-  constructor(urls, { contextFactory = () => new (globalThis.AudioContext || globalThis.webkitAudioContext)(), fetcher = globalThis.fetch, onError = () => {} } = {}) {
+  constructor(urls, { contextFactory = () => new (globalThis.AudioContext || globalThis.webkitAudioContext)(), fetcher = (...args) => globalThis.fetch(...args), onError = () => {} } = {}) {
     this.urls = urls;
     this.contextFactory = contextFactory;
     this.fetcher = fetcher;

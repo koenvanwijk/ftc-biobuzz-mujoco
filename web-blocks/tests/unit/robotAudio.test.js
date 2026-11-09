@@ -25,6 +25,24 @@ function fixture(fetcher) {
 }
 
 describe('recorded motor audio', () => {
+  it('default fetcher calls window.fetch with the right this (no Illegal invocation)', async () => {
+    const orig = globalThis.fetch;
+    globalThis.fetch = function (url) {
+      if (this !== undefined && this !== globalThis) throw new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation");
+      return Promise.resolve({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) });
+    };
+    try {
+      const errors = [];
+      const context = { state: 'suspended', destination: {}, resume() { this.state = 'running'; return Promise.resolve(); },
+        close() { return Promise.resolve(); }, decodeAudioData: async (b) => b,
+        createBufferSource() { return { connect() {}, disconnect() {}, start() {}, stop() {} }; } };
+      const audio = new RobotAudio({ drive: 'drive' }, { contextFactory: () => context, onError: (e) => errors.push(e) });
+      await audio.setEnabled(true);
+      assert.deepEqual(errors, []);
+      assert.equal(audio.buffers.size, 1);
+    } finally { globalThis.fetch = orig; }
+  });
+
   it('unlocks on a gesture; one independent loop per motor, no duplicates', async () => {
     const { audio, sources } = fixture();
     audio.update({ flywheel: true, intake: true, drive: true });
