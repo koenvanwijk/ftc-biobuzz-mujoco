@@ -19,7 +19,7 @@ Open **http://localhost:5174/** (BIOBUZZ field).
 ### Workflow
 
 1. Example (TankDrive / Mechanisms / EncoderAuto / **ImuAprilTag** / **ImuHiveAuto**) → *Open in editor*.
-2. *Code vernieuwen* for JS/Java.
+2. The JS panel follows block changes automatically; *Code vernieuwen* refreshes immediately (Java export stays manual).
 3. **INIT** → OpMode up to `waitForStart` (sim reset; OpMode owns actuators).
 4. **START** / **STOP** — STOP zeros drive + mechanisms; idle teleop then becomes active again.
 5. Export **Java** (optional).

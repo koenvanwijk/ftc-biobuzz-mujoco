@@ -16,7 +16,7 @@ export default {
 <h3>Hoe hangen ze samen?</h3>
 <ol>
   <li>Jij bouwt blokken in <strong>Blocks</strong>.</li>
-  <li>Met <strong>Code vernieuwen</strong> wordt daaruit JavaScript gemaakt en in het <strong>Code</strong>-paneel getoond.</li>
+  <li>Het tabblad <strong>JS</strong> toont de JavaScript van je blokken en wordt automatisch bijgewerkt na een wijziging; <strong>Code vernieuwen</strong> doet hetzelfde meteen.</li>
   <li><strong>INIT</strong> draait dat JavaScript in een aparte worker. De OpMode stuurt motoren en servo's aan in de <strong>Sim</strong>.</li>
   <li>Sensoren (encoders, IMU, AprilTags) en je gamepad/toetsen gaan de andere kant op: van de sim naar je blokken. Telemetry en fouten komen terug in het <strong>Code</strong>-paneel.</li>
 </ol>
