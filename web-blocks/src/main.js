@@ -8,6 +8,14 @@ import { OpModeRunner } from './execution/OpModeRunner.js';
 import { BlocksBridge } from './editor/blocksBridge.js';
 import { seedBlkProject } from './editor/seedProject.js';
 import { installEditorHelpers, focusEditor } from './editor/editorFocus.js';
+import {
+  DEFAULT_DEBOUNCE_MS,
+  createAutoRefreshController,
+  installAutoRefresh,
+  isBlocklyBusy,
+  isCodePanelShowing,
+  setGeneratedCodeText,
+} from './editor/autoRefreshCode.js';
 import { createRuntime } from './ftc-runtime/createRuntime.js';
 import { initSplitLayout } from './ui/splitLayout.js';
 import { initHelpPanel } from './help/helpPanel.js';
@@ -43,6 +51,7 @@ let viewer;
 let runtime;
 let runner;
 let bridge;
+let autoRefresh;
 let latestCommands = {};
 let anim = 0;
 let physicsAccumulator = 0;
@@ -183,6 +192,7 @@ function initAppSplitLayout() {
       } catch {
         /* viewer may not be ready yet */
       }
+      autoRefresh?.notifyMaybeReady();
     },
   });
 }
@@ -354,6 +364,18 @@ async function boot() {
   const installHelpers = () => installEditorHelpers(blocksFrame.contentWindow);
   blocksFrame.addEventListener('load', installHelpers);
   installHelpers();
+
+  // JS-paneel automatisch bijwerken na blokwijzigingen (debounce, niet tijdens sleep/typen).
+  // Alleen de weergave; een lopende of debug-run blijft de code gebruiken die bij INIT is vastgelegd.
+  autoRefresh = createAutoRefreshController({
+    debounceMs: DEFAULT_DEBOUNCE_MS,
+    isBusy: () => isBlocklyBusy(blocksFrame.contentWindow),
+    isPanelVisible: () => isCodePanelShowing(document),
+    refresh: () => refreshDisplayedCode(),
+  });
+  const hookAutoRefresh = () => installAutoRefresh(blocksFrame.contentWindow, autoRefresh);
+  blocksFrame.addEventListener('load', hookAutoRefresh);
+  hookAutoRefresh();
   // Na INIT/START/STOP de focus terug naar de editor: Ctrl+C/V/Z werken direct; gamepad-toetsen
   // worden vanuit de iframe doorgestuurd naar deze pagina (zie editorFocus.js).
   for (const id of ['btnInit', 'btnStart', 'btnStop']) {
@@ -815,7 +837,7 @@ function wireUi() {
       await bridge.openEditorWithProject(projectName);
       await bridge.setBlk(text, projectName);
       const js = await bridge.getJavaScript();
-      $('jsOut').textContent = js;
+      setGeneratedCodeText($('jsOut'), js);
       log(`Voorbeeld geladen: ${name}`);
       focusEditor($('blocksFrame'));
     } catch (e) {
@@ -825,9 +847,7 @@ function wireUi() {
 
   $('btnRefreshCode').onclick = async () => {
     try {
-      await bridge.install();
-      await bridge.waitUntilReady({ requireBlocks: false });
-      $('jsOut').textContent = await bridge.getJavaScript();
+      await autoRefresh.refreshNow();
       log('Code vernieuwd vanuit editor');
     } catch (e) {
       log(`Code vernieuwen: ${e.message}`);
@@ -875,7 +895,7 @@ function wireUi() {
         await bridge.install();
         await bridge.waitUntilReady({ requireBlocks: true });
         code = await bridge.getJavaScript();
-        $('jsOut').textContent = code;
+        setGeneratedCodeText($('jsOut'), code);
       }
       adapter.resetPose();
       robotImpacts?.reset();
@@ -929,6 +949,14 @@ function wireUi() {
     });
     log('STOP — drive + mechanisms zeroed; idle teleop hervat');
   };
+}
+
+
+/** Alleen het JS-weergavepaneel bijwerken; voedt de runner niet (INIT legt de code vast). */
+async function refreshDisplayedCode() {
+  await bridge.install();
+  await bridge.waitUntilReady({ requireBlocks: false });
+  setGeneratedCodeText($('jsOut'), await bridge.getJavaScript());
 }
 
 function currentName() {
@@ -1075,6 +1103,7 @@ function initRoutePanel() {
     $('tabRoute').classList.toggle('active', route);
     $('tabJs').classList.toggle('active', !route);
     if (route) { routePlot.dirty = true; routePlot.draw(); }
+    else autoRefresh?.notifyMaybeReady();
   };
   $('tabRoute').onclick = () => show(true);
   $('tabJs').onclick = () => show(false);
@@ -1133,7 +1162,7 @@ function initRoutePanel() {
       let name = 'gevolgdeRoute';
       for (let i = 2; procs.includes(name); i++) name = `gevolgdeRoute${i}`;
       await bridge.appendBlocksXml(routeToBlocksXml(segs, { name }));
-      $('jsOut').textContent = await bridge.getJavaScript();
+      setGeneratedCodeText($('jsOut'), await bridge.getJavaScript());
       log(`Functie ${name} toegevoegd (${segs.length} segmenten). Sleep 'call ${name}' in runOpMode.`);
     } catch (e) {
       log(`Maak blokken: ${e.message}`);

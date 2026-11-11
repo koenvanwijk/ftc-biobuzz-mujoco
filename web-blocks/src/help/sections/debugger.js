@@ -25,7 +25,7 @@ export default {
 
 <h3>Aanzetten</h3>
 <ol>
-  <li>Open een voorbeeld (probeer <em>DebugDemo</em>) of bouw je eigen blokken en klik op <strong>Code vernieuwen</strong>.</li>
+  <li>Open een voorbeeld (probeer <em>DebugDemo</em>) of bouw je eigen blokken. Het JS-paneel volgt automatisch (of klik op <strong>Code vernieuwen</strong> voor een directe update).</li>
   <li>Klik op <strong>Debug</strong> (werkbalk). De knop kleurt geel en de debugknoppen (Stap, Doorgaan, …) worden actief. Dit kan alleen <em>vóór INIT</em> (en niet terwijl een OpMode loopt).</li>
   <li>Klik op <strong>INIT</strong>. De OpMode pauzeert bij het eerste blok: dat blok krijgt een gele rand in de editor en de run-status toont <em>Gepauzeerd bij blok: …</em>.</li>
 </ol>
