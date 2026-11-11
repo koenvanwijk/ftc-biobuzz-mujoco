@@ -468,7 +468,6 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
 .score-sum { margin-left: auto; font-variant-numeric: tabular-nums; }
 .score-caret { opacity: 0.7; }
 .score-panel.is-collapsed { min-width: 0; }
-.score-panel.is-tiny { display: none; } /* heel smal simpaneel: totalen staan in de HUD (Score) */
 .score-panel.is-collapsed .score-body { display: none; }
 .score-panel.is-collapsed .score-caret { transform: rotate(-90deg); }
 .score-body { padding: 0 0.4rem 0.3rem; }

@@ -479,16 +479,13 @@ function updateBiobuzzHud(force = false) {
   }
   $('hudHopper').textContent = String(h.hopper);
   $('hudNectar').textContent = String(h.nectar);
-  // Score (TU03 §10.5) ±5×/s herberekenen; HUD toont dezelfde totalen als het score-paneel.
+  // Score (TU03 §10.5) ±5×/s herberekenen voor het score-paneel linksboven in het simbeeld.
   const now = performance.now();
   if (adapter.getScore && (force || !lastScore || now - lastScoreT >= 200)) {
     lastScore = adapter.getScore();
     lastScoreT = now;
     scorePanel?.update(lastScore, { force: true });
   }
-  $('hudScore').textContent = lastScore
-    ? `R${lastScore.red.total} · B${lastScore.blue.total}`
-    : `R${h.scoreRed} · B${h.scoreBlue}`;
   $('hudIntake').textContent = h.intake;
   if ($('hudApril')) $('hudApril').textContent = String(h.aprilCount ?? 0);
   $('hudOwner').textContent = opModeOwns ? 'OpMode' : 'Teleop';

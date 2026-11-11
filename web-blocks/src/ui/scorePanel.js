@@ -72,12 +72,12 @@ export function initScorePanel({ panel, toggle, rows, note, sumRed, sumBlue, hud
     if (!host) return;
     // Smal/laag simpaneel: automatisch ingeklapt (anders botst het met het camerabeeld rechtsboven).
     // Een eigen keuze geldt tot het paneel van smal naar breed (of omgekeerd) wisselt.
+    // Ook op een heel smal simpaneel blijft de ingeklapte kop zichtbaar (totalen Rood · Blauw);
+    // die stonden eerder ook in de HUD, maar die scoreregel is verwijderd.
     const narrow = host.clientWidth < 460 || host.clientHeight < 360;
-    const tiny = host.clientWidth < 300; // camerabeeld vult dan bijna de hele breedte: alleen HUD-totalen
     if (narrow !== lastNarrow) userChoice = null;
     lastNarrow = narrow;
     setCollapsed(userChoice == null ? narrow : userChoice);
-    panel.classList.toggle('is-tiny', tiny);
   };
   if (typeof ResizeObserver !== 'undefined') {
     const ro = new ResizeObserver(place);
