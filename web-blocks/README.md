@@ -1,10 +1,12 @@
 # FTC Blocks + BIOBUZZ MuJoCo
 
-Browser-app die **officiële FTC Blocks** (vendor offline-editor) combineert met de **BIOBUZZ MuJoCo WASM**-veldscène (hive, flowers, pollen, nectar, robot). Blocks-gegenereerd JavaScript stuurt dezelfde hardware-identifiers als REVStarterBot2026; op BIOBUZZ worden drive-actuators + soft mechanisms gemapt.
+Browser app that combines **official FTC Blocks** (vendor offline editor) with the **BIOBUZZ MuJoCo WASM** field scene (hive, flowers, pollen, nectar, robot). Blocks-generated JavaScript drives the same hardware identifiers as REVStarterBot2026; on BIOBUZZ, drive actuators + soft mechanisms are mapped.
 
-De standalone teleop-viewer blijft beschikbaar in `../web` (poort 5173).
+The standalone teleop viewer remains available in `../web` (port 5173).
 
-## Snel starten (combined)
+![FTC Blocks + BIOBUZZ MuJoCo simulator](../docs/screenshot-wide.png)
+
+## Quick start (combined)
 
 ```bash
 cd web-blocks   # from repo root: ftc-biobuzz-mujoco/web-blocks
@@ -12,79 +14,80 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5174/** (BIOBUZZ-veld).
+Open **http://localhost:5174/** (BIOBUZZ field).
 
 ### Workflow
 
-1. Voorbeeld (TankDrive / Mechanisms / EncoderAuto / **ImuAprilTag** / **ImuHiveAuto**) → *Open in editor*.
-2. *Code vernieuwen* voor JS/Java.
-3. **INIT** → OpMode tot `waitForStart` (sim reset; OpMode owns actuators).
-4. **START** / **STOP** — STOP zerot drive + mechanisms; daarna idle teleop weer actief.
-5. Export **Java** (optioneel).
+1. Example (TankDrive / Mechanisms / EncoderAuto / **ImuAprilTag** / **ImuHiveAuto**) → *Open in editor*.
+2. *Code vernieuwen* for JS/Java.
+3. **INIT** → OpMode up to `waitForStart` (sim reset; OpMode owns actuators).
+4. **START** / **STOP** — STOP zeros drive + mechanisms; idle teleop then becomes active again.
+5. Export **Java** (optional).
 
-### Debugger (stap voor stap door je blokken)
+### Debugger (step through your blocks)
 
-Zet **Debug** aan in de toolbar (vóór **INIT**). Daarna pauzeert de OpMode bij het eerste blok; het huidige blok krijgt een **gele rand** in de Blocks-editor en de run-status toont *Gepauzeerd bij blok: …*.
+Turn **Debug** on in the toolbar (before **INIT**). The OpMode then pauses at the first block; the current block gets a **yellow border** in the Blocks editor and the run status shows *Gepauzeerd bij blok: …*.
 
-| Knop | Werking |
+| Button | Behavior |
 |------|---------|
-| **Stap** | voert het volgende blok uit en pauzeert weer (werkt in INIT én na START; ook in `opModeIsActive`-loops). **Stapt in** aangeroepen procedures/functies (`procedures_callnoreturn` / `procedures_callreturn`): de blokken van de functie worden één voor één gemarkeerd (eerst het `to …`-definitieblok, dan de inhoud) |
-| **Stap over** | voert het huidige blok uit; is dat een functie-aanroep dan draait de **hele functie in één keer** en pauzeert de debugger bij het volgende blok in hetzelfde functieniveau. **Breakpoints binnen die functie pauzeren wél** (en ook **Pauzeer**). Op een gewoon blok (geen aanroep) doet Stap over hetzelfde als Stap |
-| **Stap uit** | draait door tot de huidige functie terugkeert en pauzeert bij het volgende blok in de aanroeper (breakpoints blijven pauzeren). Alleen actief binnen een functie (niet in `runOpMode` zelf) |
-| **Doorgaan** | draait door tot een breakpoint, **Pauzeer** of het einde |
-| **Pauzeer** | pauzeert bij het eerstvolgende blok (ook tijdens `sleep`/`idle`/`waitForStart`) |
-| **● Breakpoint** | selecteer een statement-blok in de editor en klik: breakpoint aan/uit (rode stippelrand); **Wis BP** verwijdert alles |
-| **STOP** | werkt ook tijdens een pauze (zerot motoren, wist highlight) |
+| **Stap** | executes the next block and pauses again (works in INIT and after START; also in `opModeIsActive` loops). **Steps into** called procedures/functions (`procedures_callnoreturn` / `procedures_callreturn`): the function's blocks are highlighted one by one (first the `to …` definition block, then the body) |
+| **Stap over** | executes the current block; if that is a function call, the **entire function runs in one go** and the debugger pauses at the next block at the same function level. **Breakpoints inside that function do still pause** (as does **Pauzeer**). On an ordinary block (not a call), Step over does the same as Step |
+| **Stap uit** | runs until the current function returns and pauses at the next block in the caller (breakpoints still pause). Only active inside a function (not in `runOpMode` itself) |
+| **Doorgaan** | runs until a breakpoint, **Pauzeer**, or the end |
+| **Pauzeer** | pauses at the next block (also during `sleep`/`idle`/`waitForStart`) |
+| **● Breakpoint** | select a statement block in the editor and click: toggle breakpoint (red dotted border); **Wis BP** clears all of them |
+| **STOP** | also works during a pause (zeros motors, clears the highlight) |
 
-**Tijdens een pauze staat de simulatie stil**: de OpMode is bevroren én de fysica + simtijd lopen niet door. Motoren houden hun laatste commando (het zit in de bevroren sim), telemetry blijft zichtbaar. Bij *Stap* verstrijkt geen simtijd tenzij het blok een wacht bevat (`sleep`, `idle`, `waitForStart`): dan loopt de sim tot de wacht klaar is en pauzeert daarna bij het volgende blok.
+**While paused, the simulation is frozen**: the OpMode is frozen and physics + sim time do not advance. Motors keep their last command (it sits in the frozen sim); telemetry stays visible. On *Stap*, no sim time elapses unless the block contains a wait (`sleep`, `idle`, `waitForStart`): then the sim runs until the wait finishes and pauses at the next block.
 
-#### Variabelen
+#### Variables
 
-Bij elke pauze toont het paneel **Variabelen** alle huidige variabelen met hun waarde (`lok` = lokaal in de functie, `glob` = globaal; functies, ingebouwde objecten en de simulator-API's worden niet getoond). Kleuren: **geel** = variabele die het *vorige* blok net zette (`variables_set`, `math_change`, for-teller) — de waarde is dus die **ná** uitvoeren; **blauw** = variabele die het *huidige* (nog niet uitgevoerde) blok leest (`variables_get` in zijn invoer). De statusregel toont alleen fase + blokbeschrijving (max. 48 tekens); de `naam = waarde` van het laatst gezette/gelezen blok staat in de tooltip (`title`) van de statusregel. Na **Stap**/**Doorgaan** worden de waarden grijs (verouderd) tot de volgende pauze. Waarden worden veilig geserialiseerd: getallen, tekst (afgekapt op 60 tekens), booleans, arrays/objecten (max. 8 items, 2 niveaus diep, cycli → `[cyclisch]`), functies worden overgeslagen. 
-**Hover in de editor:** tijdens een pauze toont de muis boven een blok in de Blocks-editor een klein tooltip-kader bij de cursor met de waarde van de variabelen in de *eigen velden* van dat blok (`variables_get`, `variables_set`, `math_change`, for-teller, for-each — bijv. `totaal = 36`; meerdere variabelen = meerdere regels). Bronnen: de laatste variabelen-snapshot van de worker (dezelfde als het paneel) en een `mousemove`-handler in de vendor-iframe die het blok via `g[data-id]` opzoekt (geen Blockly-bubbel/warning-API, geen vendor-patch). Het kader verdwijnt bij Stap/Doorgaan/STOP/Debug uit (alleen actief bij pauze). Waarde-blokken *binnen* een blok (bijv. de `totaal` in `totaal + i`) hebben zelf een tooltip; hover er dus direct boven. Muis over een rij in het paneel **Variabelen** omrandt (blauw) alle blokken die die variabele gebruiken. Pure logica (blok → variabelen → tekst): `src/editor/varHover.js` (`tests/unit/varHover.test.js`).
+At every pause, the **Variabelen** panel shows all current variables with their values (`lok` = local to the function, `glob` = global; functions, built-in objects and the simulator APIs are not shown). Colors: **yellow** = a variable that the *previous* block just set (`variables_set`, `math_change`, for-counter) — so the value is the one **after** execution; **blue** = a variable that the *current* (not yet executed) block reads (`variables_get` in its inputs). The status line shows only the phase + block description (max. 48 characters); the `name = value` of the last set/read block is in the status line's tooltip (`title`). After **Stap**/**Doorgaan** the values turn gray (stale) until the next pause. Values are serialized safely: numbers, text (truncated at 60 characters), booleans, arrays/objects (max. 8 items, 2 levels deep, cycles → `[cyclisch]`), functions are skipped.
 
-**Toolbar-layout:** de statusregel (`#runStatus`) staat op een eigen rij met vaste hoogte, `min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap`; de volledige tekst staat in `title`. Lange tekst verschuift dus nooit knoppen. De uitleg-hint is vervallen (staat nu in de `title` van het Variabelen-paneel). Het Variabelen-paneel is één compacte rij met vaste hoogte die altijd gereserveerd is (onzichtbaar via `visibility` als Debug uit staat; de debug-knoppen blijven met `visibility:hidden` gereserveerd en de rij heeft een vaste `min-height`; zonder pauze staat er een placeholder), zodat de layout niet springt. Knoppen-rijen wrappen bij smalle vensters.
+**Hover in the editor:** during a pause, hovering a block in the Blocks editor shows a small tooltip next to the cursor with the values of the variables in that block's *own fields* (`variables_get`, `variables_set`, `math_change`, for-counter, for-each — e.g. `totaal = 36`; multiple variables = multiple lines). Sources: the latest variables snapshot from the worker (the same as the panel) and a `mousemove` handler in the vendor iframe that looks up the block via `g[data-id]` (no Blockly bubble/warning API, no vendor patch). The tooltip disappears on Stap/Doorgaan/STOP/Debug off (only active while paused). Value blocks *inside* a block (e.g. the `totaal` in `totaal + i`) have their own tooltip; hover directly over them. Hovering a row in the **Variabelen** panel outlines (blue) all blocks that use that variable. Pure logic (block → variables → text): `src/editor/varHover.js` (`tests/unit/varHover.test.js`).
 
-**Diepte / Stap over — hoe het werkt:** de aanroepdiepte (`callDepth` in `debugController.js`) is het aantal *lopende* aanroepen van gebruikersfuncties op de `stateStack` van de JS-Interpreter (CallExpression-states met `doneExec_` en een functie met AST-body; native functies zoals `highlightBlock` tellen niet). Dat komt direct uit de echte call-stack en blijft dus juist bij recursie, `return` en fouten. `runOpMode` = diepte 1, een procedure daarin = 2, enz. *Stap over* pauzeert bij het eerstvolgende blok met diepte ≤ de huidige, *Stap uit* bij diepte < de huidige. De worker geeft `highlightBlock` die diepte mee en stuurt bij elke pauze `depth`, `prevBlockId` en `vars` naar de hoofdthread.
+**Toolbar layout:** the status line (`#runStatus`) sits on its own row with a fixed height, `min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap`; the full text is in `title`. Long text therefore never shifts buttons. The explanation hint was removed (it now lives in the `title` of the Variabelen panel). The Variabelen panel is one compact row with a fixed height that is always reserved (hidden via `visibility` when Debug is off; the debug buttons stay reserved with `visibility:hidden` and the row has a fixed `min-height`; without a pause there is a placeholder), so the layout does not jump. Button rows wrap in narrow windows.
 
-Implementatie: Debug gebruikt aparte JS (`getDebugJavaScript()` in `blocksBridge.js`) met `highlightBlock('<id>');` vóór elk statement-blok (Blockly `STATEMENT_PREFIX`, tijdelijk gezet en direct hersteld). De normale Run, het JS-paneel en de Java-export blijven ongewijzigd. Geen vendor-patch nodig. Logica: `public/execution/debugController.js` (getest in `tests/unit/debugController.test.js`).
+**Depth / Step over — how it works:** the call depth (`callDepth` in `debugController.js`) is the number of *in-flight* user-function calls on the JS Interpreter `stateStack` (CallExpression states with `doneExec_` and a function with an AST body; native functions such as `highlightBlock` do not count). That comes straight from the real call stack and therefore stays correct under recursion, `return`, and errors. `runOpMode` = depth 1, a procedure inside it = 2, and so on. *Stap over* pauses at the next block with depth ≤ the current depth, *Stap uit* at depth < the current depth. The worker includes that depth with `highlightBlock` and, at every pause, sends `depth`, `prevBlockId` and `vars` to the main thread.
 
-Voorbeeld **DebugDemo** (variabelen + procedure) in de voorbeeldlijst is bedoeld om Stap / Stap over / Stap uit en het Variabelen-paneel te proberen.
+Implementation: Debug uses separate JS (`getDebugJavaScript()` in `blocksBridge.js`) with `highlightBlock('<id>');` before every statement block (Blockly `STATEMENT_PREFIX`, set temporarily and restored immediately). Normal Run, the JS panel and Java export stay unchanged. No vendor patch required. Logic: `public/execution/debugController.js` (tested in `tests/unit/debugController.test.js`).
 
-Niet inbegrepen (nog): eigen watch-expressies, variabelen aanpassen tijdens een pauze, conditionele breakpoints, breakpoints die een herlaad van het project overleven. Breakpoints gelden voor de volgende INIT en worden ook live doorgegeven tijdens een sessie.
+The **DebugDemo** example (variables + procedure) in the example list is meant for trying Stap / Stap over / Stap uit and the Variabelen panel.
 
-> **Na worker-wijzigingen** (`public/execution/*.js`, ook `debugController.js`): hard refresh met **Ctrl+Shift+R** — de browser cachet Web Worker-scripts agressief. `src/execution/opModeWorker.js` moet identiek blijven aan `public/execution/opModeWorker.js` (de test controleert dit).
+Not included (yet): custom watch expressions, editing variables during a pause, conditional breakpoints, breakpoints that survive a project reload. Breakpoints apply to the next INIT and are also pushed live during a session.
+
+> **After worker changes** (`public/execution/*.js`, including `debugController.js`): hard-refresh with **Ctrl+Shift+R** — the browser caches Web Worker scripts aggressively. `src/execution/opModeWorker.js` must stay identical to `public/execution/opModeWorker.js` (the test checks this).
 
 ### Help
 
-De **Help**-knop (rechts in de werkbalk) opent een in-app naslagvenster in het Nederlands: panelen, knoppen, sneltoetsen, ondersteunde blokken, debugger en een stapsgewijs TankDrive-voorbeeld. Sluiten met **Esc**, ✕ of een klik naast het venster; werkbalk en sim blijven onaangetast. De inhoud staat per sectie in `src/help/sections/*.js` (de debugger-sectie verschijnt alleen als `#btnDebug` bestaat); de sneltoetstabel wordt door `tests/unit/helpContent.test.js` tegen `src/main.js` en `controls.js` gecontroleerd. Wijzig je toetsen of knoppen, pas dan ook de Help-sectie aan.
+The **Help** button (right side of the toolbar) opens an in-app reference window in Dutch: panels, buttons, shortcuts, supported blocks, the debugger, and a step-by-step TankDrive example. Close it with **Esc**, ✕, or a click outside the window; the toolbar and sim are left untouched. Content lives per section in `src/help/sections/*.js` (the debugger section appears only if `#btnDebug` exists); the shortcut table is checked by `tests/unit/helpContent.test.js` against `src/main.js` and `controls.js`. If you change keys or buttons, update the Help section as well.
 
-### UI — panelen
+### UI — panels
 
-De drie panelen (Blocks / Sim / Code) zijn **versleepbaar** via de verticale splits (horizontaal op smalle schermen). (De weergaveknoppen Blocks/Sim/Code/Gelijk zijn vervallen: gebruik de splits en ◀/⛶.) Per paneel: **◀** inklappen, **⛶** vergroten. Breedtes en inklapstatus blijven bewaard in `localStorage` (`ftc-blocks-layout-v1`). Na layout-wijziging krijgt de MuJoCo-canvas een resize (window-event + `viewer.resize()`).
+The three panels (Blocks / Sim / Code) are **resizable** via the vertical splitters (horizontal on narrow screens). (The Blocks/Sim/Code/Equal view buttons were removed: use the splitters and ◀/⛶.) Per panel: **◀** collapse, **⛶** maximize. Widths and collapse state are stored in `localStorage` (`ftc-blocks-layout-v1`). After a layout change, the MuJoCo canvas is resized (window event + `viewer.resize()`).
 
 
-### Spelregels & score (Competition Manual TU03)
+### Game rules & scoring (Competition Manual TU03)
 
-- **HIVE-kantelregel** (Event Field Setup Guide §12.3): de omhoog-CELL kantelt bij **8 POLLEN** of **3 NECTAR + 3 POLLEN** (puur op aantallen; meer mag ook). Houdt bij o.a. 7 POLLEN, 3 NECTAR + 2 POLLEN en 6 NECTAR zonder POLLEN. Elke NECTAR in de CELL telt mee (ook vrijgegeven extra's en de andere kleur). Bij de start liggen er al 3 NECTAR in elke omhoog-CELL, dus **3 gelanceerde POLLEN kantelen de HIVE**. `shouldTip()` in `src/worlds/biobuzz/hive_tip.js`.
-- **G407**: de robot controleert nooit meer dan **4** SCORING ELEMENTS (voorhopper + achtercompartiment samen; `ROBOT_CONTROL_LIMIT`). Bij 4 pakt de intake niets meer op; ballen blijven liggen of worden weggeduwd. Gelanceerde, uitgespuugde of in een FLOWER geplaatste elementen tellen niet meer. De robot start met de **4 preload-POLLEN** (G304.G) en is dus vol: eerst schieten. HUD: **Robot x / 4** (oranje als vol).
-- **Score** (§10.5, Table 10-2 / 10-3), paneel linksboven in het simbeeld en `window.__ftcSim.score()` (read-only):
-  - **HIVE TIP** 20 — live, per TIP van de eigen HIVE.
-  - **In CELL** 2, **BLOEM eigenaar** 2 per element, **Onderste NECTAR** +5, **GARDEN** 1 — uit de huidige veldtoestand ("als de wedstrijd nu eindigt"). Alleen elementen die stilliggen (|v| < 0,05 m/s) en niet in de robot zitten; zolang er nog iets rolt staat dat onder de tabel. FLOWER: elementen (deels) tussen de middelste ring (≈ 10 cm: onderring 1,0 cm + Retrieval Opening 9,0 cm, §9.7) en de bovenrand (54,6 cm); eigenaar = alliantie van de bovenste NECTAR, bonus = alliantie van de onderste. GARDEN/CELL zijn alliantie-gebonden, ongeacht wie het element plaatste.
-  - **Zonder wedstrijdklok** (bewust nog niet gebouwd) zijn de fase-afhankelijke regels **indicatief** (met * in het paneel): **LEAVE*** (3) vergrendelt zodra de robot (omhullende van alle botsende geoms, incl. de achter-intake) ≥ 3 cm van elke muur staat en blijft staan tot *Reset sim*; **PARK*** (5) = "als nu geparkeerd": robot nu (deels) in de eigen LOADING ZONE (TELEOP PARK). **AUTO PARK**, **WIN/TIE** en **fouten/penalty's** (§10.6–10.8) worden niet gescoord. **SWARM RP*** = LEAVE + PARK ≥ 16 (met één robot max. 8, dus nooit), **POLLINATOR RP** bij ≥ 4 / ≥ 7 TIPS.
-  - De robot hoort bij **rood**. Beginscore: rood 10 en blauw 10 (3 NECTAR in de omhoog-CELL = 6, plus 4 POLLEN in de GARDEN = 4). Geen PARK of LEAVE bij de start.
-- **Veldindeling** (Event Field Setup Guide §6 Fig. 6-2, §8.3, §8.4; manual §9.3–9.5): de **LOADING ZONE** ligt op **TILE A5 (rood) / F2 (blauw)**, 23 × 11 in tegen de alliantiemuur. De **GARDEN** ligt op **A1 / F6**, tegen de publieks- resp. achtermuur, vanuit de hoek bij de ALLIANCE AREA. Extra NECTAR na een TIP komt in de eigen LOADING ZONE het veld op (G427), in een raster van 2 × 3.
-  - **Oriëntatie zoals het echte veld** (Fig. 9-2 / Fig. 6-2): vanaf het publiek (−Y) gezien zit de rode muur links (−X). Kolommen A→F lopen van −X naar +X, rijen 1→6 van **−Y (publiek) naar +Y (achter)**. De rode publiekszijde-CELL (tags 34–37) en de blauwe scoringszijde-CELL (42–45) staan bij de start omhoog (Guide §11.1). De FLOWERS staan op de naden D/E (publieksmuur), B/C (achtermuur), 2/3 (rode muur) en 4/5 (blauwe muur). Tot 2026-10 was de sim in Y gespiegeld, omdat de CAD-import (x,y,z)→(x,z,y) een spiegeling was. Nu is het een rotatie (x,y,z)→(x,−z,y), zie `scripts/convert_field_cad.py`. `tileCenter()` in de constants.
-- **Startpositie (G304):** de robot staat tegen de rode muur (−X). De achter-intake raakt de muur precies, zonder penetratie, zodat er bij de start niets wegschuift. De robot staat op het achterste stuk van de muur (A6, y +1,48 m), 8 cm buiten de LOADING ZONE, met de 4 preload-POLLEN in de hopper. LEAVE* komt pas als de robot ≥ 3 cm van de muur staat.
-  - Code: `src/worlds/biobuzz/scoring.js` (puur `computeScore()` + `BiobuzzScorer`), paneel `src/ui/scorePanel.js`; tests `tests/unit/biobuzzRules*.test.js`.
+- **HIVE tip rule** (Event Field Setup Guide §12.3): the up CELL tips at **8 POLLEN** or **3 NECTAR + 3 POLLEN** (count only; more is also allowed). It holds at, among other things, 7 POLLEN, 3 NECTAR + 2 POLLEN, and 6 NECTAR with no POLLEN. Every NECTAR in the CELL counts (including released extras and the other color). At the start there are already 3 NECTAR in each up CELL, so **3 launched POLLEN tip the HIVE**. `shouldTip()` in `src/worlds/biobuzz/hive_tip.js`.
+- **G407**: the robot never controls more than **4** SCORING ELEMENTS (front hopper + rear compartment combined; `ROBOT_CONTROL_LIMIT`). At 4 the intake no longer picks anything up; balls stay on the field or are pushed aside. Launched, spit, or FLOWER-placed elements no longer count. The robot starts with the **4 preload POLLEN** (G304.G) and is therefore full: shoot first. HUD: **Robot x / 4** (orange when full).
+- **Score** (§10.5, Table 10-2 / 10-3), panel at the top left of the sim view and `window.__ftcSim.score()` (read-only):
+  - **HIVE TIP** 20 — live, per TIP of the alliance's own HIVE.
+  - **In CELL** 2, **FLOWER owner** 2 per element, **Bottom NECTAR** +5, **GARDEN** 1 — from the current field state ("if the match ended now"). Only elements that are at rest (|v| < 0.05 m/s) and not inside the robot; as long as something is still rolling, that is shown under the table. FLOWER: elements (partly) between the middle ring (≈ 10 cm: bottom ring 1.0 cm + Retrieval Opening 9.0 cm, §9.7) and the top edge (54.6 cm); owner = alliance of the top NECTAR, bonus = alliance of the bottom one. GARDEN/CELL are alliance-bound, regardless of who placed the element.
+  - **With no match clock** (deliberately not built yet) the phase-dependent rules are **indicative** (marked * in the panel): **LEAVE*** (3) locks in as soon as the robot (bounding volume of all colliding geoms, including the rear intake) is ≥ 3 cm from every wall, and stays until *Reset sim*; **PARK*** (5) = "if parked now": robot is currently (partly) in its own LOADING ZONE (TELEOP PARK). **AUTO PARK**, **WIN/TIE**, and **fouls/penalties** (§10.6–10.8) are not scored. **SWARM RP*** = LEAVE + PARK ≥ 16 (with one robot max. 8, so never), **POLLINATOR RP** at ≥ 4 / ≥ 7 TIPS.
+  - The robot belongs to **red**. Starting score: red 10 and blue 10 (3 NECTAR in the up CELL = 6, plus 4 POLLEN in the GARDEN = 4). No PARK or LEAVE at the start.
+- **Field layout** (Event Field Setup Guide §6 Fig. 6-2, §8.3, §8.4; manual §9.3–9.5): the **LOADING ZONE** is on **TILE A5 (red) / F2 (blue)**, 23 × 11 in against the alliance wall. The **GARDEN** is on **A1 / F6**, against the audience and back wall respectively, from the corner by the ALLIANCE AREA. Extra NECTAR after a TIP enters the field in the alliance's own LOADING ZONE (G427), in a 2 × 3 grid.
+  - **Orientation as on the real field** (Fig. 9-2 / Fig. 6-2): seen from the audience (−Y), the red wall is on the left (−X). Columns A→F run from −X to +X, rows 1→6 from **−Y (audience) to +Y (back)**. The red audience-side CELL (tags 34–37) and the blue scoring-side CELL (42–45) start up (Guide §11.1). The FLOWERS sit on the D/E (audience wall), B/C (back wall), 2/3 (red wall) and 4/5 (blue wall) seams. Until 2026-10 the sim was mirrored in Y, because the CAD import `(x,y,z)→(x,z,y)` was a reflection. It is now a rotation `(x,y,z)→(x,−z,y)`, see `scripts/convert_field_cad.py`. `tileCenter()` in the constants.
+- **Start position (G304):** the robot stands against the red wall (−X). The rear intake touches the wall exactly, without penetration, so nothing slides away at the start. The robot is on the back stretch of the wall (A6, y +1.48 m), 8 cm outside the LOADING ZONE, with the 4 preload POLLEN in the hopper. LEAVE* only triggers once the robot is ≥ 3 cm from the wall.
+  - Code: `src/worlds/biobuzz/scoring.js` (pure `computeScore()` + `BiobuzzScorer`), panel `src/ui/scorePanel.js`; tests `tests/unit/biobuzzRules*.test.js`.
 
-### Idle teleop (BIOBUZZ, geen actieve OpMode)
+### Idle teleop (BIOBUZZ, no active OpMode)
 
-| Input | Actie |
+| Input | Action |
 |-------|--------|
 | W/S · I/K | Tank L/R |
-| ↑/↓ | Tank rechts (zelfde als I/K) |
-| A/D of ←/→ | Arcade-bocht (forceert arcade) |
+| ↑/↓ | Tank right (same as I/K) |
+| A/D or ←/→ | Arcade turn (forces arcade) |
 | E / RB | Intake toggle |
 | C / LB | Rear FIFO spit (hold) |
 | Space/F / RT | Shoot pulse |
@@ -92,12 +95,12 @@ De drie panelen (Blocks / Sim / Code) zijn **versleepbaar** via de verticale spl
 | T | Tank/arcade toggle |
 | R | Reset keyframe + preload |
 
-### OpMode toetsenbord → `gamepad1` overrides
+### OpMode keyboard → `gamepad1` overrides
 
 | Input | Override |
 |-------|----------|
 | W / S | `leftStickY` −1 / +1 |
-| I / K of ↑ / ↓ | `rightStickY` −1 / +1 |
+| I / K or ↑ / ↓ | `rightStickY` −1 / +1 |
 | ← / → | `leftStickX` −1 / +1 |
 | E | `RightBumper` |
 | C | `LeftBumper` |
@@ -108,69 +111,69 @@ De drie panelen (Blocks / Sim / Code) zijn **versleepbaar** via de verticale spl
 | Y | button `Y` |
 | U / J / H / L | `DpadUp` / `Down` / `Left` / `Right` |
 
-Tijdens INIT/WAIT/RUN heeft de **Blocks OpMode** exclusief actuator-controle. Axis/button overrides worden gewist bij STOP/DONE/ERROR/reset.
+During INIT/WAIT/RUN the **Blocks OpMode** has exclusive actuator control. Axis/button overrides are cleared on STOP/DONE/ERROR/reset.
 
-## Drive polarity (echte robot)
+## Drive polarity (real robot)
 
-Op de echte robot rijdt de default Blocks-config `leftDrive.setDirection(FORWARD)` +
-`rightDrive.setDirection(REVERSE)` (zoals REV Starter Bot) met **positieve power op beide motoren vooruit**.
-De sim volgt dat: `simulation.json` heeft `leftDrive.defaultDirection = FORWARD`,
-`rightDrive.defaultDirection = REVERSE` (zonder setDirection-blokken gelden deze defaults;
-een `setDirection`-blok overschrijft ze). `BiobuzzHardwareAdapter` past na FTC-Direction
-`LEFT_DRIVE_SIGN = +1` / `RIGHT_DRIVE_SIGN = -1` toe (`electricalToWheelSticks`) om van
-elektrisch motorvermogen naar logische wielrichting te gaan; encoders van de rechter motor
-worden in hetzelfde (gespiegelde) frame gerapporteerd. Idle-teleop en `web/` gebruiken
-`setTankPower` met logische sticks en worden **niet** geïnverteerd.
+On the real robot the default Blocks config `leftDrive.setDirection(FORWARD)` +
+`rightDrive.setDirection(REVERSE)` (as on the REV Starter Bot) drives **forward with positive power on both motors**.
+The sim follows that: `simulation.json` has `leftDrive.defaultDirection = FORWARD`,
+`rightDrive.defaultDirection = REVERSE` (these defaults apply when there are no setDirection blocks;
+a `setDirection` block overrides them). After FTC Direction, `BiobuzzHardwareAdapter` applies
+`LEFT_DRIVE_SIGN = +1` / `RIGHT_DRIVE_SIGN = -1` (`electricalToWheelSticks`) to go from
+electrical motor power to logical wheel direction; encoders of the right motor
+are reported in the same (mirrored) frame. Idle teleop and `web/` use
+`setTankPower` with logical sticks and are **not** inverted.
 
 ## Hardware ↔ BIOBUZZ mapping
 
-| FTC config | JS-id | BIOBUZZ target |
+| FTC config | JS id | BIOBUZZ target |
 |------------|-------|----------------|
 | leftDrive | leftDriveAsDcMotor | actuator `left_drive` via `setTankPower` + `updateDriveSlew` |
-| rightDrive | rightDriveAsDcMotor | actuator `right_drive` (idem) |
-| intakeMotor | intakeMotorAsDcMotor | `IntakeShooter.intakePower` — `>0.05` achter-intake aan (`intakeLayout: "rearPollen"`: alleen gele POLLEN, direct naar de shooter voor); `<−0.05` rear spit |
+| rightDrive | rightDriveAsDcMotor | actuator `right_drive` (same) |
+| intakeMotor | intakeMotorAsDcMotor | `IntakeShooter.intakePower` — `>0.05` rear intake on (`intakeLayout: "rearPollen"`: yellow POLLEN only, straight to the front shooter); `<−0.05` rear spit |
 | flywheel | flywheelAsDcMotor | **rising edge** `|power|>0.3` → `IntakeShooter.fire()` |
 | pollenServo | pollenServoAsServo | **rising edge** `position01>0.7` → `tryPlaceNectar()` |
-| crServo | crServoAsCRServo | `|power|>0.3` forceert rear eject (zoals hold C) |
-| Voltage / hub | … | stubs ongewijzigd |
-| imu | imuAsIMU | **Simulated** body yaw/pitch/roll (zie `extensions.md`) |
-| Webcam 1 | aprilTagAccess / colorBlobLocatorAccess / visionPortalAccess | **Simulated** AprilTags en gele POLLEN-color-blobs op BIOBUZZ; geen CV. Camera = **Logitech Brio 4K** (zie hieronder) |
+| crServo | crServoAsCRServo | `|power|>0.3` forces rear eject (like holding C) |
+| Voltage / hub | … | stubs unchanged |
+| imu | imuAsIMU | **Simulated** body yaw/pitch/roll (see `extensions.md`) |
+| Webcam 1 | aprilTagAccess / colorBlobLocatorAccess / visionPortalAccess | **Simulated** AprilTags and yellow POLLEN color blobs on BIOBUZZ; no CV. Camera = **Logitech Brio 4K** (see below) |
 
-Details: `robots/BIOBUZZ/simulation.json`. Soft devices hebben geen MJCF-joint; encoders voor flywheel/intake blijven 0 (commando’s in telemetry/HUD).
+Details: `robots/BIOBUZZ/simulation.json`. Soft devices have no MJCF joint; encoders for flywheel/intake stay at 0 (commands in telemetry/HUD).
 
-Wheel-encoders (`left_wheel_j` / `right_wheel_j`) blijven beschikbaar voor EncoderAuto / RUN_TO_POSITION.
+Wheel encoders (`left_wheel_j` / `right_wheel_j`) remain available for EncoderAuto / RUN_TO_POSITION.
 
-### Robotcamera: Logitech Brio 4K
+### Robot camera: Logitech Brio 4K
 
-De robotcamera (`robot_up_cam`) volgt de echte **Logitech Brio 4K**: diagonaal zichtveld **90°** (standaard), **78°** of **65°** (zoals in Logi Tune / G HUB), native 16:9. FTC streamt standaard **640×480** (4:3): een uitsnede die het verticale zichtveld behoudt.
+The robot camera (`robot_up_cam`) follows the real **Logitech Brio 4K**: diagonal field of view **90°** (default), **78°** or **65°** (as in Logi Tune / G HUB), native 16:9. FTC streams **640×480** (4:3) by default: a crop that preserves the vertical field of view.
 
-| Preset (diagonaal) | Verticaal | Horizontaal 16:9 (1280×720) | Horizontaal 4:3 (640×480) |
+| Preset (diagonal) | Vertical | Horizontal 16:9 (1280×720) | Horizontal 4:3 (640×480) |
 |---|---|---|---|
-| 90° (standaard) | 52,2° | 82,1° | 66,3° |
-| 78° | 43,3° | 70,4° | 55,8° |
-| 65° | 34,7° | 58,1° | 45,2° |
+| 90° (default) | 52.2° | 82.1° | 66.3° |
+| 78° | 43.3° | 70.4° | 55.8° |
+| 65° | 34.7° | 58.1° | 45.2° |
 
-- **Eén bron:** `simulation.json` → `webcam.camera` (model, `dfovPresetsDeg`, `defaultDfovDeg`, resolutie); H/V worden in code afgeleid (`src/mujoco/robotCamera.js`, unit-getest). Dezelfde waarden sturen het PiP-camerabeeld (Three.js `robotCam`), de frustum-piramide, de AprilTag-detectie en de POLLEN-kleur-blob-detectie (`computePollenColorBlobs`: zelfde H × V, beeldmaat = streamresolutie, ook voor unity-ROI's).
-- **Keuzelijst "Camera-zichtveld"** in de sim-HUD; keuze bewaard in `localStorage` (`ftc-sim-camera-dfov-v1`). Wisselen werkt direct.
-- **Zichtbaarheid = rechthoekig frustum:** |horizontale hoek| ≤ H/2 én |verticale hoek| ≤ V/2 in het cameraframe (niet langer een kegel), plus bereik 2,5 m en facing-drempel.
-- **`setCameraResolution`** (VisionPortal.Builder) stuurt de resolutie naar de sim; 1280×720 geeft dus 16:9 met het volle horizontale zichtveld. Terug naar 640×480 bij de volgende INIT of *Reset sim*.
-- MJCF `fovy` van `robot_up_cam` = 52,2 (verticaal bij 90°); bij een andere preset wordt `model.cam_fovy` bijgewerkt. Het PiP-beeld komt uit de Three.js-camera, niet uit de MuJoCo-renderer.
-- **Liggend (standaard, landscape, `pitchDeg` 35 aan de voorkant) of portret:** `webcam.camera.orientation` = `"landscape"` of `"portrait"` (camera 90° om de lens gedraaid); vinkje **Portret** naast de keuzelijst schakelt direct (bewaard in `localStorage`, `ftc-sim-camera-orientation-v2`). Rechtop is het beeld dan 52,2° × 66,3° (480×640; bij 1280×720: 52,2° × 82,1°). `cameraFov()` geeft het sensorframe (`hfovDeg`/`vfovDeg`/`width`/`height`, ongewijzigd) én het rechtop gezette beeld (`viewHfovDeg`/`viewVfovDeg`/`viewAspect`/`viewWidth`/`viewHeight`, verwisseld).
-  - De rol zit in de montage (`mountQuat(pitch, roll)`), dus site/camera `robot_up_cam` draaien mee: de frustum-piramide en de AprilTag-/POLLEN-detectie werken in het **sensorframe** (640×480, beeld-X = lange kant, wijst omhoog). Zo levert de FTC-SDK het ook aan (VisionPortal draait een gedraaide webcam niet terug): blob-X = wereld-verticaal (klein = onder), blob-Y = wereld-horizontaal (klein = links), ROI's in datzelfde frame, `ftcPose` x/z gedraaid.
-  - Het PiP-beeld draait de rol terug en is daardoor rechtop en smal-hoog (3:4 / 9:16).
-- **Camerapositie:** `webcam.camera.mount` = `{ x, y, z, pitchDeg, rollDeg }` in het robotframe (z vanaf de robot-oorsprong; lens boven de mat ≈ z + 0,044 m; `rollDeg` 90 = portret, −90 = andersom; zonder `rollDeg` volgt die uit `orientation`). Wordt bij het laden op site + camera `robot_up_cam` gezet (`applyCameraMount`), dus PiP, frustum, AprilTag- en POLLEN-detectie volgen. Ontbrekende velden = standaardmontage.
-- **Standaard: portret, lens 16,5 cm boven de mat, +17,5°, 90°, 640×480** → `mount: { "x": 0.24, "y": 0, "z": 0.121, "pitchDeg": 17.5, "rollDeg": 90 }` (vóór de intake; bijgesteld t.o.v. #22 zodat nabije POLLEN niet onder het beeld vallen). Geometriestudie op de echte scène (raster 5 cm × 72 richtingen, tag gezien = in het frustum, ≤ 2,5 m, facing ≥ 0,55; vloer = POLLEN-midden in frustum; occlusie genegeerd):
+- **Single source:** `simulation.json` → `webcam.camera` (model, `dfovPresetsDeg`, `defaultDfovDeg`, resolution); H/V are derived in code (`src/mujoco/robotCamera.js`, unit-tested). The same values drive the PiP camera image (Three.js `robotCam`), the frustum pyramid, AprilTag detection and POLLEN color-blob detection (`computePollenColorBlobs`: same H × V, image size = stream resolution, including for unity ROIs).
+- **"Camera-zichtveld" dropdown** in the sim HUD; the choice is stored in `localStorage` (`ftc-sim-camera-dfov-v1`). Switching takes effect immediately.
+- **Visibility = rectangular frustum:** |horizontal angle| ≤ H/2 and |vertical angle| ≤ V/2 in the camera frame (no longer a cone), plus a 2.5 m range and a facing threshold.
+- **`setCameraResolution`** (VisionPortal.Builder) sends the resolution to the sim; 1280×720 therefore gives 16:9 with the full horizontal field of view. It returns to 640×480 on the next INIT or *Reset sim*.
+- MJCF `fovy` of `robot_up_cam` = 52.2 (vertical at 90°); for another preset, `model.cam_fovy` is updated. The PiP image comes from the Three.js camera, not from the MuJoCo renderer.
+- **Landscape (default, `pitchDeg` 35 at the front) or portrait:** `webcam.camera.orientation` = `"landscape"` or `"portrait"` (camera rotated 90° about the lens); the **Portret** checkbox next to the dropdown switches immediately (stored in `localStorage`, `ftc-sim-camera-orientation-v2`). Upright, the image is then 52.2° × 66.3° (480×640; at 1280×720: 52.2° × 82.1°). `cameraFov()` returns the sensor frame (`hfovDeg`/`vfovDeg`/`width`/`height`, unchanged) and the upright image (`viewHfovDeg`/`viewVfovDeg`/`viewAspect`/`viewWidth`/`viewHeight`, swapped).
+  - The roll is in the mount (`mountQuat(pitch, roll)`), so site/camera `robot_up_cam` rotate with it: the frustum pyramid and AprilTag/POLLEN detection work in the **sensor frame** (640×480, image-X = long side, pointing up). That is also how the FTC SDK presents it (VisionPortal does not un-rotate a rotated webcam): blob-X = world-vertical (small = bottom), blob-Y = world-horizontal (small = left), ROIs in that same frame, `ftcPose` x/z rotated.
+  - The PiP image undoes the roll and is therefore upright and tall-narrow (3:4 / 9:16).
+- **Camera position:** `webcam.camera.mount` = `{ x, y, z, pitchDeg, rollDeg }` in the robot frame (z from the robot origin; lens above the mat ≈ z + 0.044 m; `rollDeg` 90 = portrait, −90 = the other way; without `rollDeg` it follows from `orientation`). Applied to site + camera `robot_up_cam` at load (`applyCameraMount`), so PiP, frustum, AprilTag and POLLEN detection follow. Missing fields = default mount.
+- **Default: portrait, lens 16.5 cm above the mat, +17.5°, 90°, 640×480** → `mount: { "x": 0.24, "y": 0, "z": 0.121, "pitchDeg": 17.5, "rollDeg": 90 }` (in front of the intake; adjusted vs. #22 so nearby POLLEN do not fall below the frame). Geometry study on the real scene (5 cm grid × 72 directions, tag seen = in the frustum, ≤ 2.5 m, facing ≥ 0.55; floor = POLLEN center in frustum; occlusion ignored):
 
-  | Montage | Onderrand | Vloer vanaf | Tag 1,25 m vanaf | Veldposities | Poses | Afstand tot tags (p5–p95) | Schietzone gedekt |
+  | Mount | Bottom edge | Floor from | Tag 1.25 m from | Field positions | Poses | Distance to tags (p5–p95) | Shooting zone covered |
   |---|---|---|---|---|---|---|---|
-  | **portret 16,5 cm, +17,5° (standaard)** | −15,7° | 0,46 m | 0,88 m | **61 %** | 8,9 % | ~0,88–1,6 m | **95 %** |
-  | portret 18,5 cm, +22,5° (PR #22) | −10,7° | 0,79 m | 0,72 m | 72 % | 11,4 % | 0,76–1,62 m | 96 % |
-  | liggend, 18,5 cm / +22,5° | −3,6° | 2,36 m | 0,93 m | 0 % | 0 % | — | 0 % |
-  | liggend laag 6,5 cm, +22,5° (`z: 0.021`) | −3,6° | 0,47 m | 1,04 m | 55 % | 9,6 % | 1,07–1,77 m | 93 % |
-  | oud: liggend 32,4 cm, +39,7° (MJCF-pose) | +13,6° | nooit | 0,41 m | 0 % | 0 % | — | 0 % |
+  | **portrait 16.5 cm, +17.5° (default)** | −15.7° | 0.46 m | 0.88 m | **61 %** | 8.9 % | ~0.88–1.6 m | **95 %** |
+  | portrait 18.5 cm, +22.5° (PR #22) | −10.7° | 0.79 m | 0.72 m | 72 % | 11.4 % | 0.76–1.62 m | 96 % |
+  | landscape, 18.5 cm / +22.5° | −3.6° | 2.36 m | 0.93 m | 0 % | 0 % | — | 0 % |
+  | landscape low 6.5 cm, +22.5° (`z: 0.021`) | −3.6° | 0.47 m | 1.04 m | 55 % | 9.6 % | 1.07–1.77 m | 93 % |
+  | old: landscape 32.4 cm, +39.7° (MJCF pose) | +13.6° | never | 0.41 m | 0 % | 0 % | — | 0 % |
 
-  "Schietzone" is een **aanname**: de posities van waaruit de sim-shooter (5,7 m/s, 75°) een POLLEN in een omhoog-CELL krijgt (MuJoCo-schoten op een 10 cm-raster; afstand tot de CELL-opening ±1,06–1,54 m); dekking = robot richt op de CELL en ziet vloer + ≥ 1 tag van die CELL. Er is geen schietzone in de repo of de spelregels hier gedefinieerd. Portret maakt een hogere, praktische montage mogelijk: op 18–35 cm haalt portret 480×640 nog ±62–75 % van de posities, liggend maar 21–44 %. Met 1280×720 portret (+32,5°) ±95 %. De MJCF-pose van `robot_up_cam` is ongewijzigd (oude pose, `LEGACY_CAMERA_MOUNT`); de standaard komt uit `simulation.json` / `DEFAULT_CAMERA_MOUNT`.
-- Niet gemodelleerd: lensvervorming, autofocus/zoom (Brio digitale zoom/RightLight), exacte sensor-uitsnede per resolutie.
+  "Shooting zone" is an **assumption**: the positions from which the sim shooter (5.7 m/s, 75°) can get a POLLEN into an up CELL (MuJoCo shots on a 10 cm grid; distance to the CELL opening ±1.06–1.54 m); coverage = robot aims at the CELL and sees the floor + ≥ 1 tag of that CELL. There is no shooting zone defined in the repo or the game rules here. Portrait makes a higher, practical mount possible: at 18–35 cm, portrait 480×640 still reaches ±62–75 % of positions, landscape only 21–44 %. With 1280×720 portrait (+32.5°) ±95 %. The MJCF pose of `robot_up_cam` is unchanged (old pose, `LEGACY_CAMERA_MOUNT`); the default comes from `simulation.json` / `DEFAULT_CAMERA_MOUNT`.
+- Not modeled: lens distortion, autofocus/zoom (Brio digital zoom/RightLight), exact sensor crop per resolution.
 
 
 
@@ -192,41 +195,41 @@ npx vite preview --host 0.0.0.0 --port 5174
 
 ## Scripts
 
-| Script | Betekenis |
+| Script | Meaning |
 |--------|-----------|
-| `npm run dev` | Vite op **5174** |
-| `npm run build` | Productiebuild |
-| `npm test` | Unit/integratietests |
+| `npm run dev` | Vite on **5174** |
+| `npm run build` | Production build |
+| `npm test` | Unit/integration tests |
 | `npm run smoke` | Artifacts + tests + BIOBUZZ WASM smoke |
 
-## Documentatie
+## Documentation
 
-- `INTEGRATION.md` — physics-eigenaar, teleop vs OpMode, STOP
-- `ARCHITECTURE.md` — threads, klok, worker
+- `INTEGRATION.md` — physics owner, teleop vs OpMode, STOP
+- `ARCHITECTURE.md` — threads, clock, worker
 - `SUPPORT_MATRIX.md` — working / partial / unsupported (+ soft mechanisms)
 - `robots/BIOBUZZ/` · `robots/REVStarterBot2026/`
 
 ## Assets
 
-BIOBUZZ XML/meshes/textures zijn **gekopieerd** naar `public/assets/` (bron: `ftc-biobuzz-mujoco/web/public/assets`). World-code staat in `src/worlds/biobuzz/` (copy, geen cross-project import).
+BIOBUZZ XML/meshes/textures are **copied** into `public/assets/` (source: `ftc-biobuzz-mujoco/web/public/assets`). World code lives in `src/worlds/biobuzz/` (a copy, no cross-project import).
 
-## Belangrijke aannames
+## Important assumptions
 
-- Physics is niet gevalideerd tegen een echte robot.
-- BIOBUZZ intake/shoot/place zijn **soft bridges**, geen pure joint-actuators.
-- IMU + Webcam/AprilTag/ColorBlobLocator zijn **expliciete simulator-extensies** (toolbox + runtime); geen stille placeholders — details in `src/config/extensions.md`.
+- Physics has not been validated against a real robot.
+- BIOBUZZ intake/shoot/place are **soft bridges**, not pure joint actuators.
+- IMU + Webcam/AprilTag/ColorBlobLocator are **explicit simulator extensions** (toolbox + runtime); not silent placeholders — details in `src/config/extensions.md`.
 
-## Robotgeluid
+## Robot sound
 
-Klik **Geluid aanzetten** voor browser-autoplaytoestemming; opnieuw klikken dempt alles.
-De flywheel-, intake- en rijopnamen lopen onafhankelijk, alleen zolang hun motorcommandos actief zijn
-(inclusief achteruit en `setVelocity`; `RUN_TO_POSITION` stopt op het doel). In idle-teleop klinkt
-het flywheel zolang Space/F of RT ingedrukt is. De intake staat in idle-teleop standaard aan.
-STOP/DONE/ERROR stoppen de OpMode-geluiden onmiddellijk; daarna volgt geluid de hervatte idle-teleop.
-Pauze en een verborgen tab zijn stil. Botsingsgeluid volgt nieuwe robotcontacten met het veld of
-elementen, niet grond/wielen, zelfcontact, spawn-contact of voortdurend tegen een muur duwen.
-Een contactonderbreking van minstens 0,12 s herbewapent een impact (globale cooldown 0,15 s).
+Click **Geluid aanzetten** for browser autoplay permission; clicking again mutes everything.
+The flywheel, intake and drive recordings run independently, only while their motor commands are active
+(including reverse and `setVelocity`; `RUN_TO_POSITION` stops at the target). In idle teleop the
+flywheel plays for as long as Space/F or RT is held. The intake is on by default in idle teleop.
+STOP/DONE/ERROR stop the OpMode sounds immediately; after that, sound follows the resumed idle teleop.
+Pause and a hidden tab are silent. Collision sound follows new robot contacts with the field or
+elements, not ground/wheels, self-contact, spawn contact, or continuously pushing against a wall.
+A contact gap of at least 0.12 s re-arms an impact (global cooldown 0.15 s).
 
-De vier originele opnamen horen in `public/audio/{flywheel,intake,drive,collision}.m4a`.
-Er is geen gesynthetiseerd vervangend geluid. Ontbrekende of niet ondersteunde opnamen geven
-een melding in het log en de knop **Geluid opnieuw proberen**; de simulatie blijft werken.
+The four original recordings belong in `public/audio/{flywheel,intake,drive,collision}.m4a`.
+There is no synthesized fallback sound. Missing or unsupported recordings show
+a message in the log and the **Geluid opnieuw proberen** button; the simulation keeps running.
