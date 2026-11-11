@@ -112,8 +112,8 @@ describe('Camera-montage in de echte scène', () => {
     }
   });
 
-  it('zelfde montage liggend (zonder Portret): nabije POLLEN (±0,75 m) valt onder het beeld (portret wel)', () => {
-    // Liggend V≈52°: pollen pas vanaf ±0,85 m vóór de lens; portret V≈66° al vanaf ±0,46 m.
+  it('liggende voorcamera: nabije POLLEN (±0,75 m) valt onder het beeld', () => {
+    // Liggend V≈52°: pollen pas vanaf ±0,85 m vóór de lens.
     const mount = { ...resolveCameraConfig(SIM_CAMERA).mount, rollDeg: 0 };
     const r = detect(mount, 0.75);
     assert.ok(r.tags.some((d) => d.metadata.name === 'BLUE SCORING'));
@@ -125,7 +125,7 @@ describe('Camera-montage in de echte scène', () => {
   });
 
   it('omhoog-CELLs (Guide §11.1): RED AUDIENCE vanaf de rode publiekskant en BLUE SCORING vanaf blauw achter, beide rechtop (|roll| < 90°)', () => {
-    // Liggende camera: roll is in het camerabeeld; een portretcamera draait die 90° mee.
+    // Liggende camera: roll is in het camerabeeld.
     const mount = { ...resolveCameraConfig(SIM_CAMERA).mount, rollDeg: 0 };
     for (const [pose, name] of [[RED_POSE, 'RED AUDIENCE'], [BLUE_POSE, 'BLUE SCORING']]) {
       const r = detect(mount, 1.1, pose);

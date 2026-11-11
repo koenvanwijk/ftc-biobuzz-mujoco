@@ -19,21 +19,18 @@ export const BRIO_4K_CAMERA = Object.freeze({
   dfovPresetsDeg: Object.freeze([65, 78, 90]),
   defaultDfovDeg: 90,
   resolution: Object.freeze({ width: 640, height: 480 }),
-  orientation: 'portrait',
 });
 
 /**
  * Montage van de robotcamera (site/camera `robot_up_cam`) in het robotframe: x vooruit, y links,
  * z omhoog vanaf de oorsprong van de robot-body (die ligt ≈4,4 cm boven de mat, dus lenshoogte
  * boven de mat ≈ z + 0,044 m). pitchDeg = kanteling van de optische as boven horizontaal;
- * rollDeg = rotatie om de optische as (0 = liggend, 90 = portret: beeld-X, de lange 640-px-kant
- * met 66°, wijst dan omhoog).
+ * rollDeg = rotatie om de optische as (0 = liggend).
  *
- * Standaard = PORTRET op 16,5 cm boven de mat, +17,5°, vóór de intake (fov-study + #22-tweeak: vloer-POLLEN
- * vanaf ±0,46 m i.p.v. 0,79 m zodat nabije ballen niet onder het beeld vallen; tags van de omhoog-CELL
- * tegelijk op ±61 % van de veldposities / ±95 % van de schietzone, tegen 0 % met de oude montage).
+ * Fallback als simulation.json geen (volledige) mount heeft. De live BIOBUZZ-config zet de voorcamera
+ * liggend aan de voorkant (x 0.24, z 0.036, lens 8 cm boven de mat, +45°, roll 0).
  */
-export const DEFAULT_CAMERA_MOUNT = Object.freeze({ x: 0.24, y: 0, z: 0.121, pitchDeg: 17.5, rollDeg: 90 });
+export const DEFAULT_CAMERA_MOUNT = Object.freeze({ x: 0.24, y: 0, z: 0.121, pitchDeg: 17.5, rollDeg: 0 });
 
 /**
  * Tweede camera: ACHTER op de robot, liggend, schuin omlaag naar de vloer achter de robot
@@ -78,26 +75,8 @@ export function activeCameraIndicator(id) {
   };
 }
 
-/** Oude MJCF-pose van vóór de portretmontage (32,4 cm boven de mat, +39,7°, liggend). */
+/** Oude MJCF-pose (32,4 cm boven de mat, +39,7°, liggend). */
 export const LEGACY_CAMERA_MOUNT = Object.freeze({ x: 0.16, y: 0, z: 0.28, pitchDeg: 39.73, rollDeg: 0 });
-
-/** Rol per oriëntatie (simulation.json → webcam.camera.orientation). */
-export const ORIENTATION_ROLL_DEG = Object.freeze({ landscape: 0, portrait: 90 });
-
-/** localStorage-sleutel voor de Portret-schakelaar. */
-export const CAMERA_ORIENTATION_STORAGE_KEY = 'ftc-sim-camera-orientation-v2';
-
-/** "portrait" / "landscape" (alles anders → null). */
-export function normalizeOrientation(v) {
-  const o = String(v || '').toLowerCase();
-  return o === 'portrait' || o === 'portret' ? 'portrait' : o === 'landscape' || o === 'liggend' ? 'landscape' : null;
-}
-
-/** Is deze rol (ongeveer) een kwartslag, zodat H en V van het beeld in de wereld wisselen? */
-export function isQuarterTurn(rollDeg) {
-  const r = ((((Number(rollDeg) || 0) % 180) + 180) % 180);
-  return Math.abs(r - 90) < 1e-6;
-}
 
 /** Hoogte van de oorsprong van de robot-body boven de bovenkant van de mat (m). */
 export const ROBOT_ORIGIN_ABOVE_FLOOR_M = 0.044;
@@ -153,8 +132,8 @@ export function normalizeResolution(width, height) {
 
 /**
  * Normaliseer `webcam.camera.mount` → { x, y, z, pitchDeg, rollDeg } of null (geen mount).
- * Ontbrekende velden vallen terug op DEFAULT_CAMERA_MOUNT (rollDeg: de opgegeven standaardrol,
- * meestal uit `orientation`); onzinnige waarden worden begrensd.
+ * Ontbrekende velden vallen terug op DEFAULT_CAMERA_MOUNT (rollDeg: de opgegeven standaardrol
+ * of 0); onzinnige waarden worden begrensd.
  */
 export function resolveCameraMount(raw, { rollDeg } = {}) {
   if (!raw || typeof raw !== 'object') return null;
@@ -181,7 +160,7 @@ export function resolveCameraMount(raw, { rollDeg } = {}) {
  * MuJoCo-camera: lokaal X = rechts (beeld-X), Y = boven, kijkt langs −Z.
  * Zonder rol: rechts = robot −y, boven = (−sin p, 0, cos p), −Z = vooruit = (cos p, 0, sin p).
  * Rotatie = Ry(−p) · R0 · Rz(rol), met R0 (p = 0, rol = 0) = quaternion (0.5, 0.5, −0.5, −0.5).
- * Rol +90°: beeld-X wijst omhoog, beeld-boven wijst naar links (portret).
+ * Een niet-nul roll draait het beeld om de optische as.
  */
 export function mountQuat(pitchDeg, rollDeg = 0, yawDeg = 0) {
   const mul = (a, b) => [
@@ -257,10 +236,6 @@ export function resolveCameraConfig(raw) {
     nativeAspect = Number(r.nativeAspect);
   }
   const res = normalizeResolution(r.resolution?.width, r.resolution?.height) || { ...BRIO_4K_CAMERA.resolution };
-  const orientation = normalizeOrientation(r.orientation) || BRIO_4K_CAMERA.orientation;
-  // Rol voor "portrait": mount.rollDeg als die een kwartslag is (bv. −90 voor andersom gedraaid), anders +90.
-  const mountRoll = Number(r.mount?.rollDeg);
-  const portraitRollDeg = Number.isFinite(mountRoll) && isQuarterTurn(mountRoll) ? mountRoll : ORIENTATION_ROLL_DEG.portrait;
   return {
     model: typeof r.model === 'string' && r.model ? r.model : BRIO_4K_CAMERA.model,
     shortName: typeof r.shortName === 'string' && r.shortName ? r.shortName : BRIO_4K_CAMERA.shortName,
@@ -268,9 +243,7 @@ export function resolveCameraConfig(raw) {
     dfovPresetsDeg,
     defaultDfovDeg,
     resolution: res,
-    orientation,
-    portraitRollDeg,
-    mount: resolveCameraMount(r.mount || {}, { rollDeg: orientation === 'portrait' ? portraitRollDeg : 0 }),
+    mount: resolveCameraMount(r.mount || {}, { rollDeg: 0 }),
     rearMount: r.rearMount === false ? null : resolveCameraMount({ ...REAR_CAMERA_MOUNT, ...(r.rearMount || {}) }),
   };
 }
@@ -281,24 +254,22 @@ export function pickDfov(cfg, value) {
   return cfg.dfovPresetsDeg.includes(v) ? v : cfg.defaultDfovDeg;
 }
 
-/** Effectieve rol: opgegeven `rollDeg`, anders die van de mount, anders uit de oriëntatie. */
+/** Effectieve rol: opgegeven `rollDeg`, anders die van de mount, anders 0 (liggend). */
 export function effectiveRollDeg(cfg, rollDeg) {
   const r = Number(rollDeg);
   if (Number.isFinite(r)) return r;
   if (cfg?.mount && Number.isFinite(Number(cfg.mount.rollDeg))) return Number(cfg.mount.rollDeg);
-  return cfg?.orientation === 'portrait' ? cfg.portraitRollDeg ?? 90 : 0;
+  return 0;
 }
 
 /**
  * Volledige camerabeschrijving voor renderer en detectie.
  *
- * hfovDeg/vfovDeg/width/height/aspect gelden in het SENSORFRAME (beeld-X = lange kant), precies
- * zoals de FTC-SDK het beeld aanlevert: VisionPortal draait een gedraaide webcam niet terug, dus
- * blob-pixels en AprilTag-ftcPose zijn in portret 90° gedraaid t.o.v. de wereld.
- * viewHfovDeg/viewVfovDeg/viewAspect/viewWidth/viewHeight beschrijven het rechtop gezette beeld
- * (wereld-horizontaal × wereld-verticaal): bij portret zijn H en V (en breedte/hoogte) verwisseld.
+ * De camera is altijd liggend: hfovDeg/vfovDeg/width/height/aspect gelden in het sensorframe
+ * (beeld-X = rechts, beeld-Y = omhoog), zoals de FTC-SDK. viewHfovDeg/viewVfovDeg/viewAspect/
+ * viewWidth/viewHeight zijn dezelfde waarden (geen H/V-verwisseling meer).
  * @returns {{ model: string, shortName: string, dfovDeg: number, width: number, height: number,
- *   aspect: number, hfovDeg: number, vfovDeg: number, rollDeg: number, orientation: string,
+ *   aspect: number, hfovDeg: number, vfovDeg: number, rollDeg: number,
  *   viewHfovDeg: number, viewVfovDeg: number, viewAspect: number, viewWidth: number, viewHeight: number }}
  */
 export function cameraFov(cfg, { dfovDeg, width, height, rollDeg } = {}) {
@@ -310,7 +281,6 @@ export function cameraFov(cfg, { dfovDeg, width, height, rollDeg } = {}) {
     outputAspect: res.width / res.height,
   });
   const roll = effectiveRollDeg(c, rollDeg);
-  const quarter = isQuarterTurn(roll);
   return {
     model: c.model,
     shortName: c.shortName,
@@ -321,16 +291,15 @@ export function cameraFov(cfg, { dfovDeg, width, height, rollDeg } = {}) {
     hfovDeg,
     vfovDeg,
     rollDeg: roll,
-    orientation: quarter ? 'portrait' : 'landscape',
-    viewHfovDeg: quarter ? vfovDeg : hfovDeg,
-    viewVfovDeg: quarter ? hfovDeg : vfovDeg,
-    viewAspect: quarter ? 1 / aspect : aspect,
-    viewWidth: quarter ? res.height : res.width,
-    viewHeight: quarter ? res.width : res.height,
+    viewHfovDeg: hfovDeg,
+    viewVfovDeg: vfovDeg,
+    viewAspect: aspect,
+    viewWidth: res.width,
+    viewHeight: res.height,
   };
 }
 
-/** Standaard (Brio 4K, 90°, 640×480, portret): sensor 66.3° × 52.2°, rechtop 52.2° × 66.3°. */
+/** Standaard (Brio 4K, 90°, 640×480, liggend): 66.3° × 52.2° (H × V). */
 export const DEFAULT_ROBOT_CAMERA_FOV = Object.freeze(cameraFov(resolveCameraConfig(null)));
 
 /** Label in de keuzelijst: standaard "Brio 4K 90°", de rest "78°", "65°". */

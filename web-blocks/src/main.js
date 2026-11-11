@@ -21,8 +21,6 @@ import {
   initCameraFovSelect,
   loadStoredDfov,
   describeFov,
-  initCameraPortraitToggle,
-  loadStoredPortrait,
   loadStoredActiveCamera,
   initActiveCameraToggle,
 } from './ui/cameraFovSelect.js';
@@ -57,23 +55,13 @@ let opModeOwns = false; // true from INIT through RUN until DONE/ERROR/Idle afte
 // ——— Robotcamera (Logitech Brio 4K) ———
 let cameraCfg = resolveCameraConfig(null);
 let cameraDfov = cameraCfg.defaultDfovDeg;
-/** Portret = camera 90° om de optische as gedraaid (standaard, zie simulation.json → orientation). */
-let cameraPortrait = cameraCfg.orientation === 'portrait';
 /** Resolutie uit VisionPortal.Builder.setCameraResolution (null = config, 640×480). */
 let opModeCameraRes = null;
 
-/** Eén zichtveld voor PiP, frustum-gizmo en detectie. */
-function cameraRollDeg() {
-  return cameraPortrait ? cameraCfg.portraitRollDeg : 0;
-}
-
-/** Montage (positie/kanteling uit simulation.json) met de rol van de Portret-schakelaar. */
+/** Montage (positie/kanteling uit simulation.json). Camera is altijd liggend. */
 function applyCameraPose() {
   if (!mujocoBundle || !cameraCfg.mount) return;
-  applyCameraMount(mujocoBundle.mujoco, mujocoBundle.model, mujocoBundle.data, {
-    ...cameraCfg.mount,
-    rollDeg: cameraRollDeg(),
-  });
+  applyCameraMount(mujocoBundle.mujoco, mujocoBundle.model, mujocoBundle.data, cameraCfg.mount);
   // Achtercamera (Webcam 2, naar de vloer): eigen montage, altijd liggend.
   if (cameraCfg.rearMount) {
     applyCameraMount(mujocoBundle.mujoco, mujocoBundle.model, mujocoBundle.data, cameraCfg.rearMount, 'robot_rear_cam');
@@ -92,18 +80,16 @@ function setActiveCamera(id, { quiet = false } = {}) {
 }
 
 function applyCameraFov() {
-  const fov = cameraFov(cameraCfg, { dfovDeg: cameraDfov, ...(opModeCameraRes || {}), rollDeg: cameraRollDeg() });
+  const fov = cameraFov(cameraCfg, { dfovDeg: cameraDfov, ...(opModeCameraRes || {}) });
   adapter?.setCameraFov?.(fov);
   viewer?.setCameraFov?.(fov);
-  // Achtercamera: zelfde preset en resolutie, rol 0 (liggend).
+  // Achtercamera: zelfde preset en resolutie, liggend.
   const rearFov = cameraFov(cameraCfg, { dfovDeg: cameraDfov, ...(opModeCameraRes || {}), rollDeg: 0 });
   adapter?.setRearCameraFov?.(rearFov);
   viewer?.setRearCameraFov?.(rearFov);
   const info = $('camFovInfo');
   if (info) {
-    info.textContent =
-      `${Math.round(fov.viewHfovDeg)}° × ${Math.round(fov.viewVfovDeg)}° · ${fov.width}×${fov.height}` +
-      (fov.orientation === 'portrait' ? ' portret' : '');
+    info.textContent = `${Math.round(fov.hfovDeg)}° × ${Math.round(fov.vfovDeg)}° · ${fov.width}×${fov.height}`;
     info.title = describeFov(fov);
   }
   const sel = $('camFovSelect');
@@ -216,9 +202,7 @@ async function boot() {
     $('runStatus').textContent = s;
   });
   cameraCfg = resolveCameraConfig(simConfig.webcam?.camera);
-  // Camerapositie/-kanteling/-rol uit simulation.json (webcam.camera.mount + orientation),
-  // rol overschreven door de Portret-schakelaar (localStorage).
-  cameraPortrait = loadStoredPortrait(cameraCfg);
+  // Camerapositie/-kanteling uit simulation.json (webcam.camera.mount); altijd liggend.
   applyCameraPose();
   adapter = new BiobuzzHardwareAdapter(
     mujocoBundle.mujoco,
@@ -260,16 +244,6 @@ async function boot() {
       const fov = applyCameraFov();
       updateBiobuzzHud();
       log(`Camera-zichtveld: ${describeFov(fov)}`);
-    },
-  });
-  initCameraPortraitToggle($('camPortrait'), {
-    value: cameraPortrait,
-    onChange: (p) => {
-      cameraPortrait = p;
-      applyCameraPose();
-      const fov = applyCameraFov();
-      updateBiobuzzHud();
-      log(`Camera ${p ? 'portret (90° gedraaid)' : 'liggend'}: ${describeFov(fov)}`);
     },
   });
   applyCameraFov();
@@ -369,9 +343,8 @@ async function boot() {
     get debugDepth() { return lastDepth; },
     /** Huidig camerazichtveld (preset + resolutie) zoals AprilTag- en POLLEN-detectie het gebruiken. */
     get cameraFov() { return adapter?.cameraFov ? { ...adapter.cameraFov } : null; },
-    /** Zichtveld van het PiP-beeld (rechtop gezet; portret = smal en hoog). */
+    /** Zichtveld van het PiP-beeld. */
     get pipFov() { return viewer?.cameraFov ? { ...viewer.cameraFov } : null; },
-    get cameraPortrait() { return cameraPortrait; },
     /**
      * Alleen voor smoke tests: zet de robot stil op (x, y) m met kijkrichting yawDeg.
      * @returns {boolean}
