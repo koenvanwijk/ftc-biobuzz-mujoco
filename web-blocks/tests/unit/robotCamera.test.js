@@ -93,9 +93,8 @@ describe('Cameraconfiguratie (simulation.json → webcam.camera)', () => {
     assert.equal(cfg.defaultDfovDeg, 90);
     assert.deepEqual(cfg.resolution, { width: 640, height: 480 });
     near(cfg.nativeAspect, 16 / 9, 1e-9, 'aspect');
-    // simulation.json: liggend (landscape) → 66° × 52° (H × V); de code-standaard blijft portret.
-    assert.equal(cfg.orientation, 'landscape');
-    assert.deepEqual(cameraFov(cfg, { rollDeg: 90 }).hfovDeg, DEFAULT_ROBOT_CAMERA_FOV.hfovDeg);
+    // simulation.json en code-standaard: liggend → 66° × 52° (H × V).
+    assert.deepEqual(cameraFov(cfg).hfovDeg, DEFAULT_ROBOT_CAMERA_FOV.hfovDeg);
     near(cameraFov(cfg).hfovDeg, 66.3, 0.1, 'H');
     near(cameraFov(cfg).vfovDeg, 52.2, 0.1, 'V');
   });
@@ -264,21 +263,26 @@ describe('Keuzelijst Camera-zichtveld', () => {
     assert.equal(loadStoredDfov(cfg, null), 90);
   });
 
-  it('index.html heeft de keuzelijst met Nederlands label', () => {
+  it('index.html heeft de keuzelijst met Nederlands label en geen Portret-optie', () => {
     const html = read('index.html');
     assert.ok(html.includes('id="camFovSelect"'));
     assert.ok(html.includes('Camera-zichtveld'));
+    assert.doesNotMatch(html, /id="camPortrait"|cam-portrait-toggle|\bPortret\b/);
+    assert.doesNotMatch(read('src/main.js'), /initCameraPortraitToggle|cameraPortrait|camPortrait/);
   });
 
   it('describeFov noemt preset, H × V en resolutie', () => {
     assert.equal(
-      describeFov(cameraFov(resolveCameraConfig(null), { rollDeg: 0 })),
+      describeFov(cameraFov(resolveCameraConfig(null))),
       'Brio 4K 90° diagonaal → 66° × 52° (H × V) bij 640×480',
     );
     assert.equal(
       describeFov(DEFAULT_ROBOT_CAMERA_FOV),
-      'Brio 4K 90° diagonaal, portret (90° gedraaid) → 52° × 66° (H × V) bij 640×480 (beeld 480×640)',
+      'Brio 4K 90° diagonaal → 66° × 52° (H × V) bij 640×480',
     );
+    near(DEFAULT_ROBOT_CAMERA_FOV.rollDeg, 0, 0, 'standaard liggend');
+    assert.equal(DEFAULT_ROBOT_CAMERA_FOV.viewHfovDeg, DEFAULT_ROBOT_CAMERA_FOV.hfovDeg);
+    assert.equal(DEFAULT_ROBOT_CAMERA_FOV.viewVfovDeg, DEFAULT_ROBOT_CAMERA_FOV.vfovDeg);
   });
 });
 

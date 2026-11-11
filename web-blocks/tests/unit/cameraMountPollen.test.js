@@ -41,9 +41,10 @@ describe('Camera-montage (webcam.camera.mount)', () => {
     assert.equal(resolveCameraMount(undefined), null);
     assert.deepEqual(resolveCameraConfig({}).mount, { ...DEFAULT_CAMERA_MOUNT });
     assert.deepEqual(resolveCameraConfig({ mount: { z: 0.04, pitchDeg: 26 } }).mount, {
-      x: DEFAULT_CAMERA_MOUNT.x, y: 0, z: 0.04, pitchDeg: 26, rollDeg: 90,
+      x: DEFAULT_CAMERA_MOUNT.x, y: 0, z: 0.04, pitchDeg: 26, rollDeg: 0,
     });
-    assert.equal(resolveCameraConfig({ orientation: 'landscape', mount: { z: 0.04 } }).mount.rollDeg, 0);
+    // Oude orientation-velden worden genegeerd; zonder mount.rollDeg blijft de camera liggend.
+    assert.equal(resolveCameraConfig({ orientation: 'portrait', mount: { z: 0.04 } }).mount.rollDeg, 0);
   });
 
   it('ongeldige of extreme waarden: standaard resp. begrensd', () => {
@@ -87,9 +88,9 @@ describe('Camera-montage (webcam.camera.mount)', () => {
     assert.deepEqual(Array.from(model.site_pos.slice(3)), [0.2, 0, 0.03]);
     assert.deepEqual(Array.from(model.cam_pos), [0.2, 0, 0.03]);
     assert.deepEqual(Array.from(model.site_quat.slice(4)), mountQuat(26));
-    // Zonder rollDeg: standaardrol (portret, 90°).
+    // Zonder rollDeg: standaardrol 0 (liggend).
     applyCameraMount(mujoco, model, {}, { x: 0.2, z: 0.03, pitchDeg: 26 });
-    assert.deepEqual(Array.from(model.cam_quat), mountQuat(26, 90));
+    assert.deepEqual(Array.from(model.cam_quat), mountQuat(26, 0));
     assert.equal(forwards, 2);
     assert.equal(applyCameraMount(mujoco, model, {}, null), false);
   });
@@ -98,17 +99,17 @@ describe('Camera-montage (webcam.camera.mount)', () => {
     for (const p of ['robots/BIOBUZZ/simulation.json', 'public/robots/BIOBUZZ/simulation.json']) {
       const cam = JSON.parse(read(p)).webcam.camera;
       assert.ok(cam.mount, `${p} heeft webcam.camera.mount`);
-      assert.equal(cam.orientation, 'landscape');
+      assert.equal(cam.orientation, undefined);
       const m = resolveCameraConfig(cam).mount;
       assert.deepEqual(m, { x: 0.24, y: 0, z: 0.036, pitchDeg: 45, rollDeg: 0 });
       near(mountHeightAboveFloor(m), 0.08, 0.002, 'lenshoogte boven de mat');
       assert.deepEqual(resolveCameraConfig(cam).resolution, { width: 640, height: 480 });
       assert.equal(resolveCameraConfig(cam).defaultDfovDeg, 90);
     }
-    // De portret-standaard in de code blijft bestaan (Portret-vinkje / configs zonder mount).
+    // Fallback in de code (configs zonder mount): ook liggend.
     assert.deepEqual(
       { x: DEFAULT_CAMERA_MOUNT.x, pitchDeg: DEFAULT_CAMERA_MOUNT.pitchDeg, rollDeg: DEFAULT_CAMERA_MOUNT.rollDeg },
-      { x: 0.24, pitchDeg: 17.5, rollDeg: 90 },
+      { x: 0.24, pitchDeg: 17.5, rollDeg: 0 },
     );
   });
 

@@ -202,7 +202,7 @@ export class MujocoThreeViewer {
    */
   setCameraFov(fov) {
     if (!fov || !(fov.vfovDeg > 0) || !(fov.aspect > 0)) return;
-    // Voorcamera. PiP = rechtop gezet beeld: bij portret (rol 90°) H/V en aspect verwisseld.
+    // Voorcamera. PiP volgt het liggende camerabeeld (H × V van de stream).
     this._fovs.front = { ...fov };
     this._setHelperFov('front', fov);
     if (this._activeCam === 'front') this._applyActiveCam();
@@ -432,8 +432,8 @@ export class MujocoThreeViewer {
     );
     const quat = new THREE.Quaternion().setFromRotationMatrix(mat);
     this.robotCam.position.copy(pos);
-    // De site draait mee met de camerarol (sensorframe, voor detectie en kijkpiramide). De PiP zet
-    // het beeld rechtop: rol terugdraaien om de optische as (lokaal Z).
+    // De site volgt de camerarol (sensorframe, voor detectie en kijkpiramide). Een eventuele roll
+    // wordt voor de PiP teruggedraaid om de optische as (lokaal Z); standaard is roll 0.
     const roll = ((this._camFov?.rollDeg || 0) * Math.PI) / 180;
     const unroll = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -roll);
     this.robotCam.quaternion.copy(quat).multiply(unroll);
@@ -469,7 +469,7 @@ export class MujocoThreeViewer {
     // Top-right on desktop; bottom-right in mobile-play so Schiet/Intake (top corners) stay clear.
     const mobilePlay = typeof document !== 'undefined' && document.getElementById('app')?.classList.contains('mobile-play');
     const rightInset = 24;
-    // Lange zijde 140–280 px; portret (aspect < 1) wordt smal en hoog.
+    // Lange zijde 140–280 px; een staand beeld (aspect < 1) wordt smal en hoog.
     const base = Math.min(280, Math.max(140, Math.floor(cw * 0.24)));
     const aspect = pipAspect(this._camFov);
     let pipW = aspect >= 1 ? base : Math.floor(base * aspect);
@@ -517,7 +517,7 @@ export class MujocoThreeViewer {
     this.canvas.style.height = '100%';
     this.camera.aspect = cw / Math.max(ch, 1);
     this.camera.updateProjectionMatrix();
-    // PiP aspect = camera stream aspect (4:3 for 640x480, 16:9 for 1280x720), portrait: 3:4 / 9:16
+    // PiP aspect = camera stream aspect (4:3 for 640x480, 16:9 for 1280x720).
     this.robotCam.aspect = pipAspect(this._camFov);
     this.robotCam.updateProjectionMatrix();
     this._layoutPipLabel();
@@ -624,12 +624,12 @@ export class MujocoThreeViewer {
 }
 
 /** Line-segment positions (camera looks along -Z) for a rectangular H/V frustum. */
-/** Aspect van het rechtop gezette PiP-beeld (portret: verwisseld). */
+/** Aspect van het PiP-beeld. */
 function pipAspect(fov) {
   return fov?.viewAspect > 0 ? fov.viewAspect : fov?.aspect > 0 ? fov.aspect : 4 / 3;
 }
 
-/** Verticaal zichtveld van het rechtop gezette PiP-beeld. */
+/** Verticaal zichtveld van het PiP-beeld. */
 function pipVfov(fov) {
   return fov?.viewVfovDeg > 0 ? fov.viewVfovDeg : fov?.vfovDeg || 52.23;
 }
