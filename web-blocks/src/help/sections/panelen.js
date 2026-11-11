@@ -8,7 +8,7 @@ export default {
   <thead><tr><th>Paneel</th><th>Wat zie je?</th></tr></thead>
   <tbody>
     <tr><td><strong>Blocks</strong></td><td>De officiële FTC Blocks-editor (offline, in een iframe). Hier bouw je je OpMode met blokken.</td></tr>
-    <tr><td><strong>Sim</strong></td><td>De MuJoCo-simulatie van het BIOBUZZ-veld met de robot. Bovenaan een HUD (Robot x&nbsp;/&nbsp;4, Hopper, Rear, AprilTags, Score, Intake, Control: Teleop of OpMode) met rechts de keuzelijst <strong>Camera-zichtveld</strong>. Linksboven in beeld het <strong>score-paneel</strong> (zie hieronder), rechtsboven het <em>camerabeeld van de robot</em>; de lichtblauwe piramide op de robot laat zien wat die camera ziet.</td></tr>
+    <tr><td><strong>Sim</strong></td><td>De MuJoCo-simulatie van het BIOBUZZ-veld met de robot. Bovenaan een HUD (Robot x&nbsp;/&nbsp;4, Hopper, Rear, AprilTags, Intake, Control: Teleop of OpMode) met rechts de keuzelijst <strong>Camera-zichtveld</strong>. Linksboven in beeld het <strong>score-paneel</strong> (zie hieronder), rechtsboven het <em>camerabeeld van de robot</em>; de lichtblauwe piramide op de robot laat zien wat die camera ziet.</td></tr>
     <tr><td><strong>Code</strong></td><td>Drie stukken onder elkaar: <em>Telemetry</em> (de telemetry van je OpMode plus mechanisme-status; de hoogte is te slepen), de <em>Route</em>-plot (bovenaanzicht van de gereden route; tab <em>JS</em> toont de gegenereerde code) en de <em>Runtime-log</em> (meldingen en fouten).</td></tr>
   </tbody>
 </table>
@@ -22,7 +22,7 @@ export default {
 </ol>
 
 <h3>Score-paneel en spelregels (Competition Manual TU03)</h3>
-<p>Linksboven in het simbeeld staat de score per alliantie (<span style="color:#ff7b7b">Rood</span> / <span style="color:#7bb4ff">Blauw</span>), volgens §10.5 en Table 10-2/10-3. Klik op de kop om het paneel in of uit te klappen; in een smal simpaneel klapt het vanzelf in (alleen de totalen) en in een heel smal simpaneel verdwijnt het (de totalen staan altijd ook in de HUD bij <strong>Score</strong>). Het getal tussen haakjes is het aantal (TIPs, elementen, FLOWERS).</p>
+<p>Linksboven in het simbeeld staat de score per alliantie (<span style="color:#ff7b7b">Rood</span> / <span style="color:#7bb4ff">Blauw</span>), volgens §10.5 en Table 10-2/10-3. Klik op de kop om het paneel in of uit te klappen; in een smal simpaneel klapt het vanzelf in (alleen de totalen). Het getal tussen haakjes is het aantal (TIPs, elementen, FLOWERS).</p>
 <table class="help-table">
   <thead><tr><th>Rij</th><th>Punten</th><th>Wanneer?</th></tr></thead>
   <tbody>
