@@ -304,9 +304,9 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
   margin: 0; font-size: 0.9rem; color: var(--muted);
 }
 
-/* Fullscreen sim + overlays: driven by #app.mobile-play (JS). Also match short
-   landscape phones via max-height so CSS works before JS runs. */
-@media (max-width: 700px), (max-height: 500px) {
+/* Fullscreen sim + overlays: driven by #app.mobile-play (JS). Pre-JS, also lock
+   overflow on a narrow viewport or a phone/tablet (not a short desktop window). */
+@media (max-width: 700px), (hover: none) and (pointer: coarse) {
   html, body, #app { height: 100%; overflow: hidden; }
 }
 

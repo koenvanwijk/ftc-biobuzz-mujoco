@@ -11,28 +11,22 @@
 const STORAGE_KEY = 'ftc-mobile-controls-v1';
 const DEADZONE = 0.08;
 
+/** Primary pointer is a finger: phones and tablets, including landscape (e.g. 844×390).
+ *  Do not use maxTouchPoints or ontouchstart: Windows touchscreen laptops still
+ *  report those when used with a mouse, and would get the phone UI. */
 function preferTouch() {
   try {
-    return (
-      (typeof navigator !== 'undefined' && Number(navigator.maxTouchPoints) > 0) ||
-      (typeof window !== 'undefined' && 'ontouchstart' in window) ||
-      (typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches)
-    );
+    return typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
   } catch {
     return false;
   }
 }
 
-/** Phones in portrait OR landscape (e.g. 844×390): touch/coarse or short/narrow viewport. */
+/** Phone/tablet, or a truly narrow viewport. A short-but-wide desktop window stays desktop. */
 function preferMobilePlay() {
   try {
     if (preferTouch()) return true;
-    if (typeof matchMedia !== 'function') return false;
-    return (
-      matchMedia('(pointer: coarse)').matches ||
-      matchMedia('(max-height: 500px)').matches ||
-      matchMedia('(max-width: 700px)').matches
-    );
+    return typeof matchMedia === 'function' && matchMedia('(max-width: 700px)').matches;
   } catch {
     return preferTouch();
   }
@@ -289,7 +283,7 @@ export function initMobileControls({ root, toggleBtn = null }) {
   const onViewport = () => refreshVisibility();
   window.addEventListener('resize', onViewport);
   window.addEventListener('orientationchange', onViewport);
-  for (const q of ['(max-width: 700px)', '(max-height: 500px)', '(orientation: portrait)', '(pointer: coarse)']) {
+  for (const q of ['(max-width: 700px)', '(hover: none) and (pointer: coarse)', '(orientation: portrait)']) {
     try { window.matchMedia?.(q)?.addEventListener?.('change', onViewport); } catch { /* ignore */ }
   }
 
