@@ -19,7 +19,7 @@ describe('mobileControls wiring', () => {
     assert.match(read('src/ui/mobileControls.js'), /mobile-shoot/);
     assert.match(read('src/ui/mobileControls.js'), /mobile-intake/);
     assert.match(read('src/ui/mobileControls.js'), /Draai je telefoon om te spelen/);
-    assert.match(read('src/ui/mobileControls.js'), /max-height: 500px/);
+    assert.match(read('src/ui/mobileControls.js'), /\(hover: none\) and \(pointer: coarse\)/);
     assert.match(read('src/ui/styles.css'), /\.mobile-joystick/);
     assert.match(read('src/ui/styles.css'), /\.mobile-shoot/);
     assert.match(read('src/ui/styles.css'), /\.mobile-intake/);
@@ -112,3 +112,54 @@ describe('InputHandler virtual stick/shoot/intake', () => {
     }
   });
 });
+
+describe('preferMobilePlay detectie', () => {
+  const prev = { matchMedia: globalThis.matchMedia, navigator: globalThis.navigator, window: globalThis.window };
+
+  function install({ matches = [], maxTouchPoints = 0, ontouchstart = false } = {}) {
+    globalThis.matchMedia = (q) => ({
+      matches: matches.includes(q),
+      media: q,
+      addEventListener() {},
+      removeEventListener() {},
+    });
+    Object.defineProperty(globalThis, 'navigator', {
+      configurable: true,
+      value: { maxTouchPoints },
+    });
+    const win = { ...(ontouchstart ? { ontouchstart: null } : {}) };
+    if (ontouchstart) Object.defineProperty(win, 'ontouchstart', { value: null });
+    globalThis.window = win;
+  }
+
+  async function loadFresh() {
+    const href = new URL('../../src/ui/mobileControls.js', import.meta.url).href + `?t=${Date.now()}-${Math.random()}`;
+    return import(href);
+  }
+
+  it('touchscreen-laptop met muis blijft desktop, ook met maxTouchPoints', async () => {
+    install({ matches: [], maxTouchPoints: 10, ontouchstart: true });
+    const { preferMobilePlay, preferTouch } = await loadFresh();
+    assert.equal(preferTouch(), false);
+    assert.equal(preferMobilePlay(), false);
+  });
+
+  it('telefoon liggend (hover none + coarse) is mobiel, ook bij 844px breed', async () => {
+    install({ matches: ['(hover: none) and (pointer: coarse)'] });
+    const { preferMobilePlay } = await loadFresh();
+    assert.equal(preferMobilePlay(), true);
+  });
+
+  it('smal venster (max-width 700px) is mobiel', async () => {
+    install({ matches: ['(max-width: 700px)'] });
+    const { preferMobilePlay } = await loadFresh();
+    assert.equal(preferMobilePlay(), true);
+  });
+
+  it('laag maar breed desktopvenster blijft desktop', async () => {
+    install({ matches: ['(max-height: 500px)'] });
+    const { preferMobilePlay } = await loadFresh();
+    assert.equal(preferMobilePlay(), false);
+  });
+});
+
