@@ -158,21 +158,11 @@ The robot camera (`robot_up_cam`) follows the real **Logitech Brio 4K**: diagona
 - **Visibility = rectangular frustum:** |horizontal angle| ≤ H/2 and |vertical angle| ≤ V/2 in the camera frame (no longer a cone), plus a 2.5 m range and a facing threshold.
 - **`setCameraResolution`** (VisionPortal.Builder) sends the resolution to the sim; 1280×720 therefore gives 16:9 with the full horizontal field of view. It returns to 640×480 on the next INIT or *Reset sim*.
 - MJCF `fovy` of `robot_up_cam` = 52.2 (vertical at 90°); for another preset, `model.cam_fovy` is updated. The PiP image comes from the Three.js camera, not from the MuJoCo renderer.
-- **Landscape (default, `pitchDeg` 35 at the front) or portrait:** `webcam.camera.orientation` = `"landscape"` or `"portrait"` (camera rotated 90° about the lens); the **Portret** checkbox next to the dropdown switches immediately (stored in `localStorage`, `ftc-sim-camera-orientation-v2`). Upright, the image is then 52.2° × 66.3° (480×640; at 1280×720: 52.2° × 82.1°). `cameraFov()` returns the sensor frame (`hfovDeg`/`vfovDeg`/`width`/`height`, unchanged) and the upright image (`viewHfovDeg`/`viewVfovDeg`/`viewAspect`/`viewWidth`/`viewHeight`, swapped).
-  - The roll is in the mount (`mountQuat(pitch, roll)`), so site/camera `robot_up_cam` rotate with it: the frustum pyramid and AprilTag/POLLEN detection work in the **sensor frame** (640×480, image-X = long side, pointing up). That is also how the FTC SDK presents it (VisionPortal does not un-rotate a rotated webcam): blob-X = world-vertical (small = bottom), blob-Y = world-horizontal (small = left), ROIs in that same frame, `ftcPose` x/z rotated.
-  - The PiP image undoes the roll and is therefore upright and tall-narrow (3:4 / 9:16).
-- **Camera position:** `webcam.camera.mount` = `{ x, y, z, pitchDeg, rollDeg }` in the robot frame (z from the robot origin; lens above the mat ≈ z + 0.044 m; `rollDeg` 90 = portrait, −90 = the other way; without `rollDeg` it follows from `orientation`). Applied to site + camera `robot_up_cam` at load (`applyCameraMount`), so PiP, frustum, AprilTag and POLLEN detection follow. Missing fields = default mount.
-- **Default: portrait, lens 16.5 cm above the mat, +17.5°, 90°, 640×480** → `mount: { "x": 0.24, "y": 0, "z": 0.121, "pitchDeg": 17.5, "rollDeg": 90 }` (in front of the intake; adjusted vs. #22 so nearby POLLEN do not fall below the frame). Geometry study on the real scene (5 cm grid × 72 directions, tag seen = in the frustum, ≤ 2.5 m, facing ≥ 0.55; floor = POLLEN center in frustum; occlusion ignored):
-
-  | Mount | Bottom edge | Floor from | Tag 1.25 m from | Field positions | Poses | Distance to tags (p5–p95) | Shooting zone covered |
-  |---|---|---|---|---|---|---|---|
-  | **portrait 16.5 cm, +17.5° (default)** | −15.7° | 0.46 m | 0.88 m | **61 %** | 8.9 % | ~0.88–1.6 m | **95 %** |
-  | portrait 18.5 cm, +22.5° (PR #22) | −10.7° | 0.79 m | 0.72 m | 72 % | 11.4 % | 0.76–1.62 m | 96 % |
-  | landscape, 18.5 cm / +22.5° | −3.6° | 2.36 m | 0.93 m | 0 % | 0 % | — | 0 % |
-  | landscape low 6.5 cm, +22.5° (`z: 0.021`) | −3.6° | 0.47 m | 1.04 m | 55 % | 9.6 % | 1.07–1.77 m | 93 % |
-  | old: landscape 32.4 cm, +39.7° (MJCF pose) | +13.6° | never | 0.41 m | 0 % | 0 % | — | 0 % |
-
-  "Shooting zone" is an **assumption**: the positions from which the sim shooter (5.7 m/s, 75°) can get a POLLEN into an up CELL (MuJoCo shots on a 10 cm grid; distance to the CELL opening ±1.06–1.54 m); coverage = robot aims at the CELL and sees the floor + ≥ 1 tag of that CELL. There is no shooting zone defined in the repo or the game rules here. Portrait makes a higher, practical mount possible: at 18–35 cm, portrait 480×640 still reaches ±62–75 % of positions, landscape only 21–44 %. With 1280×720 portrait (+32.5°) ±95 %. The MJCF pose of `robot_up_cam` is unchanged (old pose, `LEGACY_CAMERA_MOUNT`); the default comes from `simulation.json` / `DEFAULT_CAMERA_MOUNT`.
+- **Always landscape** (the portrait option was removed in #73): image 66.3° × 52.2° at 640×480 (90° preset).
+- **Camera position:** `webcam.camera.mount` = `{ x, y, z, pitchDeg, rollDeg }` in the robot frame (z from the robot origin; lens above the mat ≈ z + 0.044 m; `rollDeg` defaults to 0). Applied to site + camera `robot_up_cam` at load (`applyCameraMount`), so PiP, frustum, AprilTag and POLLEN detection follow. Missing fields = default mount.
+- **Default (matches the real robot): lens 8 cm above the mat, tilted +45°, 90°, 640×480** → `mount: { "x": 0.24, "y": 0, "z": 0.036, "pitchDeg": 45, "rollDeg": 0 }` (in front of the intake). The ImuHiveAuto example's `CAMERA_PITCH_DEG` / `CAMERA_HEIGHT_M` constants must match this mount (a test checks the pitch).
+  Visibility study at 8 cm (tag centre in the frustum, lens-to-tag ≤ 2.5 m, facing ≥ 0.55, occlusion ignored): at +45° the shootable HIVE is visible from 48.9 % of the field, at 0.46–2.54 m; +55° is the maximum at 51.0 %. From the ImuHiveAuto shooting spot (1.10 m) all 4 tags are visible at every tilt from 30° to 60°.
+  The MJCF pose of `robot_up_cam` is unchanged (old pose, `LEGACY_CAMERA_MOUNT`); the default comes from `simulation.json` / `DEFAULT_CAMERA_MOUNT`.
 - Not modeled: lens distortion, autofocus/zoom (Brio digital zoom/RightLight), exact sensor crop per resolution.
 
 
