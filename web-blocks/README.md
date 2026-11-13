@@ -18,7 +18,7 @@ Open **http://localhost:5174/** (BIOBUZZ field).
 
 ### Workflow
 
-1. Example (TankDrive / Mechanisms / EncoderAuto / **ImuAprilTag** / **ImuHiveAuto**) → *Open in editor*.
+1. Example (TankDrive / Mechanisms / EncoderAuto / **ImuAprilTag** / **ImuHiveAuto** / **Strategy\***) → *Open in editor*.
 2. The JS panel follows block changes automatically; *Code vernieuwen* refreshes immediately (Java export stays manual).
 3. **INIT** → OpMode up to `waitForStart` (sim reset; OpMode owns actuators).
 4. **START** / **STOP** — STOP zeros drive + mechanisms; idle teleop then becomes active again.
@@ -112,6 +112,53 @@ The three panels (Blocks / Sim / Code) are **resizable** via the vertical splitt
 | U / J / H / L | `DpadUp` / `Down` / `Left` / `Right` |
 
 During INIT/WAIT/RUN the **Blocks OpMode** has exclusive actuator control. Axis/button overrides are cleared on STOP/DONE/ERROR/reset.
+
+## Autonomous strategies (StarterBot_Strategy*)
+
+Three autonomous example OpModes (red, start A6 against the red wall) that each show a
+different way of scoring with the BIOBUZZ robot (front shooter, rear POLLEN intake, no
+NECTAR mechanism). They drive on IMU + encoders and fix the position on the HIVE AprilTags
+at every shooting spot. The `.blk` files are generated from readable JS in
+`scripts/strategies/` (`hive.src.js`, `flower.src.js`, `hybrid.src.js` + shared helpers in
+`lib.src.js`) with a small JS-to-Blocks compiler (`js2blk.mjs`):
+
+```bash
+node scripts/strategies/build.mjs   # regenerates examples/StarterBot_Strategy*.blk
+```
+
+| Example | Approach |
+|---|---|
+| `StarterBot_StrategyHive` | 3 preload POLLEN TIP the RED AUDIENCE CELL (it starts with the 3 red NECTAR: 3 NECTAR + 3 POLLEN = TIP). Then 4 POLLEN per trip (floor cluster, back-wall FLOWER, red-wall FLOWER, GARDEN corner) into the up CELL, 8 POLLEN = next TIP, PARK at the end. |
+| `StarterBot_StrategyFlower` | Shoots the POLLEN into the red-wall FLOWER (from a spot on the RED AUDIENCE line, ~1.57 m away), collects the floor cluster and shoots again, then PARK. |
+| `StarterBot_StrategyHybrid` | "Safe" HIVE: only the two short, reliable trips (floor cluster, back-wall FLOWER as POLLEN supply) for TIP 2, GARDEN POLLEN stay put (+1 each), early PARK. |
+
+Measured in the headless sim (Chromium/swiftshader, one run each, red only, the `scoring.js`
+breakdown at the end of the run; LEAVE/PARK are indicative because the sim has no match clock):
+
+| Strategy | Total | TIP | CELL | FLOWER | GARDEN | LEAVE | PARK | Score at 30 s | Done at |
+|---|---|---|---|---|---|---|---|---|---|
+| HIVE | **52** | 2 TIPs (40) | 0 | 0 | 4 | 3 | 5 | 27 | 118 s (TIP 1 at 12 s, TIP 2 at 56 s; red-wall FLOWER and GARDEN trips after that scored nothing) |
+| FLOWERS | **18** | 0 | 3 NECTAR (6, start) | **0** (no FLOWER owned, shots missed) | 4 | 3 | 5 | 13 | 39 s |
+| HYBRID (safe) | **43** | 1 TIP (20) | 5 POLLEN (10) | 0 | 5 | 3 | 5 | 28 | 66 s (floor-cluster pick-up failed in this run, so 5 instead of 8 for TIP 2) |
+
+Findings:
+
+- **The HIVE is where the points are.** One TIP is worth 20; the very first one only needs the
+  3 preloads because the RED AUDIENCE CELL already holds 3 NECTAR. After that every TIP needs
+  8 POLLEN = two full trips (G407: max 4 controlled).
+- **FLOWERS score 0 for this robot.** A FLOWER only scores for an alliance whose NECTAR is on
+  top; the robot has no NECTAR mechanism (`pollenServo` / `tryPlaceNectar` does nothing with
+  the `rearPollen` layout), and from 1.5 m the ballistic shot into the small FLOWER opening
+  also misses. The FLOWER strategy only keeps the start points + LEAVE + PARK.
+- FLOWER POLLEN are therefore free ammunition for the HIVE; GARDEN POLLEN already score 1 each
+  where they lie (2 each in a CELL, but the robot loses them again when the CELL TIPs).
+- A TIP spills NECTAR/POLLEN towards the shooting spot; driving off along the wall avoids
+  getting stuck in them.
+- The headless sim runs at ~0.1-0.3x real time with coarse control steps, so routes are less
+  precise than in a normal browser; trips further from the last AprilTag fix (red-wall FLOWER,
+  GARDEN) are the least reliable. Results vary from run to run.
+
+Videos of these runs (sped up to sim real time, with an explanation overlay and a live score line): [`../docs/strategy-videos/hive.mp4`](../docs/strategy-videos/hive.mp4), [`flower.mp4`](../docs/strategy-videos/flower.mp4), [`hybrid.mp4`](../docs/strategy-videos/hybrid.mp4).
 
 ## Drive polarity (real robot)
 
