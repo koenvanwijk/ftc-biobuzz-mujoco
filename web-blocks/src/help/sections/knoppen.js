@@ -7,7 +7,7 @@ export default {
 <table class="help-table">
   <thead><tr><th>Knop</th><th>Wat doet het?</th></tr></thead>
   <tbody>
-    <tr><td><strong>Voorbeeld</strong> (keuzelijst)</td><td>Kies een voorbeeld-OpMode: <em>TankDrive</em>, <em>Mechanisms</em>, <em>EncoderAuto</em>, <em>ImuAprilTag</em>, <em>ImuHiveAuto</em> of <em>DebugDemo</em>. Er gebeurt nog niets tot je op <em>Open in editor</em> klikt.</td></tr>
+    <tr><td><strong>Voorbeeld</strong> (keuzelijst)</td><td>Kies een voorbeeld-OpMode: <em>TankDrive</em>, <em>Mechanisms</em>, <em>EncoderAuto</em>, <em>ImuAprilTag</em>, <em>ImuHiveAuto</em>, de drie strategieën <em>StrategyHive</em>, <em>StrategyFlower</em> en <em>StrategyHybrid</em>, of <em>DebugDemo</em>. Er gebeurt nog niets tot je op <em>Open in editor</em> klikt.</td></tr>
     <tr><td><strong>Open in editor</strong></td><td>Laadt het gekozen voorbeeld in de Blocks-editor en vult meteen het JS-paneel.</td></tr>
     <tr><td><strong>Code vernieuwen</strong></td><td>Leest de huidige blokken uit de editor en maakt opnieuw de JS. Het JS-paneel volgt blokwijzigingen automatisch (met een korte vertraging, zodat slepen en typen niet storen). Deze knop ververst meteen. INIT gebruikt de code die al in het JS-paneel staat, en haalt alleen verse code op als dat paneel (bijna) leeg is. Tijdens een lopende of debug-run wordt alleen de weergave bijgewerkt, niet de code die al draait.</td></tr>
     <tr><td><strong>Export Java</strong></td><td>Downloadt de Java-versie van je blokken als bestand (naam = gekozen voorbeeld + <code>.java</code>, anders <code>OpMode.java</code>).</td></tr>
