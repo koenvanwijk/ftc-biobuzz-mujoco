@@ -32,30 +32,41 @@ function clip(poly, axis, limit, sign) {
   return result;
 }
 
-describe('HIVE passages between all posts', () => {
+describe('HIVE frame: legs, raised crossbar and short-end base bars', () => {
   for (const name of scenes) {
-    it(`keeps four legs and the raised crossbar as frame colliders: ${name}`, () => {
+    it(`has four legs, the raised crossbar and two base bars as frame colliders: ${name}`, () => {
       const xml = read(name).toString();
-      assert.doesNotMatch(xml, /hive_frame_base_/);
       const colliders = [...xml.matchAll(/<geom\b[^>]*name="(hive_frame_[^"]+_col)"[^>]*\/>/g)];
       assert.deepEqual(colliders.map((m) => m[1]).sort(), [
+        'hive_frame_base_neg_x_col', 'hive_frame_base_pos_x_col',
         'hive_frame_crossbar_col', 'hive_frame_leg_ne_col', 'hive_frame_leg_nw_col',
         'hive_frame_leg_se_col', 'hive_frame_leg_sw_col',
       ]);
       for (const [geom] of colliders) {
-        assert.match(geom, /type="capsule"/);
+        assert.match(geom, /type="(capsule|box)"/);
         assert.match(geom, /contype="1" conaffinity="1"/);
       }
       assert.match(xml, /name="hive_frame_crossbar_col"[^>]*fromto="-0.60000 0.00000 1.13150 0.60000 0.00000 1.13150"/);
       assert.match(xml, /name="hive_frame_vis"[^>]*contype="0" conaffinity="0"/);
     });
+
+    it(`restores a visible + colliding base bar between the two feet at each short end: ${name}`, () => {
+      const xml = read(name).toString();
+      for (const [side, x] of [['neg_x', '-0.60000'], ['pos_x', '0.60000']]) {
+        const box = `type="box" pos="${x} 0.00000 0.06500" size="0.02000 0.48000 0.03000"`;
+        assert.match(xml, new RegExp(`name="hive_frame_base_${side}_col" ${box} rgba="0.5 0.5 0.5 0" contype="1" conaffinity="1" group="3"`));
+        assert.match(xml, new RegExp(`name="hive_frame_base_${side}_vis" ${box} material="hive_mat" contype="0" conaffinity="0" group="1"`));
+      }
+    });
   }
 
-  it('keeps the scene generator free of floor beams', () => {
-    assert.doesNotMatch(read('ftc_sim/scene.py').toString(), /base_neg_x|base_pos_x|plate_h|plate_t/);
+  it('scene generator emits the short-end base bars', () => {
+    const py = read('ftc_sim/scene.py').toString();
+    assert.match(py, /base_neg_x/);
+    assert.match(py, /base_pos_x/);
   });
 
-  it('has no visual floor beam in either short-end opening (all mesh copies)', () => {
+  it('CAD frame mesh itself has no floor beam; the base bars are separate geoms (all mesh copies)', () => {
     const stl = read(meshes[0]);
     for (const name of meshes.slice(1)) assert.deepEqual(read(name), stl, name);
     const count = stl.readUInt32LE(80);
