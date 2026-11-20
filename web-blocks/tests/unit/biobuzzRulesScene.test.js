@@ -84,6 +84,25 @@ function sim(cfg = simCfg) {
   return { model, data, ad, place, site, placeRobot, inCell, tick, fwd, bid };
 }
 
+it('reset restores the selected start pose and preloads pollen at that pose', () => {
+  const s = sim();
+  const joint = mujoco.mj_name2id(s.model, mujoco.mjtObj.mjOBJ_JOINT.value, 'robot_free');
+  const a = s.model.jnt_qposadr[joint];
+  const z = s.data.qpos[a + 2];
+  const yaw = -Math.PI / 2;
+  s.ad.startPose = { x: 0.21, y: -0.65, yaw };
+  s.ad.resetPose();
+  const expected = [0.21, -0.65, z, Math.cos(yaw / 2), 0, 0, Math.sin(yaw / 2)];
+  assert.deepEqual(Array.from(s.data.qpos.slice(a, a + 7)), expected);
+  assert.equal(s.ad.mech.stored.length, 4);
+  for (const id of s.ad.mech.stored) {
+    assert.ok(Math.hypot(s.data.xpos[id * 3] - expected[0], s.data.xpos[id * 3 + 1] - expected[1]) < 0.4);
+  }
+  s.placeRobot(0, 0, 0);
+  s.ad.resetPose();
+  assert.deepEqual(Array.from(s.data.qpos.slice(a, a + 7)), expected);
+});
+
 /** Oude indeling (POLLEN voor, NECTAR+POLLEN achter) voor de G407-regels per compartiment. */
 const frontCfg = { ...simCfg, intakeLayout: 'front' };
 

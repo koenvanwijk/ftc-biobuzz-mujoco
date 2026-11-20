@@ -559,7 +559,8 @@ html, body, #app { height: 100%; margin: 0; background: var(--bg); color: var(--
 .route-tab.active { font-weight: bold; outline: 1px solid currentColor; }
 .route-tabs { flex-wrap: wrap; }
 #btnRouteDraw { margin-left: auto; }
-.route-canvas.drawing { cursor: crosshair; }
+.route-canvas.drawing, .route-canvas.placing-start { cursor: crosshair; }
+.route-canvas.placing-start { touch-action: none; }
 .route-wrap { border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .route-wrap[hidden] { display: none; }
 .route-canvas { display: block; width: 100%; aspect-ratio: 1.15 / 1; max-height: 50vh; }

@@ -790,6 +790,25 @@ function wireDebugUi() {
   applyToggle();
 }
 
+function resetSimulation() {
+  runner.stop(() => { adapter.zeroAll(); robotAudio?.stopAll(); });
+  endDebugSession();
+  adapter.resetPose();
+  robotImpacts?.reset();
+  runtime.resetAll();
+  latestCommands = {};
+  resetCameraResolution();
+  lastOpModeCamera = null;
+  opModeOwns = false;
+  clearGamepadOverrides();
+  $('telemetryOut').textContent = '';
+  routePlot?.reset();
+  log('Sim gereset');
+  updateButtons('Idle');
+  $('runStatus').textContent = 'Idle';
+  updateBiobuzzHud(true);
+}
+
 function wireUi() {
   wireDebugUi();
   $('btnLoadExample').onclick = async () => {
@@ -833,24 +852,7 @@ function wireUi() {
     }
   };
 
-  $('btnReset').onclick = () => {
-    runner.stop(() => { adapter.zeroAll(); robotAudio?.stopAll(); });
-    endDebugSession();
-    adapter.resetPose();
-    robotImpacts?.reset();
-    runtime.resetAll();
-    latestCommands = {};
-    resetCameraResolution();
-    lastOpModeCamera = null;
-    opModeOwns = false;
-    clearGamepadOverrides();
-    $('telemetryOut').textContent = '';
-    routePlot?.reset();
-    log('Sim gereset');
-    updateButtons('Idle');
-    $('runStatus').textContent = 'Idle';
-    updateBiobuzzHud(true);
-  };
+  $('btnReset').onclick = resetSimulation;
 
   $('btnInit').onclick = async () => {
     try {
@@ -1076,14 +1078,82 @@ function initRoutePanel() {
     else autoRefresh?.notifyMaybeReady();
   };
   $('tabRoute').onclick = () => show(true);
-  $('tabJs').onclick = () => show(false);
   $('btnRouteClear').onclick = () => { routePlot.waypoints = []; routeStartYawDeg = 0; routePlot.reset(); };
-  $('btnRouteDraw').onclick = () => {
-    routePlot.drawMode = !routePlot.drawMode;
+  let mode = null;
+  let drag = null;
+  const setMode = (next) => {
+    const pointerId = drag?.pointerId;
+    drag = null;
+    if (pointerId != null && canvas.hasPointerCapture(pointerId)) canvas.releasePointerCapture(pointerId);
+    mode = next;
+    routePlot.drawMode = mode === 'route';
+    routePlot.preview = null;
+    routePlot.startPreview = null;
     $('btnRouteDraw').classList.toggle('active', routePlot.drawMode);
+    $('btnRouteStart').classList.toggle('active', mode === 'start');
+    $('btnRouteStart').setAttribute('aria-pressed', String(mode === 'start'));
     canvas.classList.toggle('drawing', routePlot.drawMode);
-    if (routePlot.drawMode) show(true);
+    canvas.classList.toggle('placing-start', mode === 'start');
+    if (mode) show(true);
+    routePlot.redraw();
   };
+  $('tabJs').onclick = () => {
+    if (mode === 'start') setMode(null);
+    show(false);
+  };
+  $('btnRouteDraw').onclick = () => setMode(mode === 'route' ? null : 'route');
+  $('btnRouteStart').onclick = () => {
+    if (opModeOwns) { log('Stop de OpMode om de startpositie te wijzigen'); return; }
+    setMode(mode === 'start' ? null : 'start');
+    if (mode === 'start') log('Klik in het veld voor de startpositie en sleep in de rijrichting');
+  };
+  const pointerWorld = (e, allowOutside = false) => {
+    const r = canvas.getBoundingClientRect();
+    return routePlot.toWorld(e.clientX - r.left, e.clientY - r.top, allowOutside);
+  };
+  canvas.addEventListener('pointerdown', (e) => {
+    if (mode !== 'start' || opModeOwns || drag || e.button !== 0) return;
+    const position = pointerWorld(e);
+    if (!position) return;
+    const yaw = adapter.startPose?.yaw ?? routePlot.tracker.current?.yaw ?? 0;
+    drag = { pointerId: e.pointerId, clientX: e.clientX, clientY: e.clientY, position, yaw };
+    canvas.setPointerCapture(e.pointerId);
+    routePlot.startPreview = { ...position, yaw };
+    routePlot.redraw();
+  });
+  const updateStartPreview = (e) => {
+    const end = pointerWorld(e, true);
+    const { position, yaw } = drag;
+    const moved = Math.hypot(e.clientX - drag.clientX, e.clientY - drag.clientY) >= 4;
+    const heading = moved && end ? Math.atan2(end.y - position.y, end.x - position.x) : yaw;
+    routePlot.startPreview = { ...position, yaw: heading };
+  };
+  canvas.addEventListener('pointermove', (e) => {
+    if (drag?.pointerId !== e.pointerId) return;
+    updateStartPreview(e);
+    routePlot.redraw();
+  });
+  canvas.addEventListener('pointerup', (e) => {
+    if (drag?.pointerId !== e.pointerId) return;
+    updateStartPreview(e);
+    const pose = routePlot.startPreview;
+    setMode(null);
+    if (opModeOwns) return;
+    adapter.startPose = pose;
+    if (routePlot.waypoints.length) {
+      routePlot.waypoints[0] = { x: pose.x, y: pose.y };
+      routeStartYawDeg = pose.yaw * 180 / Math.PI;
+    }
+    resetSimulation();
+    routePlot.add(pose.x, pose.y, pose.yaw);
+    routePlot.draw();
+    log('Startpositie ingesteld');
+  });
+  const cancelStartDrag = (e) => {
+    if (drag?.pointerId === e.pointerId) setMode(null);
+  };
+  canvas.addEventListener('pointercancel', cancelStartDrag);
+  canvas.addEventListener('lostpointercapture', cancelStartDrag);
   const undo = () => { routePlot.waypoints.pop(); routePlot.redraw(); };
   $('btnRouteUndo').onclick = undo;
   canvas.addEventListener('contextmenu', (e) => {
