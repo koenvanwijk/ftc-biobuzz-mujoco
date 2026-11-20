@@ -19,7 +19,7 @@ import {
 import { createRuntime } from './ftc-runtime/createRuntime.js';
 import { initSplitLayout } from './ui/splitLayout.js';
 import { initHelpPanel } from './help/helpPanel.js';
-import { RoutePlot } from './ui/routePlot.js';
+import { FIELD_SIZE_M, RoutePlot } from './ui/routePlot.js';
 import { initStackSplitters } from './ui/stackSplitters.js';
 import { initMobileControls } from './ui/mobileControls.js';
 import { parseFieldElements } from './ui/fieldElements.js';
@@ -192,6 +192,29 @@ function collectDefaultDirections(cfg) {
   return out;
 }
 
+const START_POSE_STORAGE_KEY = 'ftc-biobuzz.startPose';
+
+function loadStartPose() {
+  try {
+    const pose = JSON.parse(localStorage.getItem(START_POSE_STORAGE_KEY));
+    if (pose && [pose.x, pose.y, pose.yaw].every(Number.isFinite)
+      && Math.abs(pose.x) <= FIELD_SIZE_M / 2 && Math.abs(pose.y) <= FIELD_SIZE_M / 2) {
+      return pose;
+    }
+  } catch {
+    // Opslag kan geblokkeerd zijn of ongeldige JSON bevatten.
+  }
+  return null;
+}
+
+function saveStartPose(pose) {
+  try {
+    localStorage.setItem(START_POSE_STORAGE_KEY, JSON.stringify(pose));
+  } catch {
+    // De gekozen pose blijft beschikbaar zolang deze pagina open staat.
+  }
+}
+
 async function boot() {
   initAppSplitLayout();
   initHelpPanel(); // werkt onafhankelijk van MuJoCo-laden
@@ -220,6 +243,8 @@ async function boot() {
     mujocoBundle.data,
     simConfig,
   );
+  adapter.startPose = loadStartPose();
+  if (adapter.startPose) adapter.resetPose();
   robotImpacts = new RobotImpacts(mujocoBundle.mujoco, mujocoBundle.model);
   robotAudio = new RobotAudio(
     Object.fromEntries(['flywheel', 'intake', 'drive', 'collision'].map((name) => [name, publicUrl(`audio/${name}.m4a`)])),
@@ -1140,6 +1165,7 @@ function initRoutePanel() {
     setMode(null);
     if (opModeOwns) return;
     adapter.startPose = pose;
+    saveStartPose(pose);
     if (routePlot.waypoints.length) {
       routePlot.waypoints[0] = { x: pose.x, y: pose.y };
       routeStartYawDeg = pose.yaw * 180 / Math.PI;
