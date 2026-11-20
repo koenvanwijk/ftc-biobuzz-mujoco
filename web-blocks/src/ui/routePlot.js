@@ -76,6 +76,7 @@ export class RoutePlot {
     this.drawMode = false;
     /** Voorbeeldpunt (sim-coördinaten) tijdens hover in tekenmodus. */
     this.preview = null;
+    this.startPreview = null;
     /** @type {ReturnType<import('./fieldElements.js').parseFieldElements> | null} */
     this.field = null;
     this._map = null;
@@ -86,13 +87,13 @@ export class RoutePlot {
   }
   reset() { this.tracker.reset(); this.dirty = true; this.draw(); }
   redraw() { this.dirty = true; this.draw(); }
-  /** CSS-pixels (t.o.v. canvas) -> veld-meters, of null buiten het plotvlak. */
-  toWorld(px, py) {
+  /** CSS-pixels (t.o.v. canvas) -> wereldcoördinaten. */
+  toWorld(px, py, allowOutside = false) {
     const m = this._map;
     if (!m) return null;
     const x = ((px - m.ox) / m.plot) * 2 * m.range - m.range;
     const y = m.range - ((py - m.oy) / m.plot) * 2 * m.range;
-    if (Math.abs(x) > HALF || Math.abs(y) > HALF) return null;
+    if (!allowOutside && (Math.abs(x) > HALF || Math.abs(y) > HALF)) return null;
     return ftcToWorld(x, y);
   }
   add(x, y, yaw) { if (this.tracker.add(x, y, yaw)) this.dirty = true; else if (this.tracker.current) this.dirty = true; }
@@ -202,10 +203,10 @@ export class RoutePlot {
       ctx.restore();
     }
     // Robotmarker (driehoek in kijkrichting)
-    const cur = this.tracker.current;
+    const cur = this.startPreview ?? this.tracker.current;
     if (cur) {
       const [px, py] = sp(cur.x, cur.y), a = -(cur.yaw + Math.PI / 2), r = 8;
-      ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+      ctx.fillStyle = this.startPreview ? '#0ff' : '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(px + r * Math.cos(a), py + r * Math.sin(a));
       ctx.lineTo(px + r * 0.7 * Math.cos(a + 2.5), py + r * 0.7 * Math.sin(a + 2.5));

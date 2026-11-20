@@ -62,6 +62,9 @@ export class BiobuzzHardwareAdapter {
 
     const JNT = mujoco.mjtObj.mjOBJ_JOINT.value;
     const ACT = mujoco.mjtObj.mjOBJ_ACTUATOR.value;
+    const robotJoint = mujoco.mj_name2id(model, JNT, 'robot_free');
+    this._robotQposAdr = robotJoint < 0 ? -1 : model.jnt_qposadr[robotJoint];
+    this.startPose = null;
 
     const registerDrive = (entry) => {
       const jntId = mujoco.mj_name2id(model, JNT, entry.joint);
@@ -374,6 +377,19 @@ export class BiobuzzHardwareAdapter {
 
   resetPose() {
     this.mujoco.mj_resetDataKeyframe(this.model, this.data, 0);
+    if (this.startPose && this._robotQposAdr >= 0) {
+      const { x, y, yaw } = this.startPose;
+      const a = this._robotQposAdr;
+      const q = this.data.qpos;
+      q[a] = x;
+      q[a + 1] = y;
+      q[a + 3] = Math.cos(yaw / 2);
+      q[a + 4] = 0;
+      q[a + 5] = 0;
+      q[a + 6] = Math.sin(yaw / 2);
+      // Preload uses the robot body transform to position pollen in the hopper.
+      this.mujoco.mj_forward(this.model, this.data);
+    }
     resetDriveState();
     this.zeroAll();
     this.mech.resetAndPreload();
